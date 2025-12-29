@@ -1,7 +1,7 @@
 name: Build and deploy book site to GitHub Pages
 on:
   push:
-    branches: ["main"]
+    branches: ["claude/explain-workflow-Ngbvl"]
   workflow_dispatch:
 
 permissions:
