@@ -339,6 +339,130 @@ $~$\hfill -- 바츨라프 하벨
 \end{quote}
 남은 질문은 고차원 데이터로부터 이러한 저차원 구조를 올바르고 계산적으로 효율적으로 학습하는 방법이다. 우리가 보게 되듯이, 고전적 분석적 접근에서 연구된 파라메트릭 모델과 현대 실무에서 인기 있는 심층 네트워크와 같은 비파라메트릭 모델은 동일한 목표를 달성하기 위한 단순히 다른 수단이다.
 
+
+\section{어떻게 학습할 것인가?}
+
+
+\subsection{분석적 접근}
+\label{sec:analytical}
+예측 함수가 계산하기에 다루기 쉽다고 해도, 유한한 수의 샘플링된 세그먼트로부터 이 함수를 학습하는 것이 다루기 쉽거나 확장 가능하다는 것을 의미하지는 않는다. 다루기 쉽도록 보장하는 한 가지 고전적 접근법은 우리가 다루는 저차원 구조의 패밀리에 대해 명시적인 가정을 하는 것이다. 역사적으로, 제한된 계산과 데이터로 인해, 단순하고 이상적인 분석적 모델이 처음으로 연구되었는데, 그것들은 종종 효율적인 폐쇄형 또는 수치적 해법을 제공하기 때문이다. 또한, 그것들은 더 일반적인 문제에 대한 통찰을 제공하고 중요하지만 제한된 경우에 대해 이미 유용한 해법을 제공한다. 옛날에는, 계산 자원이 희소했을 때, 효율적인 폐쇄형 또는 수치적 해법을 허용하는 분석적 모델이 구현될 수 있는 유일한 경우였다. \textit{선형 구조}는 철저히 연구된 첫 번째 모델 클래스가 되었다.
+
+예를 들어, 아마도 가장 간단한 경우는 데이터가 고차원 공간에서 단일 저차원 부분공간 주변에 분포되어 있다고 가정하는 것이다. 다소 동등하게, 데이터가 거의 퇴화된 저차원 가우시안에 따라 분포되어 있다고 가정할 수 있다. 유한한 수의 (노이즈가 있는) 샘플로부터 그러한 부분공간 또는 가우시안을 식별하는 것은 주성분 분석(PCA)의 고전적 문제이며, 이 클래스의 모델에 대해 효과적인 알고리즘이 개발되었다 \cite{JolliffeI2002}. 모델의 패밀리를 점점 더 복잡하고 표현력 있게 만들 수 있다. 예를 들어, 독립 성분 분석(ICA) \cite{Ans-1985}, 사전 학습(DL), 일반화된 주성분 분석(GPCA) \cite{Vidal-GPCA}에서처럼, 또는 압축 감지와 같은 분야에서 최근 몇 년 동안 광범위하게 연구된 희소 저차원 모델의 더 일반적인 클래스에서처럼, 데이터가 저차원 성분(부분공간 또는 저차원 가우시안)의 혼합 주변에 분포되어 있다고 가정할 수 있다 \cite{Wright-Ma-2022}.
+
+이러한 모든 분석적 모델 패밀리에 걸쳐, 중심 문제는 주어진 데이터에 가장 잘 맞는 각 패밀리 내에서 가장 컴팩트한 모델을 식별하는 것이다. 아래에서, 우리는 이러한 고전적 분석적 모델에 대한 간략한 설명을 제공하지만 더 체계적인 연구는 \Cref{ch:classic}로 남겨둔다. 이론적으로, 이러한 분석적 모델은 저차원 구조의 기하학적 및 통계적 속성에 대한 엄청난 통찰을 제공했다. 그것들은 종종 폐쇄형 해법 또는 효율적이고 확장 가능한 알고리즘을 제공하며, 이는 분포가 그러한 모델로 잘 근사될 수 있는 데이터에 매우 유용하다. 더 중요하게, 더 일반적인 문제에 대해, 그것들은 저차원 구조를 식별하는 문제가 얼마나 쉽거나 어려울 수 있는지, 그리고 그러한 문제에 접근하는 기본 아이디어가 무엇인지에 대한 감각을 제공한다.
+
+
+\subsubsection{선형 동적 시스템}
+\label{sec:linear-systems}
+
+\paragraph{위너 필터.}
+
+\Cref{sec:predictability}에서 논의했듯이, 지능의 중심 과제는 관찰 시퀀스에서 예측 가능한 것을 학습하는 것이다. 예측 가능한 시퀀스---또는 신호---의 가장 간단한 클래스는 \textit{선형 시불변}(LTI) 프로세스에 의해 생성된 것들이다:
+\begin{equation}
+    x[n] = h[n]*z[n] + \epsilon[n],
+    \label{eqn:Wiener-model}
+\end{equation}
+여기서 \(*\)는 컨볼루션 연산이고, \(z\)는 입력이며 \(h\)는 임펄스 응답 함수이다.\footnote{일반적으로 \(h\)는 유한 길이 또는 대역 제한 스펙트럼과 같은 특정 바람직한 속성을 갖는다고 가정된다.} 여기서 \(\epsilon[n]\)은 가산 관찰 노이즈를 나타낸다. 입력 프로세스 \(\{z[n]\}\)와 출력 프로세스 \(\{x[n]\}\)의 관찰이 주어졌을 때, 목표는 \(\hat{x}[n] = h[n]*z[n]\)이 \(x[n]\)을 최적으로 예측하도록 하는 최적 \(h[n]\)을 찾는 것이다. 예측 품질(즉, 적합도)은 평균 제곱 오차(MSE)로 측정된다:
+\begin{equation}
+    \min_{h} \Ex[\epsilon[n]^{2}] = \Ex[\|x[n] - h[n]*z[n]\|_{2}^{2}].
+    \label{eqn:wiener-mse}
+\end{equation}
+최적 해법 \(h[n]\)은 (노이즈 제거) 필터라고 불린다. 사이버네틱스 운동을 시작한 노버트 위너는 1940년대에 이 문제를 연구하고 \textit{위너 필터}로 알려진 우아한 폐쇄형 해법을 유도했다 \cite{Wiener-1942,Wiener-1949}. 최소 분산 추정 및 필터링으로도 알려진 이 결과는 신호 처리의 초석 중 하나가 되었다. 관심 있는 독자는 이 유형의 추정기의 자세한 유도를 위해 \cite[Appendix B]{MaY2003}를 참조할 수 있다.
+
+\paragraph{칼만 필터.}
+동적 시스템을 노이즈 제거하거나 필터링하는 아이디어는 나중에 1960년대에 루돌프 칼만에 의해 유한 차원 상태 공간 모델로 설명되는 선형 시불변 시스템으로 확장되었다:
+\begin{equation}
+    \vz[n] = \vA \vz[n-1] + \vB\vu[n] + \vepsilon[n].
+    \label{eqn:linear-state-space}
+\end{equation}
+문제는 다음 형태의 노이즈가 있는 관찰로부터 시스템 상태 \(\vz[n]\)을 추정하는 것이다
+\begin{equation}
+    \vx[n] = \vC \vz[n] + \vw[n],
+    \label{eqn:Kalman-model}
+\end{equation}
+여기서 \(\vw\)는 (백색) 노이즈이다. 최소 MSE(MMSE) 예측 오차를 최소화하는 최적 인과적\footnote{이는 추정기가 현재 시간 단계 \(n\)까지의 관찰만 사용할 수 있다는 것을 의미한다. 칼만 필터는 항상 인과적이지만, 위너 필터는 그럴 필요가 없다.} 상태 추정기
+\begin{equation}
+    \min \Ex[ \|\vx[n] - \vC\vz[n]\|_{2}^{2}]
+    \label{eqn:kalman-mse}
+\end{equation}
+는 소위 \textit{칼만 필터}에 의해 폐쇄형으로 주어진다 \cite{kalman1960new}. 이 결과는 노이즈가 있는 관찰로부터 동적 시스템의 상태를 추정할 수 있게 하기 때문에 현대 제어 이론의 초석이다. 그런 다음 예를 들어 \(\vu[n] = \vF \hat{\vz}[n]\)와 같은 선형 상태 피드백을 도입하고 \Cref{eqn:recursive-closed-loop}에 나타난 것처럼 폐루프 시스템을 완전히 자율적으로 만들 수 있다. 관심 있는 독자는 칼만 필터의 자세한 유도를 위해 \cite[Appendix B]{MaY2003}를 참조할 수 있다.
+
+\paragraph{선형 동적 시스템의 식별.}
+칼만 필터를 유도하기 위해, 시스템 파라미터 \(\vA, \vB, \vC\)가 알려져 있다고 가정된다. 그것들이 사전에 주어지지 않으면, 문제는 더 어려워지고 \textit{시스템 식별}로 알려진다: 입력 시퀀스 \(\{\vu[n]\}\)와 관찰 시퀀스 \(\{\vx[n]\}\)의 많은 샘플로부터 파라미터 \(\vA, \vB, \vC\)를 \textit{학습}하는 방법. 이것은 시스템 이론의 고전적 문제이다. 시스템이 선형이면, 입력 및 출력 시퀀스 \(\{\vu[n], \vx[n]\}\)는 공동으로 특정 저차원 부분공간\footnote{상태 공간 모델 \eqref{eqn:linear-state-space}의 차수와 동일한 차원을 갖는다.} 위에 놓인다. 따라서 식별 문제는 본질적으로 이 저차원 부분공간을 식별하는 것과 동등하다 \cite{OverscheeP1996,Liu-2009-CDC,Liu-2010-SIAM}.
+
+위의 문제들은 두 가지 공통점을 갖는다: 첫째, 노이즈가 없는 시퀀스 또는 신호가 명시적인 파라메트릭 모델 패밀리에 의해 생성된다고 가정된다; 둘째, 이러한 모델은 본질적으로 선형이다. 개념적으로, \(\vx_{o}\)를 ``참'' 분포가 저차원 선형 부분공간, 예를 들어 \(S\)에 지지되는 확률 변수라고 하자. 상당 부분, 위너 필터와 칼만 필터는 모두 노이즈가 있는 관찰로부터 그러한 \(\vx_{o}\)를 추정하려고 시도한다:
+\begin{equation}
+    \vx = \vx_{o} + \vepsilon, \quad \vx_{o} \sim S,
+\end{equation}
+여기서 \(\vepsilon\)는 일반적으로 무작위 가우시안 노이즈(또는 프로세스)이다. 따라서 그들의 해법은 관찰된 노이즈가 있는 데이터에 가장 잘 맞는 저차원 선형 부분공간을 식별하는 것에 의존한다. 데이터를 이 부분공간으로 투영함으로써, 최적의 노이즈 제거 연산을 얻으며, 모두 폐쇄형으로 된다.
+
+
+\subsubsection{선형 및 혼합 선형 모델}
+\label{sec:PCA-ICA}
+\paragraph{주성분 분석.}
+고전적인 신호 처리 및 시스템 식별의 위의 문제로부터, 우리는 이러한 모든 문제의 배후에 있는 주요 과제가 노이즈가 있는 관찰로부터 \textit{단일} 저차원 선형 부분공간을 학습하는 것임을 알 수 있다. 수학적으로, 우리는 그러한 구조를 다음과 같이 모델링할 수 있다
+\begin{equation}
+    \vx = \vu_{1} z_{1} + \vu_{2} z_{2} + \cdots + \vu_{d} z_{d} + \vepsilon =  \vU \vz + \vepsilon, \quad \vU \in \R^{D\times d},
+    \label{eqn:PCA-model}
+\end{equation}
+여기서 \(\vepsilon \in \R^{D}\)는 작은 무작위 노이즈이다. \Cref{fig:PCA}는 두 개의 주성분을 가진 그러한 분포를 보여준다.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter1/figs/PCA.png}
+    \caption{두 개의 주성분을 가진 분포.}
+    \label{fig:PCA}
+\end{figure}
+문제는 \(\vx\)의 많은 샘플로부터 부분공간 기저 \(\vU\)를 찾는 것이다. 전형적인 접근법은 부분공간으로의 투영 오차를 최소화하는 것이다:
+\begin{equation}
+    \min_{\vU}\Ex[\|\vx - \vU\vU^{\top} \vz\|_{2}^{2}].
+\end{equation}
+이것은 본질적으로 노이즈 제거 작업이다: 기저 \(\vU\)가 올바르게 발견되면, \(\vU\)에 의해 생성되는 저차원 부분공간으로 투영함으로써 노이즈가 있는 샘플 \(\vx\)를 노이즈 제거할 수 있다:
+\begin{equation}
+\vx \rightarrow \hat{\vx} = \vU\vU^{\top} \vx.
+\end{equation}
+노이즈가 작고 저차원 부분공간 \(\vU\)가 올바르게 학습되면, \(\vx \approx \hat{\vx}\)를 기대한다. 따라서 PCA는 데이터를 저차원 공간으로 투영하여 인코딩하고, 저차원 코드를 원래 공간으로 디코딩하는 소위 ``자동 인코딩'' 체계의 특수한 경우이다:
+\begin{equation}
+    \vx   \xrightarrow{\hspace{2mm} \vU^{\top}\hspace{2mm}} \vz  \xrightarrow{\hspace{2mm} \vU \hspace{2mm}} \hat{\vx}.
+       \label{eqn:auto-encoding-PCA}
+\end{equation}
+간단한 데이터 구조 때문에, 인코더 \(\cE\)와 디코더 \(\cD\)는 모두 간단한 선형 연산자(투영 및 리프팅)가 된다.
+
+통계학의 이 고전적 문제는 주성분 분석(PCA)으로 알려져 있다. 이것은 1901년 Pearson에 의해 처음 연구되었고 \cite{Pearson1901} 나중에 1933년 Hotelling에 의해 독립적으로 연구되었다 \cite{Hotelling1933}. 주제는 고전적인 책 \cite{Jolliffe1986,JolliffeI2002}에서 체계적으로 요약되었다.
+데이터 \(\vx\)가 단일 저차원 가우시안에 따라 분포되어 있다고 명시적으로 가정할 수도 있다:
+\begin{equation}
+    \vx \sim \mathcal{N}(\vzero, \vU\vU^{\top} + \sigma \vI), \quad \vU \in \R^{D\times d},
+\end{equation}
+이는 PCA 모델 \eqref{eqn:PCA-model}의 \(\vz\)가 표준 정규 분포라고 가정하는 것과 동등하다. 이 문제는 확률론적 PCA \cite{TippingM1999}로 알려져 있으며 PCA와 동일한 계산 해법을 갖는다.
+
+본서에서, 우리는 저차원 분포를 학습하는 관점에서 \Cref{ch:classic}에서 PCA를 재검토한다. 우리의 목표는 이 간단하고 이상적인 모델을 사용하여 저차원 분포의 컴팩트한 표현을 학습하기 위한 가장 근본적인 아이디어 중 일부를 전달하는 것인데, 여기에는 노이즈 제거를 통한 압축 및 일관된 표현을 위한 자동 인코딩의 중요한 개념이 포함된다.
+
+\paragraph{독립 성분 분석.}
+독립 성분 분석(ICA)은 원래 \cite{Ans-1985}에 의해 \textit{좋은 표현을 학습}하기 위한 고전적 모델로 제안되었다. 사실, 그것은 원래 우리의 기억을 위한 간단한 수학적 모델로 제안되었다. ICA 모델은 관찰된 확률 변수 \(\vx\)가 여러 독립 성분 \(z_{i}\)의 선형 중첩이라고 가정함으로써 위의 PCA 모델 \eqref{eqn:PCA-model}과 속임수처럼 유사한 형태를 취한다:\footnote{PCA에서 ``성분''은 학습된 벡터인 반면, ICA에서는 스칼라이다. 이것은 단지 이름과 관례의 차이이다.}
+\begin{equation}
+    \vx = \vu_{1} z_{1} + \vu_{2} z_{2} + \cdots + \vu_{d} z_{d}  + \vepsilon =  \vU \vz + \vepsilon.
+    \label{eqn:ICA-model}
+\end{equation}
+그러나 여기서 성분 \(z_{i}\)는 독립 \textit{비가우시안} 변수라고 가정된다. 예를 들어, 인기 있는 선택은 다음과 같다
+\begin{equation}
+    z_{i} = \sigma_{i} \cdot w_{i}, \quad \sigma_{i} \sim B(1,p),
+    \label{eqn:ICA-modes}
+\end{equation}
+여기서 \(\sigma_{i}\)는 베르누이 확률 변수이고 \(w_{i}\)는 상수 값 또는 예를 들어 가우시안과 같은 다른 확률 변수일 수 있다.\footnote{\(w\)가 가우시안이더라도, \(\sigma w\)는 더 이상 가우시안 변수가 아니다!} ICA 문제는 \(\vx\)의 관찰된 샘플로부터 \(\vU\)와 \(\vz\) 모두를 식별하는 것을 목표로 한다. \Cref{fig:ICA-PCA}는 ICA와 PCA 간의 차이를 보여준다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter1/figs/PCA_ICA.png}
+    \caption{PCA(왼쪽) 대 ICA(오른쪽). PCA는 데이터를 대략적으로 생성하는 \textit{직교} 벡터를 찾는 반면, ICA는 데이터를 대략적으로 형성하기 위해 \textit{독립적으로} 결합하는 (반드시 직교일 필요는 없는) 벡터와 이 결합의 계수를 찾는다는 점에 유의하라.}
+    \label{fig:ICA-PCA}
+\end{figure}
+
+\(\vU\)와 \(\vz\)가 학습되면 \(\vz\)에서 \(\vx\)로의 (디코딩) 매핑은 선형적이고 간단해 보이지만, \(\vx\)에서 \(\vz\)로의 (인코딩) 매핑은 복잡할 수 있으며 간단한 선형 매핑으로 표현되지 않을 수 있다. 따라서 ICA는 일반적으로 다음 형태의 자동 인코딩을 제공한다:
+\begin{equation}
+    \vx   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \vz  \xrightarrow{\hspace{2mm} \vU \hspace{2mm}} \hat{\vx}.
+       \label{eqn:auto-encoding-ICA}
+\end{equation}
+따라서 PCA와 달리 ICA는 분석하고 해결하기가 다소 더 어렵다. 1990년대에 Erkki Oja 및 Aapo Hyv\"{a}rinen \cite{hyvarinen-1997,Hyvrinen-2000}과 같은 연구자들이 ICA에 대한 중요한 이론적 및 알고리즘적 기여를 했다. \Cref{ch:classic}에서, 우리는 ICA에 대한 해법을 연구하고 제공할 것이며, 여기서 인코딩 매핑 \(\cE\)가 명확해질 것이다.
+
 \textit{[계속 번역 중...]}
 
 \end{document}
