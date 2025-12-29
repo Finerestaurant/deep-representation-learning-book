@@ -463,6 +463,135 @@ $~$\hfill -- 바츨라프 하벨
 \end{equation}
 따라서 PCA와 달리 ICA는 분석하고 해결하기가 다소 더 어렵다. 1990년대에 Erkki Oja 및 Aapo Hyv\"{a}rinen \cite{hyvarinen-1997,Hyvrinen-2000}과 같은 연구자들이 ICA에 대한 중요한 이론적 및 알고리즘적 기여를 했다. \Cref{ch:classic}에서, 우리는 ICA에 대한 해법을 연구하고 제공할 것이며, 여기서 인코딩 매핑 \(\cE\)가 명확해질 것이다.
 
-\textit{[계속 번역 중...]}
+
+\paragraph{희소 구조 및 압축 감지.}
+\eqref{eqn:ICA-modes}의 \(p\)가 매우 작으면, 어떤 성분이 0이 아닐 확률이 작다. 이 경우 \(\vx\)가 희소하게 생성되고 차원이 \(k = p \cdot d\)인 선형 부분공간의 합집합에 집중된다고 말한다. 따라서 우리는 ICA 모델을 희소 모델로 알려진 더 일반적인 저차원 구조 패밀리로 확장할 수 있다.
+
+\(k\)-희소 모델은 모든 \textit{\(k\)-희소 벡터}의 집합이다:
+\begin{equation}
+    \cZ = \{\vz \in \R^{n} \mid \|\vz\|_{0} \leq k\},
+\end{equation}
+여기서 \(\|\cdot\|_{0}\)은 0이 아닌 항목의 수를 센다. 따라서 \(\cZ\)는 \Cref{fig:mixture-models} (왼쪽)에 그림으로 나타난 것처럼 좌표축과 정렬된 모든 \(k\)차원 부분공간의 합집합이다. 신호 처리 및 통계의 중심 문제는 선형 관찰로부터 희소 벡터 \(\vz\)를 복구하는 것이다
+\begin{equation}
+    \vx = \vA \vz + \vepsilon, \quad \vA \in \R^{m\times n},
+    \label{eqn:sparse-model}
+\end{equation}
+여기서 \(\vA\)가 주어지고, 일반적으로 \(m < n\)이며, \(\vepsilon\)는 작은 노이즈이다. 이 겉보기에 무해한 문제는 NP-난해하고 근사하기도 어렵다(자세한 내용은 \cite{Wright-Ma-2022} 참조).
+
+18세기로 거슬러 올라가는 풍부한 역사에도 불구하고 \cite{Boscovichca1750}, 이 클래스의 문제에 대한 증명 가능하게 효율적인 알고리즘은 존재하지 않았지만, 1960년대와 1990년대 사이에 많은 휴리스틱 알고리즘이 제안되었다. 일부는 실제로 효과적이었지만 엄격한 정당화가 부족했다. 주요 돌파구는 David Donoho, Emmanuel Cand\'{e}s, Terence Tao \cite{donoho2005neighborly,Candes2005,CandesE2005-IT}를 포함한 수학자들이 희소 복구 문제가 볼록 \(\ell^{1}\) 최소화를 통해 효과적이고 효율적으로 해결될 수 있는 정확한 조건을 특성화하는 엄격한 이론적 프레임워크를 확립한 2000년대 초에 나왔다:
+\begin{equation}
+    \min \|\vz\|_{1} \quad \text{subject to} \quad \|\vx - \vA\vz\|_{2} \leq \epsilon,
+\end{equation}
+여기서 \(\|\cdot\|_{1}\)은 벡터의 희소성 촉진 \(\ell^{1}\) 노름이고 \(\epsilon\)는 작은 상수이다. 어떤 해법도 희소 (자동) 인코딩을 제공한다
+\begin{equation}
+    \vx \xrightarrow{\hspace{2mm} \cE \hspace{2mm}} \vz \xrightarrow{\hspace{2mm} \vA \hspace{2mm}} \hat{\vx}.
+    \label{eqn:decoding-sparse}
+\end{equation}
+우리는 \Cref{ch:classic}에서 그러한 알고리즘(따라서 매핑)을 설명할 것이며, 희소 코딩과 심층 학습 간의 근본적인 연결을 밝힐 것이다.\footnote{희소 코딩 알고리즘과 심층 네트워크 간의 유사성은 2010년에 일찍이 주목되었다 \cite{gregor2010learning}.}
+
+\(\ell^{1}\) 최소화가 성공하기 위한 조건은 놀랍도록 일반적이다: 성공적인 복구에 필요한 최소 측정 수 \(m\)은 고유 차원 \(k\)에만 비례한다. 이것이 \textit{압축 감지} 현상이다 \cite{CandesE2006-ICM}. 그것은 낮은 순위 행렬을 포함하여 저차원 구조의 광범위한 패밀리로 확장된다. 이러한 결과는 고차원 공간에서 저차원 구조를 복구하는 우리의 이해를 근본적으로 변화시켰다. David Donoho는 특히 일반적인 비관적 믿음인 ``차원의 저주''와 대조적으로 이러한 역전을 ``차원의 축복''으로 찬양했다 \cite{DonohoD2000}. 완전한 이론과 결과 본문은 \cite{Wright-Ma-2022}에 제시되어 있다.
+
+이 프레임워크의 계산적 중요성은 과대평가될 수 없다. 그것은 이전에 다루기 어렵다고 믿어졌던 문제를 다루기 쉬울 뿐만 아니라 극도로 효율적인 알고리즘을 사용하여 확장 가능하게 해결할 수 있는 문제로 변환했다:
+\begin{equation}
+    \text{다루기 어려움} \;\Longrightarrow\; \text{다루기 쉬움} \;\Longrightarrow\; \text{확장 가능}.
+\end{equation}
+알고리즘은 데이터 및 계산에서 정확한 요구 사항이 주어진 정확성의 엄격한 이론적 보장과 함께 제공된다. 이 접근법의 연역적 특성은 심층 신경망의 경험적, 귀납적 실무와 크게 대조된다. 그러나 우리는 이제 두 접근법이 공통 목표를 공유한다는 것을 안다---고차원 공간에서 저차원 구조를 추구하는 것.
+
+\paragraph{사전 학습.}
+개념적으로, 희소 코딩 문제 \eqref{eqn:sparse-model}보다 더 어려운 문제는 관찰 행렬 \(\vA\)가 알려지지 않고 (가능하게 노이즈가 있는) 관찰 집합 \(\vX = [\vx_{1}, \vx_{2}, \ldots, \vx_{n}]\)으로부터 자체적으로 학습되어야 할 때 발생한다:
+\begin{equation}
+    \vX = \vA \vZ + \vE, \quad \vA \in \R^{m\times n}.
+    \label{eqn:dictionary-learning}
+\end{equation}
+여기서 우리는 \(\vX\)만 주어지고, 대응하는 \(\vZ = [\vz_{1}, \vz_{2}, \ldots, \vz_{n}]\) 또는 노이즈 항 \(\vE = [\vepsilon_{1}, \vepsilon_{2}, \ldots, \vepsilon_{n}]\)은 주어지지 않지만, \(\vz_{i}\)가 희소하다는 것은 알려져 있다. 이것이 \textit{사전 학습} 문제이며, 앞서 논의한 ICA 문제 \eqref{eqn:ICA-model}을 일반화한다. 다시 말해, 데이터 \(\vX\)의 분포가 선형 변환 \(\vA\) 아래에서 표준 희소 분포 \(\vZ\)의 이미지라는 것을 감안할 때, 우리는 자동 인코더를 얻기 위해 \(\vA\)와 그 ``역'' 매핑 \(\cE\) 모두를 학습하고자 한다:
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}}  \vZ \xrightarrow{\hspace{2mm} \vA \hspace{2mm}} \hat{\vX}.
+       \label{eqn:decoding-DL}
+\end{equation}
+
+PCA, ICA, 사전 학습은 모두 데이터 분포가 저차원 선형 또는 조각별 선형 구조 위에 또는 근처에 지지된다고 가정한다. 각 방법은 노이즈가 있는 샘플로부터 이러한 구조에 대한 (전역 또는 국소) 기저를 학습해야 한다. \Cref{ch:classic}에서 우리는 이러한 고전적 모델을 통해 그러한 저차원 구조를 식별하는 방법을 연구한다. 특히, 우리는 이러한 모든 저차원 (조각별) 선형 모델이 \textit{파워 반복}으로 알려진 동일한 고속 알고리즘 패밀리에 의해 효율적으로 학습될 수 있음을 보게 될 것이다 \cite{Zhai-2020}. 이러한 선형 또는 조각별 선형 모델이 대부분의 실제 데이터에 대해 다소 이상적이지만, 그것들을 이해하는 것은 더 일반적인 저차원 분포를 이해하기 위한 필수적인 첫 단계이다.
+
+\subsubsection{일반 분포}\label{sec:denoising-intro}
+
+이미지, 비디오, 오디오와 같은 실제 데이터의 분포는 위의 다소 이상적인 선형 모델이나 가우시안 프로세스로 모델링하기에는 너무 복잡하다. 우리는 일반적으로 그것들이 어떤 파라메트릭 모델 패밀리로부터 생성되는지를 \textit{사전에} 알지 못한다. 역사적으로, 이러한 데이터에 대한 분석적 모델을 개발하려는 많은 시도가 있었다. 특히 필즈 메달리스트 David Mumford는 1990년대에 자연 이미지의 통계를 이해하고 모델링하려고 상당한 노력을 기울였다 \cite{Mumford1996TheSD}. 그와 Song-Chun Zhu를 포함한 그의 학생들은 통계 물리학으로부터 영감과 기법을 끌어내어 무작위 장 또는 확률 프로세스와 같은 자연 이미지의 분포에 대한 많은 통계적 및 확률적 모델을 제안했다 \cite{Zhu-Entropy-1997,Zhu1997LearningGP,Zhu1997Prior,Huang-Mumford,Mumford-1999,Lee-Mumford}. 그러나 이러한 분석적 모델은 자연 이미지와 밀접하게 닮은 샘플을 생성하는 데 제한된 성공만을 거두었다. 분명히, 이미지와 같은 실제 데이터에 대해, 우리는 그들의 더 일반적인 저차원 구조를 추구하기 위한 더 강력하고 통합된 방법을 개발해야 한다.
+
+실제로, 실제 데이터의 일반 분포에 대해, 우리는 일반적으로 분포로부터의 많은 샘플만 가지고 있다---소위 \textit{경험적 분포}. 그러한 경우에, 우리는 일반적으로 그들의 저차원 구조나 결과적인 노이즈 제거 연산자에 대한 명확한 분석적 형태를 기대할 수 없다.\footnote{이것은 PCA, 위너 필터, 칼만 필터의 경우와 다르다.} 따라서 우리는 이러한 경험적 분포에 대한 더 일반적인 해법을 개발해야 하는데, 반드시 폐쇄형일 필요는 없지만 적어도 효율적으로 계산 가능해야 한다. 우리가 이것을 올바르게 수행하면, 앞서 언급한 선형 모델에 대한 해법은 그들의 특수한 경우가 되어야 한다.
+
+\paragraph{노이즈 제거.} 1950년대에, 통계학자들은 임의의 분포로부터 추출된 데이터를 노이즈 제거하는 문제에 관심을 갖게 되었다. \(\vx_{o}\)를 확률 밀도 함수 \(p_{o}(\cdot)\)를 가진 확률 변수라고 하자. \(\vx_{o}\)의 노이즈가 있는 버전을 관찰한다고 가정하자:
+\begin{equation}
+    \vx = \vx_{o} + \sigma \vg,
+\end{equation}
+여기서 \(\vg \sim \dNorm(\vzero, \vI)\)는 표준 가우시안 노이즈이고 \(\sigma\)는 관찰의 노이즈 수준이다. \(p(\cdot)\)를 \(\vx\)의 확률 밀도 함수라고 하자.\footnote{즉, \(p(\vx) = \int_{-\infty}^{\infty} \phi_{\sigma}(\vx - \vz)p_{o}(\vz) \odif{\vz}\), 여기서 \(\phi_{\sigma}\)는 가우시안 분포 \(\mathcal{N}(\vzero, \sigma^{2} \vI)\)의 밀도 함수이다.} 놀랍게도, \(\vx\)가 주어졌을 때 \(\vx_{o}\)의 사후 기대값은 Tweedie의 공식으로 알려진 우아한 공식으로 계산될 수 있다 \cite{Robbins1956AnEB}:\footnote{Herbert Robbins는 개인적인 서신으로부터 Maurice Kenneth Tweedie에게 이 공식의 공로를 돌렸다.}
+\begin{equation}
+    \hat{\vx}_{o} = \Ex[\vx_{o}\mid \vx] = \vx + \sigma^{2} \nabla \log p(\vx).
+\end{equation}
+공식에서 볼 수 있듯이, 함수 \(\nabla \log p(\vx)\)는 여기서 관찰 \(\vx\)를 노이즈 제거하는 데 매우 특별한 역할을 한다. 노이즈 \(\vg\)는 다음과 같이 명시적으로 추정될 수 있다
+\begin{equation}
+    \hat{\vg} = \frac{\vx - \hat{\vx}_{o}}{\sigma} = -\sigma \nabla \log p(\vx),
+\end{equation}
+이를 위해 우리는 \(\vx_{o}\)에 대한 진실 \(p_{o}(\cdot)\)가 아니라 \(\vx\)의 분포 \(p(\cdot)\)만 알면 된다. 이 결과의 중요한 함의는 어떤 분포에 가우시안 노이즈를 추가하면, 함수 \(\nabla \log p(\vx)\)를 어떻게든 얻을 수 있다면 노이즈 제거 프로세스를 쉽게 수행할 수 있다는 것이다.
+
+이것이 매우 중요하고 유용한 결과이기 때문에, 많은 다른 맥락과 영역에서 재발견되고 사용되었다. 예를 들어, Tweedie의 공식 \cite{Robbins1956AnEB} 이후, 그것은 몇 년 후 \cite{Miyasawa61}에 의해 재발견되었으며 ``경험적 베이지안 노이즈 제거''라고 불렸다. 2000년대 초에, 함수 \(\nabla \log p(\vx)\)는 일반 분포를 학습하는 맥락에서 다시 재발견되었고 Aapo Hyv\"{a}rinen \cite{hyvarinen05a}에 의해 ``점수 함수''라고 명명되었다. (경험적 베이지안) 노이즈 제거와의 연결은 곧 \cite{Vincent2011}에 의해 인식되었다.
+다른 측정 분포(가우시안 노이즈를 넘어서)로의 일반화는 Eero Simoncelli의 그룹 \cite{Raphan10}에 의해 이루어졌다. 오늘날, Tweedie의 공식과 노이즈 제거의 가장 직접적인 응용은 반복적 노이즈 제거를 통한 이미지 생성이다 \cite{Kadkhodaie21a,ho2020denoising}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{\toplevelprefix/chapters/chapter1/figs/Density-compress.png}
+    \caption{왼쪽의 밀도 \(p(\vx)\)를 가진 분포에 대한 점수 함수 \(\nabla \log p(\vx)\)의 기하학적 해석. 점수 함수에 의해 생성된 연산은 분포를 더 높은 밀도의 영역으로 밀어낸다. 목표는 압축성의 특정 측정(예: 엔트로피 또는 코딩 길이)에 의해 결과 분포가 더 ``압축''되는 것이다. 결국, 분포는 오른쪽에 나타난 \(p^{*}(\vx)\)와 같이 저차원 지지를 가진 것으로 수렴한다.}
+    \label{fig:score-function}
+\end{figure}
+
+
+\paragraph{엔트로피 최소화.} 점수는 직관적인 정보 이론적 및 기하학적 해석을 갖는다. 정보 이론에서, \(-\log p(\vx)\)는 \(\vx\)를 인코딩하는 데 필요한 비트 수에 해당한다\footnote{적어도 이산 변수에 대해, \Cref{ch:compression}에 자세히 설명된 바와 같이.}. 기울기 \(\nabla \log p(\vx)\)는 \Cref{fig:score-function} (왼쪽)에 나타난 것처럼 더 높은 확률 밀도 영역을 향한다. 이 방향으로 이동하면 \(\vx\)를 인코딩하는 데 필요한 비트 수가 줄어든다. 따라서 연산자 \(\nabla \log p(\vx)\)는 분포를 고밀도 영역으로 ``축소''하도록 밀어낸다. 공식적으로, (미분) 엔트로피
+\begin{equation}
+    H(\vx) = - \int p(\vw) \log p(\vw) \odif{\vw}
+\end{equation}
+는 이 연산 하에서 감소한다는 것을 보일 수 있다(\Cref{ch:compression} 및 \Cref{app:diffusion-denoising} 참조). 최적 코드북으로, 결과 분포는 더 낮은 코딩 율을 달성하고 따라서 더 압축된다. 이 노이즈 제거 프로세스를 무한정 반복하면 확률 질량이 더 낮은 차원의 지지에 집중된 분포가 생성된다. 예를 들어, \Cref{fig:score-function} (왼쪽)의 분포 \(p(\vx)\)는 \(p^{*}(\vx)\) (오른쪽)로 수렴한다:\footnote{엄밀히 말하면, \(p^{*}(\vx)\)는 일반화된 함수이다: \(p^{*}(\vx) = p^{*}(\vx_{1})\delta(\vx-\vx_{1}) + p^{*}(\vx_{2}) \delta(\vx-\vx_{2})\) 여기서 \(p^{*}(\vx_{1}) + p^{*}(\vx_{2}) = 1\).}\footnote{이 섹션에서 우리는 고엔트로피 노이즈 분포를 반복적으로 노이즈 제거하고 압축하여 저엔트로피 데이터 분포로 수렴하는 프로세스를 논의한다. \Cref{ch:general-distribution}에서 보게 되듯이, 이 문제는 데이터 분포에 대한 최적 인코딩을 학습하는 문제와 쌍대적이며, 이것 역시 유용한 응용이다 \cite{relic2024lossy}.}
+\begin{equation}
+    H(\vx) = - \int p(\vw) \log p(\vw) \odif{\vw} \quad \xrightarrow{\hspace{1mm} \text{decreasing} \hspace{1mm}} \quad H^{*}(\vx) = - \int p^{*}(\vw) \log p^{*}(\vw) \odif{\vw}.
+\end{equation}
+분포가 \(p^{*}(\vx)\)로 수렴함에 따라, 그 미분 엔트로피는 연속 및 이산 엔트로피 정의 간의 기술적 차이로 인해 음의 무한대에 접근한다. \Cref{ch:compression}은 통합된 \textit{율-왜곡} 측정을 사용하여 이를 해결한다.
+
+이 장의 나중 부분과 \Cref{ch:compression}에서, 우리는 이 간단한 노이즈 제거-압축 프레임워크가 자연 이미지 분포를 포함하여 고차원 공간에서 저차원 분포를 학습하기 위한 강력한 방법을 통합하는 방법을 탐구한다.
+
+\subsection{경험적 접근}
+실제로, 이미지, 소리, 텍스트와 같은 중요한 실제 데이터를 이전 섹션에서 논의한 이상화된 선형, 조각별 선형 또는 기타 분석적 모델로 모델링하기는 어렵다. 역사적으로, 많은 경험적 모델과 방법이 제안되었다. 이러한 모델은 종종 생물학적 신경계로부터 영감을 얻었는데, 동물이나 인간의 뇌가 그러한 데이터를 놀라운 효율성과 효과성으로 처리하기 때문이다.
+
+\subsubsection{고전적 인공 신경망}
+\paragraph{인공 뉴런.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.55\linewidth]{\toplevelprefix/chapters/chapter1/figs/neuron.png} \hspace{3mm}
+    \includegraphics[width=0.40\linewidth]{\toplevelprefix/chapters/chapter1/figs/Artificial_neuron.png}
+    \caption{뉴런(왼쪽)이 신호를 처리하는 방식을 모방한 인공 뉴런의 첫 번째 수학적 모델(오른쪽).}
+    \label{fig:neuron}
+\end{figure}
+
+뇌의 신경계에서 영감을 받아, 인공 뉴런의 첫 번째 수학적 모델\footnote{선형 임계값 단위(Linear Threshold Unit) 또는 퍼셉트론으로 알려져 있다.}은 1943년 Warren McCulloch\footnote{당시 시카고 대학교 정신과 교수}과 Walter Pitts에 의해 제안되었다 \cite{McCulloch-Pitts}. 그것은 입력 $x_i$와 출력 $o_j$ 간의 관계를 다음과 같이 설명한다:
+\begin{equation}
+    o_j = \varphi\Big( \sum_i w_{ji}x_i\Big),
+\end{equation}
+여기서 $\varphi(\cdot)$는 일반적으로 임계값 함수로 모델링되는 비선형 활성화이다. 이 모델은 \Cref{fig:neuron}에 그림으로 나타나 있다. 볼 수 있듯이, 이 형태는 이미 현대 심층 신경망의 기본 단위의 주요 특성을 공유한다. 이 모델은 우리 신경계에서 단일 뉴런이 작동하는 방식의 관찰로부터 유도되었다. 그러나 연구자들은 그러한 뉴런들의 집합이 정확히 어떤 기능을 실현하고 수행할 수 있는지 알지 못했다. 더 기술적인 수준에서, 그들은 또한 어떤 비선형 활성화 함수 $\varphi(\cdot)$를 사용해야 하는지 확신하지 못했다. 따라서 역사적으로 많은 변형이 제안되었다.\footnote{계단 함수, 하드 또는 소프트 임계값, 정류 선형 단위(ReLU), 시그모이드 등 \cite{dubey2022activation}.}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{\toplevelprefix/chapters/chapter1/figs/single-deep.png}
+    \caption{하나의 은닉층을 가진 네트워크(왼쪽) 대 심층 네트워크(오른쪽).}
+    \label{fig:single-deep}
+\end{figure}
+
+\paragraph{인공 신경망.}
+1950년대에, Frank Rosenblatt은 \Cref{fig:perceptron}에 나타난 것처럼 그러한 인공 뉴런의 \textit{네트워크}를 가진 기계를 최초로 구축했다. Mark I Perceptron이라고 불리는 이 기계는 입력층, 출력층, 그리고 \Cref{fig:perceptron} 왼쪽에 나타난 것처럼 512개의 인공 뉴런을 가진 단일 은닉층으로 구성되어 있으며, 이는 \Cref{fig:single-deep} (왼쪽)에 그림으로 나타난 것과 유사하다. 그것은 글자의 광학 이미지를 분류하도록 설계되었다. 그러나 단일층 네트워크의 용량은 제한적이며 선형적으로 분리 가능한 패턴만 학습할 수 있다. Marvin Minsky와 Seymour Papert의 1969년 책 \textit{Perceptrons: An Introduction to Computational Geometry} \cite{Minsky-1969}에서, Mark I Perceptron의 단일층 아키텍처가 XOR 함수를 학습할 수 없다는 것이 보였다. 이 결과는 인공 신경망에 대한 관심을 크게 약화시켰는데, 비록 나중에 다층 네트워크가 XOR 함수를 학습할 수 있다는 것이 증명되었지만 말이다 \cite{Rumelhart1986}. 사실, \Cref{fig:single-deep} (오른쪽)에 나타난 것처럼 그러한 간단한 뉴런으로 구성된 충분히 큰 다층 네트워크는 심지어 범용 튜링 기계를 포함하여 어떤 유한 상태 기계도 시뮬레이션할 수 있다.\footnote{신경망이 원칙적으로 무엇을 할 수 있는지와 특정 원하는 기능을 실현하는 신경망을 학습하는 것이 다루기 쉽거나 쉬운지를 혼동하지 말라.} 그럼에도 불구하고, 인공 신경망 연구는 이후 1970년대에 첫 번째 겨울에 들어갔다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\linewidth]{\toplevelprefix/chapters/chapter1/figs/visu-large.jpg}
+    \hspace{2mm} \includegraphics[width=0.45\linewidth]{\toplevelprefix/chapters/chapter1/figs/Original-Mark-I-perceptron-as-seen-in-its-operators-manual-20.ppm.png}
+    \caption{1950년대 후반 Frank Rosenblatt이 개발한 Mark I Perceptron 기계.}
+    \label{fig:perceptron}
+\end{figure}
+
+\textit{[Chapter 1의 나머지 부분은 매우 길어서 별도로 계속 번역이 필요합니다. 현재까지 약 60%를 번역 완료했습니다.]}
 
 \end{document}
