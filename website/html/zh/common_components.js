@@ -49,6 +49,7 @@
     languages: {
       en: "English",
       zh: "中文",
+      ko: "한국어",
     },
 
     // AI Chat interface

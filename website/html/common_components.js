@@ -149,6 +149,7 @@ For broader feedback about the book or this website:
     languages: {
       en: "English",
       zh: "中文",
+      ko: "한국어",
     },
 
     // Sidebar sections

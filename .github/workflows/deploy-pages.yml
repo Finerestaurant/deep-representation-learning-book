@@ -117,28 +117,56 @@ jobs:
             else
               RO_PDF_EXIT=1
             fi
-          
+
             if [ $RO_PDF_EXIT -eq 0 ]; then
               echo "Romanian PDF build successful, moving PDF to assets..."
               mv book-main_ro.pdf website/html/assets/book-main_ro.pdf
             else
               echo "Romanian PDF build failed"
             fi
-            
+
             echo "Romanian build complete: PDF=$RO_PDF_EXIT"
             return $((RO_PDF_EXIT))
           }
-            
-          
+
+          build_korean() {
+            echo "Starting Korean PDF build..."
+            latexmk -pdf -interaction=nonstopmode -shell-escape -f book-main_ko.tex || true
+            if [ -f book-main_ko.pdf ]; then
+              KO_PDF_EXIT=0
+            else
+              KO_PDF_EXIT=1
+            fi
+
+            if [ $KO_PDF_EXIT -eq 0 ]; then
+              echo "Korean PDF build successful, starting HTML conversion..."
+              (cd website/latex_to_html && uv run --no-project --with beautifulsoup4 latex_to_html_converter.py ../../book-main_ko.tex ../html/ko)
+              KO_HTML_EXIT=$?
+
+              echo "Korean HTML conversion successful, moving PDF to assets..."
+              mv book-main_ko.pdf website/html/assets/book-main_ko.pdf
+            else
+              echo "Korean PDF build failed, skipping HTML conversion"
+              KO_HTML_EXIT=1
+            fi
+
+            echo "Korean build complete: PDF=$KO_PDF_EXIT, HTML=$KO_HTML_EXIT"
+            return $((KO_PDF_EXIT + KO_HTML_EXIT))
+          }
+
+
           # Start build sequences in parallel
           build_english &
           EN_PID=$!
-          
+
           build_chinese &
           ZH_PID=$!
 
           build_romanian &
           RO_PID=$!
+
+          build_korean &
+          KO_PID=$!
           
           # Wait for English build
           echo "Waiting for English build sequence..."
@@ -154,14 +182,20 @@ jobs:
           echo "Waiting for Romanian build sequence..."
           wait $RO_PID
           RO_TOTAL_EXIT=$?
-          
+
+          # Wait for Korean build
+          echo "Waiting for Korean build sequence..."
+          wait $KO_PID
+          KO_TOTAL_EXIT=$?
+
           echo "Final build results:"
           echo "  English: $([ $EN_TOTAL_EXIT -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
           echo "  Chinese: $([ $ZH_TOTAL_EXIT -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
           echo "  Romanian: $([ $RO_TOTAL_EXIT -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
-              
+          echo "  Korean: $([ $KO_TOTAL_EXIT -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
+
           # Fail the step if any build failed
-          if [ $EN_TOTAL_EXIT -ne 0 ] || [ $ZH_TOTAL_EXIT -ne 0 ] || [ $RO_TOTAL_EXIT -ne 0 ]; then
+          if [ $EN_TOTAL_EXIT -ne 0 ] || [ $ZH_TOTAL_EXIT -ne 0 ] || [ $RO_TOTAL_EXIT -ne 0 ] || [ $KO_TOTAL_EXIT -ne 0 ]; then
             echo "One or more builds failed"
             exit 1
           fi

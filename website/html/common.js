@@ -490,6 +490,15 @@
             text:
               (window.BOOK_COMPONENTS && window.BOOK_COMPONENTS.languages.zh) ||
               "中文",
+          }),
+          h("button", {
+            className: "lang-item",
+            role: "option",
+            "data-lang": "ko",
+            type: "button",
+            text:
+              (window.BOOK_COMPONENTS && window.BOOK_COMPONENTS.languages.ko) ||
+              "한국어",
           })
         )
       );
@@ -577,7 +586,9 @@
         function getCurrentLangFromPath() {
           try {
             var p = (window.location && window.location.pathname) || "";
-            return /\/zh(?:\/|$)/i.test(p) ? "zh" : "en";
+            if (/\/zh(?:\/|$)/i.test(p)) return "zh";
+            if (/\/ko(?:\/|$)/i.test(p)) return "ko";
+            return "en";
           } catch (_) {
             return "en";
           }
@@ -586,11 +597,11 @@
           try {
             var p = path || "/";
             var parts = p.split("/");
-            // Remove ONLY the standalone 'zh' language segment, preserving base paths
+            // Remove ONLY the standalone 'zh' or 'ko' language segment, preserving base paths
             var outParts = [];
             for (var i = 0; i < parts.length; i++) {
               var seg = parts[i];
-              if (seg === "zh") continue;
+              if (seg === "zh" || seg === "ko") continue;
               outParts.push(seg);
             }
             var out = outParts.join("/");
@@ -607,6 +618,8 @@
           try {
             var p = path || "/";
             if (/\/zh(?:\/|$)/i.test(p)) return p; // already zh
+            // Remove ko if present
+            p = p.replace(/\/ko(?:\/|$)/i, "/");
             // Insert '/zh' right before the last segment (filename or trailing slash)
             var parts = p.split("/");
             if (parts.length === 0) return "/zh/";
@@ -629,13 +642,45 @@
             return "/zh/";
           }
         }
+        function toKoreanPath(path) {
+          try {
+            var p = path || "/";
+            if (/\/ko(?:\/|$)/i.test(p)) return p; // already ko
+            // Remove zh if present
+            p = p.replace(/\/zh(?:\/|$)/i, "/");
+            // Insert '/ko' right before the last segment (filename or trailing slash)
+            var parts = p.split("/");
+            if (parts.length === 0) return "/ko/";
+            var last = parts.pop(); // may be '' if p ends with '/'
+            // Ensure leading slash
+            var base = parts.join("/");
+            if (!base) base = "";
+            var out;
+            if (base === "" && last === "") {
+              out = "/ko/";
+            } else if (last === "") {
+              out = base + "/ko/";
+            } else {
+              out = base + "/ko/" + last;
+            }
+            out = out.replace(/\/{2,}/g, "/");
+            if (out[0] !== "/") out = "/" + out;
+            return out;
+          } catch (_) {
+            return "/ko/";
+          }
+        }
         function buildLangUrl(target) {
           try {
             var loc = window.location || { pathname: "/" };
             var path = loc.pathname || "/";
-            return target === "zh" ? toChinesePath(path) : toEnglishPath(path);
+            if (target === "zh") return toChinesePath(path);
+            if (target === "ko") return toKoreanPath(path);
+            return toEnglishPath(path);
           } catch (_) {
-            return target === "zh" ? "/zh/" : "/";
+            if (target === "zh") return "/zh/";
+            if (target === "ko") return "/ko/";
+            return "/";
           }
         }
 
@@ -646,7 +691,9 @@
         if (langLabelEl) {
           try {
             var curr = getCurrentLangFromPath();
-            langLabelEl.textContent = curr === "zh" ? "中文" : "EN";
+            if (curr === "zh") langLabelEl.textContent = "中文";
+            else if (curr === "ko") langLabelEl.textContent = "한국어";
+            else langLabelEl.textContent = "EN";
           } catch (_) {}
         }
         function positionLangMenu() {
