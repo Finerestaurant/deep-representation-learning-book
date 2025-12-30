@@ -1,0 +1,973 @@
+\providecommand{\toplevelprefix}{../..}
+\documentclass[../../book-main_ko.tex]{subfiles}
+
+\begin{document}
+
+\chapter{비공식적 소개}
+\label{ch:intro}
+
+\begin{quote}
+``{\em 엔트로피의 지속적인 증가가 우주의 기본 법칙이듯이, 점점 더 높은 구조를 갖추고 엔트로피에 맞서 투쟁하는 것이 삶의 기본 법칙이다.}''
+
+$~$\hfill -- 바츨라프 하벨
+ \end{quote}
+\vspace{5mm}
+
+
+
+\section{지능, 사이버네틱스, 그리고 인공지능}
+우리가 사는 세상은 완전히 무작위적이지도 않고 완전히 예측 불가능하지도 않다.\footnote{만약 세상이 완전히 무작위적이라면, 지능적 존재는 어떤 것도 학습하거나 기억할 필요가 없을 것이다.} 대신, 세상은 특정한 질서, 패턴, 법칙을 따르며 이로 인해 대체로 예측 가능하다.\footnote{일부는 결정론적이고, 일부는 확률론적이다.} 생명의 출현과 지속은 바로 이러한 예측 가능성에 의존한다. 환경에서 예측 가능한 것을 학습하고 기억함으로써만 생명은 생존하고 번성할 수 있는데, 건전한 결정과 행동은 신뢰할 수 있는 예측에 달려 있기 때문이다. 세상은 무한히 많은 예측 가능한 현상을 제공하기 때문에, 지능적 존재---동물과 인간---는 점점 더 예민한 감각을 진화시켜왔다: 시각, 청각, 촉각, 미각, 후각. 이러한 감각들은 환경의 규칙성을 인지하기 위해 대용량의 감각 데이터를 수집한다. 따라서 모든 지능적 존재의 근본적인 과제는
+\begin{center}
+    \textit{대량의 감지된 데이터로부터 예측 가능한 정보를 학습하고 기억하는 것}
+\end{center}
+이다. 이것이 어떻게 이루어지는지 이해하기 전에, 우리는 세 가지 질문에 답해야 한다:
+\begin{itemize}
+    \item 예측 가능한 정보를 어떻게 수학적으로 모델링하고 표현할 수 있는가?
+    \item 그러한 정보를 데이터로부터 어떻게 효과적이고 효율적으로 계산적으로 학습할 수 있는가?
+    \item 이 정보를 미래의 예측과 추론을 지원하기 위해 어떻게 가장 잘 조직해야 하는가?
+\end{itemize}
+본서는 이러한 질문들에 대한 몇 가지 답을 제공하고자 한다. 이러한 답은 우리가 지능, 특히 지능을 가능하게 하는 계산적 원리와 메커니즘을 더 잘 이해하는 데 도움이 될 것이다. 증거는 모든 형태의 지능---초기 원시 생명체에서 볼 수 있는 저수준 지능부터 현대 과학의 실천이라는 가장 높은 형태의 지능까지---이 공통적인 원리와 메커니즘을 공유한다는 것을 시사한다. 아래에서 이를 자세히 설명한다.
+
+\paragraph{지능의 출현과 진화.}
+
+약 40억 년 전 지구에 생명이 출현하기 위한 필수 조건은 환경이 대체로 예측 가능하다는 것이다. 생명은 환경에 대해 예측 가능한 것을 학습하고, 이 정보를 부호화하며, 생존을 위해 이를 사용할 수 있는 메커니즘을 개발해왔다. 일반적으로 말해서, 우리는 세상에 대한 지식을 학습하는 이러한 능력을 \textit{지능}이라고 부른다. 상당 부분, 생명의 진화는 작동 중인 지능의 메커니즘이다. 생명의 초기 단계에서 지능은 주로 두 가지 유형의 학습 메커니즘을 통해 발전한다: \textit{계통발생적(phylogenetic)} 및 \textit{개체발생적(ontogenetic)}.
+
+\textit{계통발생적 지능}은 종의 진화를 통한 학습을 의미한다. 종은 주로 부모의 DNA 또는 유전자에 부호화된 지식을 기반으로 계승되고 생존한다. 상당 부분, 우리는 DNA를 자연의 사전 훈련된 대형 모델이라고 부를 수 있는데, 그들이 매우 유사한 역할을 하기 때문이다. 계통발생적 지능의 주요 특징은 개체가 제한된 학습 능력을 가진다는 것이다. 학습은 유전자의 무작위 돌연변이를 기반으로 한 ``시행착오'' 메커니즘을 통해 수행되며, 종은 자연 선택---적자생존---에 기반하여 진화한다. 이는 현재 ``강화 학습'' 또는 잠재적으로 ``신경망 아키텍처 탐색''으로 알려진 것의 자연의 구현으로 볼 수 있다. 그러나 이러한 ``시행착오'' 과정은 극도로 느리고, 비용이 많이 들며, 예측 불가능할 수 있다.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.28\linewidth]{\toplevelprefix/chapters/chapter1/figs/Phylogeny_Life.jpg}
+    \hspace{5mm} \includegraphics[height=0.28\linewidth]{\toplevelprefix/chapters/chapter1/figs/flatworm.jpg}
+    \hspace{5mm} \includegraphics[height=0.28\linewidth]{\toplevelprefix/chapters/chapter1/figs/Cambrian_fauna.jpg}
+    \caption{생명의 진화, 35억~43억 년 전에 살았던 오늘날 모든 생명의 조상(LUCA---최후 보편 공통 조상)인 단세포 유사 유기체 \cite{moody2024nature}에서, 약 5억 5천만 년 전 벌레 같은 종에서 최초의 신경계가 출현(중앙)하고 \cite{wang2025preservation}, 약 5억 3천만 년 전 캄브리아기에 생명체가 폭발적으로 증가(오른쪽)하기까지의 과정.}
+    \label{fig:evolution}
+\end{figure}
+
+\textit{개체발생적 지능}은 개체가 자신의 감각, 기억, 예측을 통해 특정 환경에서 학습하고, 행동을 개선하고 적응할 수 있게 하는 학습 메커니즘을 의미한다. 개체발생적 학습은 약 5억 5천만~6억 년 전 신경계가 출현한 후(벌레 같은 유기체에서) 가능해졌으며 \cite{wang2025preservation}, \Cref{fig:evolution} 중앙에 나타나 있다. 감각계와 신경계를 갖춘 개체는 DNA 또는 유전자로부터 물려받은 것 외에도 세상에 대한 자신만의 지식(기억)을 지속적으로 형성하고 개선할 수 있다. 이 능력은 개체의 생존을 크게 향상시켰고 약 5억 3천만 년 전 캄브리아기 생명체 폭발에 기여했다 \cite{Parker-2004}. 계통발생적 학습에 비해 개체발생적 학습은 더 효율적이고 예측 가능하며, 개체의 자원 한계 내에서 실현될 수 있다.
+
+두 유형의 학습 모두 외부 환경으로부터의 피드백---처벌(죽음) 또는 보상(음식)---에 의존하며, 이는 종이나 개체의 행동에 적용된다.\footnote{종의 유전자 돌연변이 또는 개체가 취하는 행동.} 이러한 통찰은 노버트 위너가 그의 사이버네틱스 프로그램 \cite{Wiener-Cybernetics-1948}에서 모든 지능적 존재---종이든 개체든---는 세상에 대한 지식을 학습하고 개선하기 위해 폐루프 피드백 메커니즘에 의존한다고 결론 내리도록 영감을 주었다. 더 나아가, 식물에서 물고기, 새, 포유류에 이르기까지 더 진화된 종일수록 개체발생적 학습에 점점 더 의존한다: 같은 종의 개체들이 매우 다양한 환경에서 생존해야 하기 때문에 그들은 태어난 후 더 오랜 기간 부모와 함께 머물며 학습한다.
+
+\paragraph{인간 지능의 진화.}
+약 250만 년 전 \textit{호모 사피엔스}의 출현 이후 \cite{Harari-2015}, 더 효율적이고 경제적으로 진화하는 새롭고 더 높은 형태의 지능이 등장했다. 인간 사회는 언어를 발전시켰다---처음에는 구술 언어, 이후에는 문자 언어---\Cref{fig:human-intelligence}에 나타난 바와 같이. 언어는 개인이 유용한 정보를 소통하고 공유할 수 있게 하여, 인간 공동체가 단일 지능적 유기체처럼 행동하여 어떤 개인보다 더 빠르게 학습하고 더 많은 지식을 보유할 수 있게 한다. 따라서 문자 텍스트는 DNA 및 유전자와 유사한 역할을 수행하며, 사회가 세대를 거쳐 지식을 축적하고 전달할 수 있게 한다. 우리는 이러한 유형의 지능을 종의 계통발생적 지능 및 개체의 개체발생적 지능과 구별하여 \textit{사회적 지능}이라고 부를 수 있다. 이러한 지식 축적은 (고대) 문명의 기반이 된다.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.25\linewidth]{\toplevelprefix/chapters/chapter1/figs/Spoken-language.jpg}
+   \hspace{5mm} \includegraphics[height=0.25\linewidth]{\toplevelprefix/chapters/chapter1/figs/Cuneiform.png}
+   \hspace{5mm} \includegraphics[height=0.25\linewidth]{\toplevelprefix/chapters/chapter1/figs/adopt-euclid1685-2.jpg}
+    \caption{구술 소통과 구술 언어(7만~3만 년 전), 문자 언어(기원전 약 3000년) \cite{schmandt2014evolution}, 그리고 추상 수학(기원전 약 500~300년) \cite{heath1956thirteen}의 발전은 인간 지능 진화의 세 가지 주요 이정표를 나타낸다.}
+    \label{fig:human-intelligence}
+\end{figure}
+
+약 2천~3천 년 전, 인간 지능은 또 다른 주요 도약을 이루어 철학자와 수학자가 경험적 관찰을 조직화하는 것을 훨씬 넘어서는 지식을 개발할 수 있게 했다. 숫자, 시간, 공간, 논리, 기하학과 같은 추상 개념과 기호의 발전은 완전히 새롭고 엄격한 \textit{수학}의 언어를 낳았다. 또한, 가설을 생성하고 논리적 추론이나 실험을 통해 그 정확성을 검증하는 능력의 발전은 현대 \textit{과학}의 기초를 마련했다. 인류는 처음으로 새로운 지식을 능동적이고 체계적으로 발견하고 개발할 수 있게 되었다. 우리는 이 진보된 형태의 지능을 연역적 발견과 과학적 발견에 필수적이기 때문에 ``과학적 지능''이라고 부를 것이다.
+
+따라서 자연으로부터 배울 수 있는 것으로부터, ``지능''이라는 단어를 사용할 때마다 우리가 의미하는 수준이나 형태를 구체적으로 명시해야 한다:
+\begin{equation}
+    \text{\textbf{계통발생적}} \;
+   \Longrightarrow \; \text{\textbf{개체발생적}} \; \Longrightarrow \;
+   \text{\textbf{사회적}}
+   \; \Longrightarrow \;
+   \text{\textbf{과학적 지능}}.
+\end{equation}
+명확한 특성화와 구별은 우리가 지능을 과학적이고 수학적 주제로 연구하고자 하기 때문에 필요하다. 모든 형태가 세상에 대한 유용한 지식을 학습한다는 공통 목표를 공유할 수 있지만, 각 수준의 배후에 있는 구체적인 계산 메커니즘과 물리적 구현은 다를 수 있다. 우리는 독자가 본서를 공부한 후 이러한 차이를 더 잘 이해하고 평가할 수 있을 것이라고 믿는다. 따라서 일반 지능에 대한 추가 논의는 마지막 \Cref{ch:future}로 남겨둔다.
+
+\paragraph{기계 지능의 기원---사이버네틱스.}
+1940년대에 전쟁 노력에 자극받은 과학자들은 자연 지능에서 영감을 받아 기계로 동물 지능을 모방하고자 했고, 이는 노버트 위너가 옹호한 ``사이버네틱스'' 운동을 일으켰다 \cite{Kline-2011}. 위너는 학부생 때 하버드에서 동물학을 공부한 후 수학자이자 제어 이론가가 되었다. 그는 동물과 같은 지능을 재현할 수 있는 자율 시스템을 이해하고 구축하는 데 평생을 바쳤다. 오늘날 사이버네틱스 프로그램은 종종 위너가 가장 중요한 기술적 기여를 한 분야인 피드백 제어 시스템에 관한 것으로만 좁게 해석된다. 그러나 이 프로그램은 훨씬 더 광범위하고 깊었다: 적어도 동물 수준에서---지능 전체를 이해하는 것을 목표로 했고, 워런 맥컬록, 월터 피츠, 클로드 섀넌, 존 폰 노이만, 앨런 튜링을 포함한 한 세대의 저명한 과학자들의 작업에 영향을 미쳤다.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.4\linewidth]{\toplevelprefix/chapters/chapter1/figs/Cybernetics1.jpg}
+    \hspace{10mm} \includegraphics[height=0.4\linewidth]{\toplevelprefix/chapters/chapter1/figs/Cybernetics2.jpg}
+    \caption{노버트 위너의 책 ``Cybernetics'' (1948) \cite{Wiener-Cybernetics-1948} (왼쪽)과 그 2판 (1961) \cite{Wiener-Cybernetics-1961} (오른쪽).}
+    \label{fig:cybernetcis}
+\end{figure}
+
+위너는 지능의 고립된 구성 요소나 측면에 초점을 맞추는 대신 지능을 \textit{시스템으로} 연구한 최초의 사람일 것이다. 그의 포괄적인 견해는 1948년의 유명한 책 \textit{Cybernetics: or Control and Communication in the Animal and the Machine} \cite{Wiener-Cybernetics-1948}에 나타났다. 그 책과 1961년에 출판된 2판 \cite{Wiener-Cybernetics-1961}에서(\Cref{fig:cybernetcis} 참조), 그는 지능형 시스템의 몇 가지 필수적인 특성과 메커니즘을 식별하려고 시도했는데, 여기에는 다음이 포함된다(그러나 이에 국한되지 않음):
+\begin{itemize}
+    \item 정보를 (뇌에서) \textit{측정하고 저장}하는 방법과 다른 사람과 소통하는 방법.\footnote{위너는 ``정보''가 물질도 에너지도 아니며 연구할 가치가 있는 독립적인 양이라고 지적한 최초의 사람이었다.} 이러한 통찰은 클로드 섀넌이 1948년에 \textit{정보 이론}을 정식화하도록 이끌었다 \cite{Shannon-1948}.
+    \item 기존 정보를 기반으로 예측 및 추정에서 \textit{오류를 수정}하는 방법. 위너 자신은 1940년대에 (폐루프) 피드백 제어 이론을 공식화하는 데 도움을 주었다.
+    \item 비협조적이거나 심지어 적대적인 환경과 상호 작용할 때 \textit{더 나은 결정을 내리는} 방법을 학습하는 방법. 존 폰 노이만은 이를 1944년에 \textit{게임 이론}으로 공식화했다 \cite{von-Neumann-1944}.
+\end{itemize}
+1943년, 위너의 사이버네틱스 프로그램에서 영감을 받아 인지 과학자 워런 맥컬록과 논리학자 월터 피츠는 공동으로 뉴런의 첫 번째 계산 모델 \cite{McCulloch-Pitts}을 공식화했으며, 이를 \textit{인공 뉴런}이라고 하며 나중에 \Cref{fig:neuron}에 그림으로 나타난다. 이 모델을 기반으로 프랭크 로젠블랫은 1950년대에 수백 개의 이러한 인공 뉴런을 포함하는 물리적 기계인 Mark I Perceptron을 구축했다 \cite{Rosenblatt:1957}. Perceptron은 최초로 물리적으로 실현된 인공 신경망이었다; \Cref{fig:perceptron} 참조. 주목할 만하게, 1945년에 제안된 존 폰 노이만의 범용 컴퓨터 아키텍처 역시 사이버네틱스 프로그램이 제안한 메커니즘을 물리적으로 실현할 수 있는 \textit{컴퓨팅 기계}를 구축하는 목표를 촉진하기 위해 설계되었다 \cite{von-Neumann-1958}.
+
+명민한 독자는 1940년대가 정말로 마법 같았다는 것을 알아차릴 것이다: 뉴런의 수학적 모델, 인공 신경망, 정보 이론, 제어 이론, 게임 이론, 컴퓨팅 기계를 포함한 많은 근본적인 아이디어가 발명되고 영향력 있는 이론이 공식화되었다. \Cref{fig:god-fathers}는 일부 선구자들을 묘사한다. 이러한 각각의 기여는 과학 또는 공학 분야의 기초가 되었으며 우리의 삶에 계속해서 엄청난 영향을 미치고 있다. 모두 자연의 지능을 모방하는 기계를 개발하려는 목표에서 영감을 받았다. 역사적 기록은 위너의 사이버네틱스 운동이 거의 모든 선구자와 작업에 영향을 미쳤음을 보여준다. 상당 부분, 위너의 프로그램은 오늘날 ``구체화된 지능(embodied intelligence)'' 프로그램의 진정한 전신으로 볼 수 있다; 사실, 위너 자신이 놀라운 명확성과 구체성으로 그러한 프로그램에 대한 비전을 명확히 표현했다 \cite{Wiener-Cybernetics-1961}.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.3\linewidth]{\toplevelprefix/chapters/chapter1/figs/Wiener.png}
+    \includegraphics[height=0.3\linewidth]{\toplevelprefix/chapters/chapter1/figs/Shannon.jpg}
+    \includegraphics[height=0.3\linewidth]{\toplevelprefix/chapters/chapter1/figs/neumann.jpg}
+    \includegraphics[height=0.3\linewidth]{\toplevelprefix/chapters/chapter1/figs/Turing.jpeg}
+    \caption{지능의 이론적 및 계산적 기초의 선구자들: 노버트 위너(사이버네틱스 및 제어 이론), 클로드 섀넌(정보 이론), 존 폰 노이만(게임 이론), 앨런 튜링(계산 이론).}
+    \label{fig:god-fathers}
+\end{figure}
+
+위너는 (구체화된) 지능의 많은 주요 특성과 메커니즘을 식별했지만, 그것들을 완전한 자율 지능 시스템으로 통합하기 위한 명확한 방법을 제공하지 못했다. 오늘날의 관점에서 보면, 그의 일부 견해는 불완전하거나 부정확했다. 특히 \textit{Cybernetics}의 2판 마지막 장 \cite{Wiener-Cybernetics-1961}에서, 그는 기계가 자연의 전형적인 학습 메커니즘을 모방하려면 \textit{비선형성을 다루어야} 한다는 필요성을 강조했지만, 이 어려운 문제에 대한 구체적이고 효과적인 해결책을 제공하지 못했다. 공정하게 말하자면, 당시에는 선형 시스템의 이론조차 초기 단계였으며, 비선형 시스템은 훨씬 덜 접근 가능해 보였다.
+
+그럼에도 불구하고 우리는 비선형성의 중요성에 대한 위너의 선견지명에 경탄하지 않을 수 없다. 본서가 보여주듯이, 그 해답은 최근에야 나왔다: 비선형성은 심층 네트워크와 표현에 의해 실현되는 점진적 선형화와 변환을 통해 효과적으로 다뤄질 수 있다(\Cref{ch:representation} 참조). 더욱이, 우리는 본서에서 위에 나열된 모든 메커니즘을 자율 지능 시스템의 특정 특성을 나타내는 완전한 시스템으로 자연스럽게 통합할 수 있는 방법을 보여줄 것이다(\Cref{ch:autoencoding} 참조).
+
+\paragraph{인공지능의 기원.}
+위너의 \textit{Cybernetics}의 부제---\textit{Control and Communication in the Animal and the Machine}---는 1940년대 연구가 주로 동물 수준의 지능을 모방하는 것을 목표로 했음을 보여준다. 앞서 언급했듯이, 그 시대의 의제는 위너의 사이버네틱스 운동이 지배했다.
+
+앨런 튜링은 이러한 한계를 최초로 인식한 사람 중 한 명이었다. 그의 유명한 1950년 논문 ``\textit{Computing Machinery and Intelligence}'' \cite{Turing-1950}에서, 튜링은 기계가 인간 수준의 지능을 모방할 수 있는지, 기계 지능이 인간 지능과 구별할 수 없을 정도로 될 수 있는지에 대한 질문을 공식적으로 제기했다---현재 \textit{튜링 테스트}로 알려져 있다.
+
+1955년경, 야심 찬 젊은 과학자 그룹이 당시 지배적이었던 사이버네틱스 프로그램에서 벗어나 자신들만의 유산을 확립하고자 했다. 그들은 인간 지능을 모방하려는 튜링의 도전을 받아들였고 1956년 여름에 다트머스 대학에서 개최될 워크숍을 제안했다. 그들의 제안서는 다음과 같이 명시했다 \cite{McCarthy-1955}:
+\begin{quote}
+    ``\textit{이 연구는 학습의 모든 측면이나 지능의 다른 특성이 원칙적으로 기계가 그것을 시뮬레이션할 수 있도록 매우 정밀하게 설명될 수 있다는 추론을 기반으로 진행된다. 기계가 언어를 사용하고, 추상화와 개념을 형성하고, 현재 인간에게 예약된 종류의 문제를 해결하고, 스스로를 개선하도록 만드는 방법을 찾는 시도가 이루어질 것이다}.''
+\end{quote}
+그들은 인간을 동물과 구별하는 더 높은 수준의 지능을 공식화하고 연구하는 것을 목표로 했다. 그들의 의제에는 추상화, 기호적 방법, 자연 언어, 연역적 추론(인과 추론, 논리적 연역 등), 즉 과학적 지능이 포함되었다. 워크숍의 주최자인 존 매카시---당시 다트머스 대학의 젊은 수학 조교수---는 워크숍의 문제와 목표를 공식적으로 설명하기 위해 과학적 지능을 나타내는 기계를 설명하기 위해 현재 유명한 용어인 ``인공지능''(AI)을 만들었다.
+
+\paragraph{``인공지능''의 르네상스인가 ``사이버네틱스''의 르네상스인가?}
+지난 10년 동안 기계 지능은 주로 2012년 제프리 힌튼과 그의 학생들의 연구 \cite{krizhevsky2012imagenet}에 의해 촉발된 심층 인공 신경망에 의해 주도된 폭발적인 발전을 겪었다. 이 기간은 ``AI의 르네상스''로 환영받는다. 그러나 실제로 다루어진 작업(인식, 생성, 예측)과 개발된 기술(강화 학습, 모방 학습, 인코딩, 디코딩, 노이즈 제거 및 압축)의 관점에서 볼 때, 우리는 주로 초기 생명과 동물의 지능에 공통적인 메커니즘을 모방하고 있다. 이러한 점에서조차도, 본서에서 명확히 하겠지만, 현재의 ``AI'' 모델과 시스템은 1940년대 사이버네틱스 운동에 알려진 동물 수준의 지능에 필요한 모든 메커니즘을 완전하거나 올바르게 구현하지 못했다.
+
+엄밀히 말하면, 지난 10년간 기계 지능의 최근 진보는 1956년 다트머스 AI 프로그램과 잘 일치하지 않는다. 대신, 달성된 것은 위너의 고전적인 1940년대 사이버네틱스 프로그램의 목표에 더 가깝다. 현재 시대를 ``사이버네틱스의 르네상스''라고 부르는 것이 아마도 더 적절할 것이다.\footnote{자율 로봇을 위한 소위 ``구체화된 AI''의 최근 부상은 사이버네틱스 프로그램의 목표와 훨씬 더 밀접하게 일치한다.} 우리가 과학적 및 수학적 관점에서 실제로 성취한 것을 완전히 이해한 후에만, 무엇이 남아 있고 어떤 방향이 지능의 진정한 본질로 이어지는지 결정할 수 있다. 그것이 본서의 주요 목적 중 하나이다.
+
+
+\section{무엇을 학습할 것인가?}
+\label{sec:what-to-learn}
+
+\subsection{예측 가능성}
+\label{sec:predictability}
+유용한 정보를 전달하는 데이터는 많은 형태로 나타난다. 가장 자연스러운 형태에서, 그것들은 예측 가능하고 계산 가능한 시퀀스로 모델링될 수 있다. 예측 가능하고 계산 가능한 시퀀스의 개념은 계산 이론의 중심이었고 주로 컴퓨터의 발명으로 이어졌다 \cite{Turing-1936}. (귀납적) 추론에서 예측 가능한 시퀀스의 역할은 1960년대에 레이 솔로모노프, 안드레이 콜모고로프 등에 의해 클로드 섀넌의 고전 정보 이론 \cite{Shannon-1948}의 일반화로 연구되었다 \cite{Kolmogorov1998OnTO}. 예측 가능한 시퀀스의 개념을 이해하기 위해 몇 가지 구체적인 예로 시작한다.
+
+\paragraph{스칼라 경우.} 가장 간단한 예측 가능한 이산 시퀀스는 아마도 자연수의 시퀀스일 것이다:
+\begin{equation}
+   S = 1, 2, 3, 4, 5, 6, \ldots, n, n+1, \ldots
+\end{equation}
+여기서 다음 숫자 \(x_{n+1}\)은 이전 숫자 \(x_{n}\)에 1을 더한 것으로 정의된다:
+\begin{equation}
+    x_{n+1} = x_{n} + 1.
+\end{equation}
+예측 가능성의 개념을 \(x_{n} \in \R\)인 임의의 시퀀스 \(\{x_{n}\}_{n=1}^{\infty}\)로 일반화할 수 있는데, 다음 숫자 \(x_{n+1}\)이 항상 그 전신 \(x_{n}\)으로부터 계산될 수 있는 경우이다:
+\begin{equation}
+    x_{n+1} = f(x_{n}), \quad x_{n} \in \R, \; n = 1, 2, 3, \ldots
+\end{equation}
+여기서 \(f(\cdot)\)는 \textit{계산 가능한} (스칼라) 함수이다.\footnote{여기서 우리는 함수 \(f(\cdot)\) 자체가 계산 가능하다는 것을 강조하는데, 이는 컴퓨터의 프로그램으로 구현될 수 있다는 것을 의미한다.} 앨런 튜링의 1936년 선구적 연구 \cite{Turing-1936}는 계산 가능성에 대한 엄격한 정의를 제공한다. 실제로 우리는 종종 \(f\)가 효율적으로 계산 가능하고 연속성 및 미분 가능성과 같은 좋은 속성을 갖는다고 추가로 가정한다. 이러한 속성의 필요성은 기계 학습과 지능에서 계산 가능성의 더 정교한 개념과 그 역할을 이해한 후에 명확해질 것이다.
+
+\paragraph{다변수 경우.}
+다음 값은 두 개의 전신에 의존할 수도 있다. 예를 들어, 유명한 \textit{피보나치 수열}
+\begin{equation}
+    S = 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, \ldots
+\end{equation}
+은 다음을 만족한다
+\begin{equation}
+    x_{n+2} = x_{n+1} + x_{n}, \quad x_{n} \in \R, \; n = 1, 2, 3, \ldots
+\end{equation}
+더 일반적으로, 우리는 다음과 같이 쓸 수 있다
+\begin{equation}
+    x_{n+2} = f(x_{n+1}, x_{n}), \quad x_{n} \in \R, \; n = 1, 2, 3, \ldots
+\end{equation}
+두 개의 입력을 받는 임의의 계산 가능한 함수 \(f\)에 대해. 더 확장하면, 다음 값은 선행하는 \(d\)개의 값에 의존할 수 있다:
+\begin{equation}
+    x_{n+d} = f(x_{n+d-1}, \ldots, x_{n}), \quad x_{n} \in \R, \; n = 1, 2, 3, \ldots
+    \label{eqn:recursive-d}
+\end{equation}
+정수 \(d\)를 재귀의 \textit{차수}라고 한다. 위의 표현 \eqref{eqn:recursive-d}는 \textit{자기회귀(autoregression)}라고 불리며, 결과 시퀀스는 \textit{자기회귀적(autoregressive)}이다. \(f\)가 선형일 때, 우리는 그것을 \textit{선형 자기회귀}라고 말한다.
+
+\paragraph{벡터 경우.}
+표기법을 단순화하기 위해, 시퀀스에서 \(d\)개의 연속 값을 수집하는 벡터 \(\vx \in \R^{d}\)를 정의한다:
+\begin{equation}
+    \vx_{n} \doteq [x_{n+d-1}, \ldots, x_{n}]^{\top}, \quad \vx_{n} \in \R^{d}, \; n = 1, 2, 3, \ldots
+\end{equation}
+이 표기법으로, 재귀 관계 \eqref{eqn:recursive-d}는 다음과 같이 된다
+\begin{equation}
+    \vx_{n+1} = g(\vx_{n}) \in \R^{d}, \quad n = 1, 2, 3, \ldots
+    \label{eqn:recursive-v}
+\end{equation}
+여기서 \(g(\cdot)\)는 \eqref{eqn:recursive-d}의 함수 \(f\)에 의해 고유하게 결정되며 \(d\)차원 벡터를 \(d\)차원 벡터로 매핑한다. 다른 맥락에서, 이러한 벡터는 때때로 ``상태'' 또는 ``토큰''이라고 불린다. \eqref{eqn:recursive-d}는 \(\R^{d} \to \R\) 매핑을 정의하는 반면, 여기서는 \(g \colon \R^{d} \to \R^{d}\)를 갖는다는 점에 유의하라.
+
+\paragraph{제어된 예측.}
+우리는 또한 다른 예측 가능한 시퀀스를 입력으로 의존하는 예측 가능한 시퀀스를 정의할 수 있다:
+\begin{equation}
+    \vx_{n+1} = f(\vx_{n}, \vu_{n}) \in \R^{d}, \quad n = 1, 2, 3, \ldots,
+    \label{eqn:recursive-control}
+\end{equation}
+여기서 \(\vu_{n} \in \R^{k}\)인 \(\{\vu_{n}\}\)는 (계산 가능한) 예측 가능한 시퀀스이다. 다시 말해, 다음 벡터 \(\vx_{n+1} \in \R^{d}\)는 \(\vx_{n} \in \R^{d}\)와 \(\vu_{n} \in \R^{k}\) 모두에 의존한다. 제어 이론에서, 시퀀스 \(\{\vu_{n}\}\)는 종종 ``제어 입력''이라고 하고 \(\vx_{n}\)은 시스템 \eqref{eqn:recursive-control}의 ``상태'' 또는 ``출력''이라고 한다. 고전적인 예는 선형 동적 시스템이다:
+\begin{equation}
+    \vx_{n+1} = \vA\vx_{n} + \vB\vu_{n}, \quad \vA \in \R^{d \times d}, \vB \in \R^{d \times k},
+    \label{eqn:lineary-system}
+\end{equation}
+이는 제어 이론에서 광범위하게 연구되었다 \cite{Cal:Des}.
+
+종종 제어 입력은 상태 \(\vx_{n}\) 자체의 계산 가능한 함수로 주어진다:
+\begin{equation}
+    \vu_{n} = h(\vx_{n}), \quad n = 1, 2, 3, \ldots
+    \label{eqn:control-function}
+\end{equation}
+결과적으로, 시퀀스 \(\{\vx_{n}\}\)는 두 개의 계산 가능한 함수 \(f\)와 \(h\)를 합성하여 주어진다:
+\begin{equation}
+    \vx_{n+1} = f(\vx_{n}, h(\vx_{n})), \quad n = 1, 2, 3, \ldots
+    \label{eqn:recursive-closed-loop}
+\end{equation}
+이러한 방식으로, 시퀀스 \(\{\vx_{n}\}\)는 다시 자기회귀 예측 가능한 시퀀스가 된다. 입력 \(\vu_{n}\)이 출력 \(\vx_{n}\)에 의존할 때, 우리는 결과 시퀀스가 ``폐루프'' 시스템 \eqref{eqn:recursive-closed-loop}에 의해 생성되었다고 말한다. 폐루프 시스템이 더 이상 외부 입력에 의존하지 않으므로, 우리는 그러한 시스템이 \textit{자율적}이 되었다고 말한다. 이는 자기회귀의 특수한 경우로 볼 수 있다. 예를 들어, 위의 선형 시스템 \eqref{eqn:lineary-system}에서 \(\vu_{n} = \vF\vx_{n}\)을 선택하면, 폐루프 시스템은 다음과 같이 된다
+\begin{equation}
+    \vx_{n+1} = \vA\vx_{n} + \vB\vu_{n} = \vA\vx_{n} + \vB\vF\vx_{n} = (\vA + \vB\vF)\vx_{n},
+    \label{eqn:lineary-system-closed}
+\end{equation}
+이는 선형 자기회귀이다.
+
+
+\paragraph{연속 프로세스.}
+예측 가능한 시퀀스는 자연스러운 연속 대응물을 가지며, 우리는 이를 예측 가능한 프로세스라고 부른다. 가장 간단한 그러한 프로세스는 시간 자체이다, \(x(t) = t\).
+
+더 일반적으로, 프로세스 \(\vx(t)\)는 모든 시간 \(t\)에서 \(t + \delta t\)에서의 값이 \(t\)에서의 값에 의해 결정되면 \textit{예측 가능}하며, 여기서 \(\delta t\)는 무한소 증분이다. 일반적으로 \(\vx(t)\)는 연속적이고 매끄러우므로 변화 \(\delta \vx(t) = \vx(t + \delta t) - \vx(t)\)는 무한소로 작다. 이러한 프로세스는 일반적으로 (다변수) 미분 방정식으로 설명된다
+\begin{equation}
+    \dot{\vx}(t) = f(\vx(t)), \quad \vx \in \R^{d}.
+    \label{eqn:process}
+\end{equation}
+시스템 이론 \cite{Cal:Des,Sastry-Nonlinear}에서, 방정식 \eqref{eqn:process}는 상태 공간 모델로 알려져 있다. 제어된 프로세스는 다음과 같이 주어진다
+\begin{equation}
+    \dot{\vx}(t) = f(\vx(t), \vu(t)), \quad \vx \in \R^{d}, \vu \in \R^{k},
+    \label{eqn:process-controlled}
+\end{equation}
+여기서 \(\vu(t)\)는 계산 가능한 입력 프로세스이다.
+
+\begin{example}
+뉴턴의 제2법칙은 힘 \(\vF(t) \in \R^{3}\) 아래에서 움직이는 물체의 궤적 \(\vx(t) \in \R^{3}\)을 예측한다:
+\begin{equation}
+    m\ddot{\vx}(t) = \vF(t).
+    \label{eqn:newton-second}
+\end{equation}
+힘이 없을 때, 즉 \(\vF(t) \equiv \vzero\)일 때, 이는 뉴턴의 제1법칙으로 축소된다: 물체는 일정한 속도 \(\vv \in \R^{3}\)로 움직인다:
+\begin{equation}
+    \ddot{\vx}(t) = \vzero \iff \ \text{there exists } \vv \in \R^{3} \text{ such that } \dot{\vx}(t) = \vv.
+    \label{eqn:newton-first}
+\end{equation}
+\end{example}
+
+
+\subsection{저차원성}\label{sec:intro-low-dimensionality}
+\paragraph{예측 학습.}
+이제 많은 시퀀스 세그먼트를 관찰했거나 받았다고 가정하자:
+\begin{equation}
+    \{S_{1}, S_{2}, \ldots, S_{i}, \ldots, S_{N}\}
+\end{equation}
+이들은 예측 가능한 시퀀스 \(\{x_{n}\}_{n=1}^{\infty}\)로부터 추출되었다. 일반성을 잃지 않고, 각 세그먼트의 길이가 \(D \gg d\)라고 가정하면,
+\begin{equation}
+    S_{i} = [x_{j(i)}, x_{j(i)+1}, \ldots, x_{j(i)+D-1}]^{\top} \in \R^{D}
+\end{equation}
+어떤 \(j \in \N\)에 대해. 그러면 새로운 세그먼트 \(S_{t}\)가 주어지고 그 미래 값을 예측하도록 요청받는다.
+
+어려움은 생성 함수 \(f\)와 그 차수 \(d\)가 알려지지 않았다는 것이다:
+\begin{equation}
+    x_{n+d} = f(x_{n+d-1}, \ldots, x_{n}).
+    \label{eqn:sequence-order-d}
+\end{equation}
+따라서 목표는 샘플 세그먼트 \(S_{1}, S_{2}, \ldots, S_{N}\)으로부터 \(f\)와 \(d\)를 학습하는 것이다. 예측 학습의 중심 과제는 다음과 같다:
+\begin{center}
+\textit{예측 가능한 시퀀스의 샘플링된 많은 세그먼트가 주어졌을 때, 함수 \(f\)를 어떻게 효과적이고 효율적으로 식별할 수 있는가?}
+\end{center}
+
+\paragraph{예측 가능성과 저차원성.}
+예측 함수 \(f\)를 식별하기 위해, \eqref{eqn:sequence-order-d}에 의해 주어진 예측 가능한 시퀀스의 세그먼트의 공통 특성을 주목할 수 있다. 길이 \(D \gg d\)의 긴 세그먼트를 취하여 벡터로 간주하면
+\begin{equation}
+    \vx_{i} = [x_{i}, x_{i+1}, \ldots, x_{i+D-1}]^{\top} \in \R^{D},
+    \label{eqn:segment-vector}
+\end{equation}
+그러면 모든 그러한 벡터 \(\{\vx_{i}\}\)의 집합은 무작위와는 거리가 멀고 전체 공간 \(\R^{D}\)를 점유할 수 없다. 대신, 최대 \(d\)개의 자유도를 갖는다---임의의 \(\vx_{i}\)의 처음 \(d\)개 항목이 주어지면, 나머지 항목은 고유하게 결정된다. 다시 말해, 모든 \(\{\vx_{i}\}\)는 \(d\)차원 표면 위에 놓인다. 수학에서 이러한 표면을 부분다양체(submanifold)라고 하며, \(\cS \subset \R^{D}\)로 표시한다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\linewidth]{\toplevelprefix/chapters/chapter1/figs/two-dimensional plane in R10.pdf}
+    \caption{10차원 주변 공간에서의 2차원 부분공간.}
+    \label{fig:lowdimplane}
+\end{figure}
+
+실제로, 세그먼트 길이 \(D\)를 충분히 크게 선택하면, 동일한 예측 함수로부터 샘플링된 모든 세그먼트는 주변 공간 \(D\)의 차원보다 훨씬 낮은 고유 차원 \(d\)를 가진 표면 위에 놓인다. 예를 들어, 시퀀스가 선형 자기회귀로 주어지면
+\begin{equation}
+    x_{n+2} = a x_{n+1} + b x_{n},
+    \label{eqn:sequence-2d}
+\end{equation}
+어떤 상수 \(a, b \in \R\)에 대해, 그리고 길이 \(D = 10\)의 세그먼트를 샘플링하면, 모든 샘플은 \(\R^{10}\)에서 2차원 평면 위에 놓이며, \Cref{fig:lowdimplane}에 그림으로 나타나 있다. 이 2차원 부분공간을 식별하면 \eqref{eqn:sequence-2d}의 상수 \(a\)와 \(b\)를 완전히 결정한다.
+
+더 일반적으로, 예측 함수 \(f\)가 선형일 때, \eqref{eqn:lineary-system} 및 \eqref{eqn:lineary-system-closed}에 주어진 시스템과 같이, 긴 세그먼트는 항상 저차원 선형 부분공간 위에 놓인다. 예측 함수를 식별하는 것은 대체로 이 부분공간을 식별하는 것과 동등하며, 이는 주성분 분석으로 알려진 문제이다. 우리는 \Cref{ch:classic}에서 이러한 고전적 모델과 방법을 논의할 것이다.
+
+이 관찰은 일반 예측 가능한 시퀀스로 확장된다: 세그먼트 샘플이 놓여 있는 저차원 표면을 식별할 수 있으면, 예측 함수 \(f\)를 식별할 수 있다.\footnote{온화한 조건 하에서, 저차원 표면과 함수 \(f\) 사이에는 일대일 매핑이 있다. 이 사실은 나중에 논의할 시스템 식별과 같은 문제에서 활용되었다.} 우리는 이 속성의 중요성을 과대평가할 수 없다: \textit{예측 가능한 시퀀스의 긴 세그먼트의 모든 샘플은 저차원 부분다양체 위에 놓인다.} 본서에서 보게 되듯이, 모든 현대 학습 방법은 암시적으로 또는 명시적으로 이 속성을 활용한다.
+
+실제 시나리오에서, 관찰된 데이터는 종종 여러 예측 가능한 시퀀스로부터 나온다. 예를 들어, 비디오 시퀀스는 여러 움직이는 물체를 포함할 수 있다. 이러한 경우, 데이터는 \Cref{fig:mixture-models}에 그림으로 나타난 것처럼 저차원 선형 부분공간 또는 비선형 부분다양체의 혼합 위에 놓인다.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter1/figs/mixture.pdf}
+    \caption{(직교) 부분공간(왼쪽) 또는 부분다양체(오른쪽)의 혼합에 분포된 데이터.}
+    \label{fig:mixture-models}
+\end{figure}
+
+
+\paragraph{저차원성의 속성.}
+예측 가능한 시퀀스의 시간적 상관관계만이 데이터가 저차원인 이유가 아니다. 예를 들어, 모든 이미지의 공간은 방대하지만, 그것의 대부분은 \Cref{fig:noise-image} (왼쪽)에 나타난 것처럼 구조가 없는 무작위 이미지로 구성된다. 그러나 자연 이미지와 비디오는 픽셀 값 간의 강한 공간적 및 시간적 상관관계 때문에 매우 중복적이다. 이러한 중복성은 이미지가 노이즈가 있는지 깨끗한지를 쉽게 인식할 수 있게 하며, \Cref{fig:noise-image} 중앙 및 오른쪽에 나타나 있다. 결과적으로, 자연 이미지의 분포는 전체 픽셀 수에 비해 매우 낮은 고유 차원을 갖는다.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.30\linewidth]{\toplevelprefix/chapters/chapter1/figs/Gaussian-noise.png}\hspace{2mm}
+    \includegraphics[height=0.30\linewidth]{\toplevelprefix/chapters/chapter1/figs/Standard-test-image-Barbara-of-size-512-512-pixels-including-Gaussian-noise-with.png} \hspace{2mm}
+    \includegraphics[height=0.30\linewidth]{\toplevelprefix/chapters/chapter1/figs/barbara.jpg}
+    \caption{무작위 노이즈의 이미지(왼쪽) 대 노이즈가 있는 이미지(중앙)와 원본 깨끗한 이미지(오른쪽).}
+    \label{fig:noise-image}
+\end{figure}
+
+저차원 구조 학습이 중요하고 편재하기 때문에, 책 \textit{High-Dimensional Data Analysis with Low-Dimensional Models: Principles, Computation, and Applications} \cite{Wright-Ma-2022}는 다음과 같은 진술로 시작한다: ``\textit{고차원 공간에서 신호 또는 데이터의 저차원 구조를 식별하는 문제는 시스템 이론, 신호 처리, 패턴 인식, 기계 학습, 통계와 같은 많은 공학 및 수학 분야를 오랜 역사를 통해 엮어온 가장 근본적인 문제 중 하나이다.}''
+
+관찰된 데이터 포인트 $\vx$를 저차원 표면에 제한함으로써, 우리는 그 항목들을 서로 매우 의존적으로 만들고, 어떤 의미에서 다른 항목의 값으로부터 ``예측 가능''하게 만든다. 예를 들어, 데이터가 $\R^D$에서 $d$차원 표면으로 제한된다는 것을 알고 있다면, 예측 이외의 몇 가지 유용한 작업을 수행할 수 있다:
+\begin{itemize}
+    \item \textbf{완성(completion)}: 일반적인 샘플 $\vx$의 $d$개 이상의 항목이 주어지면, 나머지 항목은 일반적으로 고유하게 결정될 수 있다;\footnote{예측은 이 속성의 특수한 경우가 된다.}
+    \item \textbf{노이즈 제거(denoising)}: 샘플 $\vx$의 항목이 작은 노이즈로 교란되면, $\vx$를 표면으로 다시 투영함으로써 노이즈를 효과적으로 제거할 수 있다;
+    \item \textbf{오류 수정(error correction)}: $\vx$의 알려지지 않은 소수의 항목이 임의로 손상되면, 그것들을 효율적으로 수정할 수 있다.
+\end{itemize}
+\Cref{fig:low-dim-properties}는 저차원 선형 구조---2차원 평면의 1차원 선---를 사용하여 이러한 속성을 보여준다.
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.28\linewidth]{\toplevelprefix/chapters/chapter1/figs/Completion-low-dim.png}
+    \includegraphics[height=0.28\linewidth]{\toplevelprefix/chapters/chapter1/figs/Denoising-low-dim.png}
+    \includegraphics[height=0.32\linewidth]{\toplevelprefix/chapters/chapter1/figs/Correction-low-dim.png}
+    \caption{저차원 (선형) 구조의 속성 설명: 완성(왼쪽), 노이즈 제거(중앙), 오류 수정(오른쪽)을 가능하게 한다.}
+    \label{fig:low-dim-properties}
+\end{figure}
+
+온화한 조건 하에서, 이러한 속성은 고차원 공간의 많은 다른 저차원 구조로 일반화된다 \cite{Wright-Ma-2022}. 우리가 보게 되듯이, 완성 및 노이즈 제거와 같은 이러한 유용한 속성은 그러한 구조를 학습하는 효과적인 방법에 영감을 준다.
+
+단순화를 위해, 우리는 지금까지 결정론적 경우를 사용하여 예측 가능성과 저차원성의 개념을 소개했는데, 여기서 데이터는 부분공간이나 표면과 같은 기하학적 구조 위에 정확히 놓인다. 그러나 실제로 데이터는 항상 어느 정도의 불확실성이나 무작위성을 포함한다. 이 경우, 데이터가 밀도 \(p(\vx)\)를 가진 확률 분포를 따른다고 가정할 수 있다. 분포는 그 밀도가 저차원 기하학적 구조---부분공간, 표면 또는 그것들의 혼합---주변에 집중되어 있으면 ``저차원''으로 간주되며, \Cref{fig:mixture-models}에 나타나 있다. 일단 학습되면, 그러한 밀도 \(p(\vx)\)는 부분적, 노이즈가 있거나 손상된 관찰로부터 \(\vx\)를 추정하기 위한 강력한 사전으로 작용한다:
+\begin{equation}
+    \vy = f(\vx) + \vn,
+    \label{eqn:noisy-observation}
+\end{equation}
+조건부 추정 \(\hat{\vx}(\vy) = \Ex(\vx \mid \vy)\)를 계산하거나 조건부 분포 \(\hat{\vx}(\vy) \sim p(\vx\mid \vy)\)를 샘플링함으로써.\footnote{조건부 이미지 생성과 같은 현대 생성 AI 기술은 우리가 \Cref{ch:conditional-inference}에서 논의할 것처럼 이 원리에 크게 의존한다.}
+
+이러한 논의는 본서가 지능과 심층 네트워크를 이해하기 위한 연역적 접근의 기초로 삼는 단일 가정으로 이어진다:
+\begin{quote}
+\textbf{주요 가정:} \textit{모든 지능형 시스템 또는 학습 방법은 세상의 예측 가능성에 의존해야 하고 (의존할 수 있고); 따라서, 관찰된 고차원 데이터 샘플의 분포는 저차원 지지(support)를 갖는다.}
+\end{quote}
+남은 질문은 고차원 데이터로부터 이러한 저차원 구조를 올바르고 계산적으로 효율적으로 학습하는 방법이다. 우리가 보게 되듯이, 고전적 분석적 접근에서 연구된 파라메트릭 모델과 현대 실무에서 인기 있는 심층 네트워크와 같은 비파라메트릭 모델은 동일한 목표를 달성하기 위한 단순히 다른 수단이다.
+
+
+\section{어떻게 학습할 것인가?}
+
+
+\subsection{분석적 접근}
+\label{sec:analytical}
+예측 함수가 계산하기에 다루기 쉽다고 해도, 유한한 수의 샘플링된 세그먼트로부터 이 함수를 학습하는 것이 다루기 쉽거나 확장 가능하다는 것을 의미하지는 않는다. 다루기 쉽도록 보장하는 한 가지 고전적 접근법은 우리가 다루는 저차원 구조의 패밀리에 대해 명시적인 가정을 하는 것이다. 역사적으로, 제한된 계산과 데이터로 인해, 단순하고 이상적인 분석적 모델이 처음으로 연구되었는데, 그것들은 종종 효율적인 폐쇄형 또는 수치적 해법을 제공하기 때문이다. 또한, 그것들은 더 일반적인 문제에 대한 통찰을 제공하고 중요하지만 제한된 경우에 대해 이미 유용한 해법을 제공한다. 옛날에는, 계산 자원이 희소했을 때, 효율적인 폐쇄형 또는 수치적 해법을 허용하는 분석적 모델이 구현될 수 있는 유일한 경우였다. \textit{선형 구조}는 철저히 연구된 첫 번째 모델 클래스가 되었다.
+
+예를 들어, 아마도 가장 간단한 경우는 데이터가 고차원 공간에서 단일 저차원 부분공간 주변에 분포되어 있다고 가정하는 것이다. 다소 동등하게, 데이터가 거의 퇴화된 저차원 가우시안에 따라 분포되어 있다고 가정할 수 있다. 유한한 수의 (노이즈가 있는) 샘플로부터 그러한 부분공간 또는 가우시안을 식별하는 것은 주성분 분석(PCA)의 고전적 문제이며, 이 클래스의 모델에 대해 효과적인 알고리즘이 개발되었다 \cite{JolliffeI2002}. 모델의 패밀리를 점점 더 복잡하고 표현력 있게 만들 수 있다. 예를 들어, 독립 성분 분석(ICA) \cite{Ans-1985}, 사전 학습(DL), 일반화된 주성분 분석(GPCA) \cite{Vidal-GPCA}에서처럼, 또는 압축 감지와 같은 분야에서 최근 몇 년 동안 광범위하게 연구된 희소 저차원 모델의 더 일반적인 클래스에서처럼, 데이터가 저차원 성분(부분공간 또는 저차원 가우시안)의 혼합 주변에 분포되어 있다고 가정할 수 있다 \cite{Wright-Ma-2022}.
+
+이러한 모든 분석적 모델 패밀리에 걸쳐, 중심 문제는 주어진 데이터에 가장 잘 맞는 각 패밀리 내에서 가장 컴팩트한 모델을 식별하는 것이다. 아래에서, 우리는 이러한 고전적 분석적 모델에 대한 간략한 설명을 제공하지만 더 체계적인 연구는 \Cref{ch:classic}로 남겨둔다. 이론적으로, 이러한 분석적 모델은 저차원 구조의 기하학적 및 통계적 속성에 대한 엄청난 통찰을 제공했다. 그것들은 종종 폐쇄형 해법 또는 효율적이고 확장 가능한 알고리즘을 제공하며, 이는 분포가 그러한 모델로 잘 근사될 수 있는 데이터에 매우 유용하다. 더 중요하게, 더 일반적인 문제에 대해, 그것들은 저차원 구조를 식별하는 문제가 얼마나 쉽거나 어려울 수 있는지, 그리고 그러한 문제에 접근하는 기본 아이디어가 무엇인지에 대한 감각을 제공한다.
+
+
+\subsubsection{선형 동적 시스템}
+\label{sec:linear-systems}
+
+\paragraph{위너 필터.}
+
+\Cref{sec:predictability}에서 논의했듯이, 지능의 중심 과제는 관찰 시퀀스에서 예측 가능한 것을 학습하는 것이다. 예측 가능한 시퀀스---또는 신호---의 가장 간단한 클래스는 \textit{선형 시불변}(LTI) 프로세스에 의해 생성된 것들이다:
+\begin{equation}
+    x[n] = h[n]*z[n] + \epsilon[n],
+    \label{eqn:Wiener-model}
+\end{equation}
+여기서 \(*\)는 컨볼루션 연산이고, \(z\)는 입력이며 \(h\)는 임펄스 응답 함수이다.\footnote{일반적으로 \(h\)는 유한 길이 또는 대역 제한 스펙트럼과 같은 특정 바람직한 속성을 갖는다고 가정된다.} 여기서 \(\epsilon[n]\)은 가산 관찰 노이즈를 나타낸다. 입력 프로세스 \(\{z[n]\}\)와 출력 프로세스 \(\{x[n]\}\)의 관찰이 주어졌을 때, 목표는 \(\hat{x}[n] = h[n]*z[n]\)이 \(x[n]\)을 최적으로 예측하도록 하는 최적 \(h[n]\)을 찾는 것이다. 예측 품질(즉, 적합도)은 평균 제곱 오차(MSE)로 측정된다:
+\begin{equation}
+    \min_{h} \Ex[\epsilon[n]^{2}] = \Ex[\|x[n] - h[n]*z[n]\|_{2}^{2}].
+    \label{eqn:wiener-mse}
+\end{equation}
+최적 해법 \(h[n]\)은 (노이즈 제거) 필터라고 불린다. 사이버네틱스 운동을 시작한 노버트 위너는 1940년대에 이 문제를 연구하고 \textit{위너 필터}로 알려진 우아한 폐쇄형 해법을 유도했다 \cite{Wiener-1942,Wiener-1949}. 최소 분산 추정 및 필터링으로도 알려진 이 결과는 신호 처리의 초석 중 하나가 되었다. 관심 있는 독자는 이 유형의 추정기의 자세한 유도를 위해 \cite[Appendix B]{MaY2003}를 참조할 수 있다.
+
+\paragraph{칼만 필터.}
+동적 시스템을 노이즈 제거하거나 필터링하는 아이디어는 나중에 1960년대에 루돌프 칼만에 의해 유한 차원 상태 공간 모델로 설명되는 선형 시불변 시스템으로 확장되었다:
+\begin{equation}
+    \vz[n] = \vA \vz[n-1] + \vB\vu[n] + \vepsilon[n].
+    \label{eqn:linear-state-space}
+\end{equation}
+문제는 다음 형태의 노이즈가 있는 관찰로부터 시스템 상태 \(\vz[n]\)을 추정하는 것이다
+\begin{equation}
+    \vx[n] = \vC \vz[n] + \vw[n],
+    \label{eqn:Kalman-model}
+\end{equation}
+여기서 \(\vw\)는 (백색) 노이즈이다. 최소 MSE(MMSE) 예측 오차를 최소화하는 최적 인과적\footnote{이는 추정기가 현재 시간 단계 \(n\)까지의 관찰만 사용할 수 있다는 것을 의미한다. 칼만 필터는 항상 인과적이지만, 위너 필터는 그럴 필요가 없다.} 상태 추정기
+\begin{equation}
+    \min \Ex[ \|\vx[n] - \vC\vz[n]\|_{2}^{2}]
+    \label{eqn:kalman-mse}
+\end{equation}
+는 소위 \textit{칼만 필터}에 의해 폐쇄형으로 주어진다 \cite{kalman1960new}. 이 결과는 노이즈가 있는 관찰로부터 동적 시스템의 상태를 추정할 수 있게 하기 때문에 현대 제어 이론의 초석이다. 그런 다음 예를 들어 \(\vu[n] = \vF \hat{\vz}[n]\)와 같은 선형 상태 피드백을 도입하고 \Cref{eqn:recursive-closed-loop}에 나타난 것처럼 폐루프 시스템을 완전히 자율적으로 만들 수 있다. 관심 있는 독자는 칼만 필터의 자세한 유도를 위해 \cite[Appendix B]{MaY2003}를 참조할 수 있다.
+
+\paragraph{선형 동적 시스템의 식별.}
+칼만 필터를 유도하기 위해, 시스템 파라미터 \(\vA, \vB, \vC\)가 알려져 있다고 가정된다. 그것들이 사전에 주어지지 않으면, 문제는 더 어려워지고 \textit{시스템 식별}로 알려진다: 입력 시퀀스 \(\{\vu[n]\}\)와 관찰 시퀀스 \(\{\vx[n]\}\)의 많은 샘플로부터 파라미터 \(\vA, \vB, \vC\)를 \textit{학습}하는 방법. 이것은 시스템 이론의 고전적 문제이다. 시스템이 선형이면, 입력 및 출력 시퀀스 \(\{\vu[n], \vx[n]\}\)는 공동으로 특정 저차원 부분공간\footnote{상태 공간 모델 \eqref{eqn:linear-state-space}의 차수와 동일한 차원을 갖는다.} 위에 놓인다. 따라서 식별 문제는 본질적으로 이 저차원 부분공간을 식별하는 것과 동등하다 \cite{OverscheeP1996,Liu-2009-CDC,Liu-2010-SIAM}.
+
+위의 문제들은 두 가지 공통점을 갖는다: 첫째, 노이즈가 없는 시퀀스 또는 신호가 명시적인 파라메트릭 모델 패밀리에 의해 생성된다고 가정된다; 둘째, 이러한 모델은 본질적으로 선형이다. 개념적으로, \(\vx_{o}\)를 ``참'' 분포가 저차원 선형 부분공간, 예를 들어 \(S\)에 지지되는 확률 변수라고 하자. 상당 부분, 위너 필터와 칼만 필터는 모두 노이즈가 있는 관찰로부터 그러한 \(\vx_{o}\)를 추정하려고 시도한다:
+\begin{equation}
+    \vx = \vx_{o} + \vepsilon, \quad \vx_{o} \sim S,
+\end{equation}
+여기서 \(\vepsilon\)는 일반적으로 무작위 가우시안 노이즈(또는 프로세스)이다. 따라서 그들의 해법은 관찰된 노이즈가 있는 데이터에 가장 잘 맞는 저차원 선형 부분공간을 식별하는 것에 의존한다. 데이터를 이 부분공간으로 투영함으로써, 최적의 노이즈 제거 연산을 얻으며, 모두 폐쇄형으로 된다.
+
+
+\subsubsection{선형 및 혼합 선형 모델}
+\label{sec:PCA-ICA}
+\paragraph{주성분 분석.}
+고전적인 신호 처리 및 시스템 식별의 위의 문제로부터, 우리는 이러한 모든 문제의 배후에 있는 주요 과제가 노이즈가 있는 관찰로부터 \textit{단일} 저차원 선형 부분공간을 학습하는 것임을 알 수 있다. 수학적으로, 우리는 그러한 구조를 다음과 같이 모델링할 수 있다
+\begin{equation}
+    \vx = \vu_{1} z_{1} + \vu_{2} z_{2} + \cdots + \vu_{d} z_{d} + \vepsilon =  \vU \vz + \vepsilon, \quad \vU \in \R^{D\times d},
+    \label{eqn:PCA-model}
+\end{equation}
+여기서 \(\vepsilon \in \R^{D}\)는 작은 무작위 노이즈이다. \Cref{fig:PCA}는 두 개의 주성분을 가진 그러한 분포를 보여준다.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter1/figs/PCA.png}
+    \caption{두 개의 주성분을 가진 분포.}
+    \label{fig:PCA}
+\end{figure}
+문제는 \(\vx\)의 많은 샘플로부터 부분공간 기저 \(\vU\)를 찾는 것이다. 전형적인 접근법은 부분공간으로의 투영 오차를 최소화하는 것이다:
+\begin{equation}
+    \min_{\vU}\Ex[\|\vx - \vU\vU^{\top} \vz\|_{2}^{2}].
+\end{equation}
+이것은 본질적으로 노이즈 제거 작업이다: 기저 \(\vU\)가 올바르게 발견되면, \(\vU\)에 의해 생성되는 저차원 부분공간으로 투영함으로써 노이즈가 있는 샘플 \(\vx\)를 노이즈 제거할 수 있다:
+\begin{equation}
+\vx \rightarrow \hat{\vx} = \vU\vU^{\top} \vx.
+\end{equation}
+노이즈가 작고 저차원 부분공간 \(\vU\)가 올바르게 학습되면, \(\vx \approx \hat{\vx}\)를 기대한다. 따라서 PCA는 데이터를 저차원 공간으로 투영하여 인코딩하고, 저차원 코드를 원래 공간으로 디코딩하는 소위 ``자동 인코딩'' 체계의 특수한 경우이다:
+\begin{equation}
+    \vx   \xrightarrow{\hspace{2mm} \vU^{\top}\hspace{2mm}} \vz  \xrightarrow{\hspace{2mm} \vU \hspace{2mm}} \hat{\vx}.
+       \label{eqn:auto-encoding-PCA}
+\end{equation}
+간단한 데이터 구조 때문에, 인코더 \(\cE\)와 디코더 \(\cD\)는 모두 간단한 선형 연산자(투영 및 리프팅)가 된다.
+
+통계학의 이 고전적 문제는 주성분 분석(PCA)으로 알려져 있다. 이것은 1901년 Pearson에 의해 처음 연구되었고 \cite{Pearson1901} 나중에 1933년 Hotelling에 의해 독립적으로 연구되었다 \cite{Hotelling1933}. 주제는 고전적인 책 \cite{Jolliffe1986,JolliffeI2002}에서 체계적으로 요약되었다.
+데이터 \(\vx\)가 단일 저차원 가우시안에 따라 분포되어 있다고 명시적으로 가정할 수도 있다:
+\begin{equation}
+    \vx \sim \mathcal{N}(\vzero, \vU\vU^{\top} + \sigma \vI), \quad \vU \in \R^{D\times d},
+\end{equation}
+이는 PCA 모델 \eqref{eqn:PCA-model}의 \(\vz\)가 표준 정규 분포라고 가정하는 것과 동등하다. 이 문제는 확률론적 PCA \cite{TippingM1999}로 알려져 있으며 PCA와 동일한 계산 해법을 갖는다.
+
+본서에서, 우리는 저차원 분포를 학습하는 관점에서 \Cref{ch:classic}에서 PCA를 재검토한다. 우리의 목표는 이 간단하고 이상적인 모델을 사용하여 저차원 분포의 컴팩트한 표현을 학습하기 위한 가장 근본적인 아이디어 중 일부를 전달하는 것인데, 여기에는 노이즈 제거를 통한 압축 및 일관된 표현을 위한 자동 인코딩의 중요한 개념이 포함된다.
+
+\paragraph{독립 성분 분석.}
+독립 성분 분석(ICA)은 원래 \cite{Ans-1985}에 의해 \textit{좋은 표현을 학습}하기 위한 고전적 모델로 제안되었다. 사실, 그것은 원래 우리의 기억을 위한 간단한 수학적 모델로 제안되었다. ICA 모델은 관찰된 확률 변수 \(\vx\)가 여러 독립 성분 \(z_{i}\)의 선형 중첩이라고 가정함으로써 위의 PCA 모델 \eqref{eqn:PCA-model}과 속임수처럼 유사한 형태를 취한다:\footnote{PCA에서 ``성분''은 학습된 벡터인 반면, ICA에서는 스칼라이다. 이것은 단지 이름과 관례의 차이이다.}
+\begin{equation}
+    \vx = \vu_{1} z_{1} + \vu_{2} z_{2} + \cdots + \vu_{d} z_{d}  + \vepsilon =  \vU \vz + \vepsilon.
+    \label{eqn:ICA-model}
+\end{equation}
+그러나 여기서 성분 \(z_{i}\)는 독립 \textit{비가우시안} 변수라고 가정된다. 예를 들어, 인기 있는 선택은 다음과 같다
+\begin{equation}
+    z_{i} = \sigma_{i} \cdot w_{i}, \quad \sigma_{i} \sim B(1,p),
+    \label{eqn:ICA-modes}
+\end{equation}
+여기서 \(\sigma_{i}\)는 베르누이 확률 변수이고 \(w_{i}\)는 상수 값 또는 예를 들어 가우시안과 같은 다른 확률 변수일 수 있다.\footnote{\(w\)가 가우시안이더라도, \(\sigma w\)는 더 이상 가우시안 변수가 아니다!} ICA 문제는 \(\vx\)의 관찰된 샘플로부터 \(\vU\)와 \(\vz\) 모두를 식별하는 것을 목표로 한다. \Cref{fig:ICA-PCA}는 ICA와 PCA 간의 차이를 보여준다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter1/figs/PCA_ICA.png}
+    \caption{PCA(왼쪽) 대 ICA(오른쪽). PCA는 데이터를 대략적으로 생성하는 \textit{직교} 벡터를 찾는 반면, ICA는 데이터를 대략적으로 형성하기 위해 \textit{독립적으로} 결합하는 (반드시 직교일 필요는 없는) 벡터와 이 결합의 계수를 찾는다는 점에 유의하라.}
+    \label{fig:ICA-PCA}
+\end{figure}
+
+\(\vU\)와 \(\vz\)가 학습되면 \(\vz\)에서 \(\vx\)로의 (디코딩) 매핑은 선형적이고 간단해 보이지만, \(\vx\)에서 \(\vz\)로의 (인코딩) 매핑은 복잡할 수 있으며 간단한 선형 매핑으로 표현되지 않을 수 있다. 따라서 ICA는 일반적으로 다음 형태의 자동 인코딩을 제공한다:
+\begin{equation}
+    \vx   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \vz  \xrightarrow{\hspace{2mm} \vU \hspace{2mm}} \hat{\vx}.
+       \label{eqn:auto-encoding-ICA}
+\end{equation}
+따라서 PCA와 달리 ICA는 분석하고 해결하기가 다소 더 어렵다. 1990년대에 Erkki Oja 및 Aapo Hyv\"{a}rinen \cite{hyvarinen-1997,Hyvrinen-2000}과 같은 연구자들이 ICA에 대한 중요한 이론적 및 알고리즘적 기여를 했다. \Cref{ch:classic}에서, 우리는 ICA에 대한 해법을 연구하고 제공할 것이며, 여기서 인코딩 매핑 \(\cE\)가 명확해질 것이다.
+
+
+\paragraph{희소 구조 및 압축 감지.}
+\eqref{eqn:ICA-modes}의 \(p\)가 매우 작으면, 어떤 성분이 0이 아닐 확률이 작다. 이 경우 \(\vx\)가 희소하게 생성되고 차원이 \(k = p \cdot d\)인 선형 부분공간의 합집합에 집중된다고 말한다. 따라서 우리는 ICA 모델을 희소 모델로 알려진 더 일반적인 저차원 구조 패밀리로 확장할 수 있다.
+
+\(k\)-희소 모델은 모든 \textit{\(k\)-희소 벡터}의 집합이다:
+\begin{equation}
+    \cZ = \{\vz \in \R^{n} \mid \|\vz\|_{0} \leq k\},
+\end{equation}
+여기서 \(\|\cdot\|_{0}\)은 0이 아닌 항목의 수를 센다. 따라서 \(\cZ\)는 \Cref{fig:mixture-models} (왼쪽)에 그림으로 나타난 것처럼 좌표축과 정렬된 모든 \(k\)차원 부분공간의 합집합이다. 신호 처리 및 통계의 중심 문제는 선형 관찰로부터 희소 벡터 \(\vz\)를 복구하는 것이다
+\begin{equation}
+    \vx = \vA \vz + \vepsilon, \quad \vA \in \R^{m\times n},
+    \label{eqn:sparse-model}
+\end{equation}
+여기서 \(\vA\)가 주어지고, 일반적으로 \(m < n\)이며, \(\vepsilon\)는 작은 노이즈이다. 이 겉보기에 무해한 문제는 NP-난해하고 근사하기도 어렵다(자세한 내용은 \cite{Wright-Ma-2022} 참조).
+
+18세기로 거슬러 올라가는 풍부한 역사에도 불구하고 \cite{Boscovichca1750}, 이 클래스의 문제에 대한 증명 가능하게 효율적인 알고리즘은 존재하지 않았지만, 1960년대와 1990년대 사이에 많은 휴리스틱 알고리즘이 제안되었다. 일부는 실제로 효과적이었지만 엄격한 정당화가 부족했다. 주요 돌파구는 David Donoho, Emmanuel Cand\'{e}s, Terence Tao \cite{donoho2005neighborly,Candes2005,CandesE2005-IT}를 포함한 수학자들이 희소 복구 문제가 볼록 \(\ell^{1}\) 최소화를 통해 효과적이고 효율적으로 해결될 수 있는 정확한 조건을 특성화하는 엄격한 이론적 프레임워크를 확립한 2000년대 초에 나왔다:
+\begin{equation}
+    \min \|\vz\|_{1} \quad \text{subject to} \quad \|\vx - \vA\vz\|_{2} \leq \epsilon,
+\end{equation}
+여기서 \(\|\cdot\|_{1}\)은 벡터의 희소성 촉진 \(\ell^{1}\) 노름이고 \(\epsilon\)는 작은 상수이다. 어떤 해법도 희소 (자동) 인코딩을 제공한다
+\begin{equation}
+    \vx \xrightarrow{\hspace{2mm} \cE \hspace{2mm}} \vz \xrightarrow{\hspace{2mm} \vA \hspace{2mm}} \hat{\vx}.
+    \label{eqn:decoding-sparse}
+\end{equation}
+우리는 \Cref{ch:classic}에서 그러한 알고리즘(따라서 매핑)을 설명할 것이며, 희소 코딩과 심층 학습 간의 근본적인 연결을 밝힐 것이다.\footnote{희소 코딩 알고리즘과 심층 네트워크 간의 유사성은 2010년에 일찍이 주목되었다 \cite{gregor2010learning}.}
+
+\(\ell^{1}\) 최소화가 성공하기 위한 조건은 놀랍도록 일반적이다: 성공적인 복구에 필요한 최소 측정 수 \(m\)은 고유 차원 \(k\)에만 비례한다. 이것이 \textit{압축 감지} 현상이다 \cite{CandesE2006-ICM}. 그것은 낮은 순위 행렬을 포함하여 저차원 구조의 광범위한 패밀리로 확장된다. 이러한 결과는 고차원 공간에서 저차원 구조를 복구하는 우리의 이해를 근본적으로 변화시켰다. David Donoho는 특히 일반적인 비관적 믿음인 ``차원의 저주''와 대조적으로 이러한 역전을 ``차원의 축복''으로 찬양했다 \cite{DonohoD2000}. 완전한 이론과 결과 본문은 \cite{Wright-Ma-2022}에 제시되어 있다.
+
+이 프레임워크의 계산적 중요성은 과대평가될 수 없다. 그것은 이전에 다루기 어렵다고 믿어졌던 문제를 다루기 쉬울 뿐만 아니라 극도로 효율적인 알고리즘을 사용하여 확장 가능하게 해결할 수 있는 문제로 변환했다:
+\begin{equation}
+    \text{다루기 어려움} \;\Longrightarrow\; \text{다루기 쉬움} \;\Longrightarrow\; \text{확장 가능}.
+\end{equation}
+알고리즘은 데이터 및 계산에서 정확한 요구 사항이 주어진 정확성의 엄격한 이론적 보장과 함께 제공된다. 이 접근법의 연역적 특성은 심층 신경망의 경험적, 귀납적 실무와 크게 대조된다. 그러나 우리는 이제 두 접근법이 공통 목표를 공유한다는 것을 안다---고차원 공간에서 저차원 구조를 추구하는 것.
+
+\paragraph{사전 학습.}
+개념적으로, 희소 코딩 문제 \eqref{eqn:sparse-model}보다 더 어려운 문제는 관찰 행렬 \(\vA\)가 알려지지 않고 (가능하게 노이즈가 있는) 관찰 집합 \(\vX = [\vx_{1}, \vx_{2}, \ldots, \vx_{n}]\)으로부터 자체적으로 학습되어야 할 때 발생한다:
+\begin{equation}
+    \vX = \vA \vZ + \vE, \quad \vA \in \R^{m\times n}.
+    \label{eqn:dictionary-learning}
+\end{equation}
+여기서 우리는 \(\vX\)만 주어지고, 대응하는 \(\vZ = [\vz_{1}, \vz_{2}, \ldots, \vz_{n}]\) 또는 노이즈 항 \(\vE = [\vepsilon_{1}, \vepsilon_{2}, \ldots, \vepsilon_{n}]\)은 주어지지 않지만, \(\vz_{i}\)가 희소하다는 것은 알려져 있다. 이것이 \textit{사전 학습} 문제이며, 앞서 논의한 ICA 문제 \eqref{eqn:ICA-model}을 일반화한다. 다시 말해, 데이터 \(\vX\)의 분포가 선형 변환 \(\vA\) 아래에서 표준 희소 분포 \(\vZ\)의 이미지라는 것을 감안할 때, 우리는 자동 인코더를 얻기 위해 \(\vA\)와 그 ``역'' 매핑 \(\cE\) 모두를 학습하고자 한다:
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}}  \vZ \xrightarrow{\hspace{2mm} \vA \hspace{2mm}} \hat{\vX}.
+       \label{eqn:decoding-DL}
+\end{equation}
+
+PCA, ICA, 사전 학습은 모두 데이터 분포가 저차원 선형 또는 조각별 선형 구조 위에 또는 근처에 지지된다고 가정한다. 각 방법은 노이즈가 있는 샘플로부터 이러한 구조에 대한 (전역 또는 국소) 기저를 학습해야 한다. \Cref{ch:classic}에서 우리는 이러한 고전적 모델을 통해 그러한 저차원 구조를 식별하는 방법을 연구한다. 특히, 우리는 이러한 모든 저차원 (조각별) 선형 모델이 \textit{파워 반복}으로 알려진 동일한 고속 알고리즘 패밀리에 의해 효율적으로 학습될 수 있음을 보게 될 것이다 \cite{Zhai-2020}. 이러한 선형 또는 조각별 선형 모델이 대부분의 실제 데이터에 대해 다소 이상적이지만, 그것들을 이해하는 것은 더 일반적인 저차원 분포를 이해하기 위한 필수적인 첫 단계이다.
+
+\subsubsection{일반 분포}\label{sec:denoising-intro}
+
+이미지, 비디오, 오디오와 같은 실제 데이터의 분포는 위의 다소 이상적인 선형 모델이나 가우시안 프로세스로 모델링하기에는 너무 복잡하다. 우리는 일반적으로 그것들이 어떤 파라메트릭 모델 패밀리로부터 생성되는지를 \textit{사전에} 알지 못한다. 역사적으로, 이러한 데이터에 대한 분석적 모델을 개발하려는 많은 시도가 있었다. 특히 필즈 메달리스트 David Mumford는 1990년대에 자연 이미지의 통계를 이해하고 모델링하려고 상당한 노력을 기울였다 \cite{Mumford1996TheSD}. 그와 Song-Chun Zhu를 포함한 그의 학생들은 통계 물리학으로부터 영감과 기법을 끌어내어 무작위 장 또는 확률 프로세스와 같은 자연 이미지의 분포에 대한 많은 통계적 및 확률적 모델을 제안했다 \cite{Zhu-Entropy-1997,Zhu1997LearningGP,Zhu1997Prior,Huang-Mumford,Mumford-1999,Lee-Mumford}. 그러나 이러한 분석적 모델은 자연 이미지와 밀접하게 닮은 샘플을 생성하는 데 제한된 성공만을 거두었다. 분명히, 이미지와 같은 실제 데이터에 대해, 우리는 그들의 더 일반적인 저차원 구조를 추구하기 위한 더 강력하고 통합된 방법을 개발해야 한다.
+
+실제로, 실제 데이터의 일반 분포에 대해, 우리는 일반적으로 분포로부터의 많은 샘플만 가지고 있다---소위 \textit{경험적 분포}. 그러한 경우에, 우리는 일반적으로 그들의 저차원 구조나 결과적인 노이즈 제거 연산자에 대한 명확한 분석적 형태를 기대할 수 없다.\footnote{이것은 PCA, 위너 필터, 칼만 필터의 경우와 다르다.} 따라서 우리는 이러한 경험적 분포에 대한 더 일반적인 해법을 개발해야 하는데, 반드시 폐쇄형일 필요는 없지만 적어도 효율적으로 계산 가능해야 한다. 우리가 이것을 올바르게 수행하면, 앞서 언급한 선형 모델에 대한 해법은 그들의 특수한 경우가 되어야 한다.
+
+\paragraph{노이즈 제거.} 1950년대에, 통계학자들은 임의의 분포로부터 추출된 데이터를 노이즈 제거하는 문제에 관심을 갖게 되었다. \(\vx_{o}\)를 확률 밀도 함수 \(p_{o}(\cdot)\)를 가진 확률 변수라고 하자. \(\vx_{o}\)의 노이즈가 있는 버전을 관찰한다고 가정하자:
+\begin{equation}
+    \vx = \vx_{o} + \sigma \vg,
+\end{equation}
+여기서 \(\vg \sim \dNorm(\vzero, \vI)\)는 표준 가우시안 노이즈이고 \(\sigma\)는 관찰의 노이즈 수준이다. \(p(\cdot)\)를 \(\vx\)의 확률 밀도 함수라고 하자.\footnote{즉, \(p(\vx) = \int_{-\infty}^{\infty} \phi_{\sigma}(\vx - \vz)p_{o}(\vz) \odif{\vz}\), 여기서 \(\phi_{\sigma}\)는 가우시안 분포 \(\mathcal{N}(\vzero, \sigma^{2} \vI)\)의 밀도 함수이다.} 놀랍게도, \(\vx\)가 주어졌을 때 \(\vx_{o}\)의 사후 기대값은 Tweedie의 공식으로 알려진 우아한 공식으로 계산될 수 있다 \cite{Robbins1956AnEB}:\footnote{Herbert Robbins는 개인적인 서신으로부터 Maurice Kenneth Tweedie에게 이 공식의 공로를 돌렸다.}
+\begin{equation}
+    \hat{\vx}_{o} = \Ex[\vx_{o}\mid \vx] = \vx + \sigma^{2} \nabla \log p(\vx).
+\end{equation}
+공식에서 볼 수 있듯이, 함수 \(\nabla \log p(\vx)\)는 여기서 관찰 \(\vx\)를 노이즈 제거하는 데 매우 특별한 역할을 한다. 노이즈 \(\vg\)는 다음과 같이 명시적으로 추정될 수 있다
+\begin{equation}
+    \hat{\vg} = \frac{\vx - \hat{\vx}_{o}}{\sigma} = -\sigma \nabla \log p(\vx),
+\end{equation}
+이를 위해 우리는 \(\vx_{o}\)에 대한 진실 \(p_{o}(\cdot)\)가 아니라 \(\vx\)의 분포 \(p(\cdot)\)만 알면 된다. 이 결과의 중요한 함의는 어떤 분포에 가우시안 노이즈를 추가하면, 함수 \(\nabla \log p(\vx)\)를 어떻게든 얻을 수 있다면 노이즈 제거 프로세스를 쉽게 수행할 수 있다는 것이다.
+
+이것이 매우 중요하고 유용한 결과이기 때문에, 많은 다른 맥락과 영역에서 재발견되고 사용되었다. 예를 들어, Tweedie의 공식 \cite{Robbins1956AnEB} 이후, 그것은 몇 년 후 \cite{Miyasawa61}에 의해 재발견되었으며 ``경험적 베이지안 노이즈 제거''라고 불렸다. 2000년대 초에, 함수 \(\nabla \log p(\vx)\)는 일반 분포를 학습하는 맥락에서 다시 재발견되었고 Aapo Hyv\"{a}rinen \cite{hyvarinen05a}에 의해 ``점수 함수''라고 명명되었다. (경험적 베이지안) 노이즈 제거와의 연결은 곧 \cite{Vincent2011}에 의해 인식되었다.
+다른 측정 분포(가우시안 노이즈를 넘어서)로의 일반화는 Eero Simoncelli의 그룹 \cite{Raphan10}에 의해 이루어졌다. 오늘날, Tweedie의 공식과 노이즈 제거의 가장 직접적인 응용은 반복적 노이즈 제거를 통한 이미지 생성이다 \cite{Kadkhodaie21a,ho2020denoising}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{\toplevelprefix/chapters/chapter1/figs/Density-compress.png}
+    \caption{왼쪽의 밀도 \(p(\vx)\)를 가진 분포에 대한 점수 함수 \(\nabla \log p(\vx)\)의 기하학적 해석. 점수 함수에 의해 생성된 연산은 분포를 더 높은 밀도의 영역으로 밀어낸다. 목표는 압축성의 특정 측정(예: 엔트로피 또는 코딩 길이)에 의해 결과 분포가 더 ``압축''되는 것이다. 결국, 분포는 오른쪽에 나타난 \(p^{*}(\vx)\)와 같이 저차원 지지를 가진 것으로 수렴한다.}
+    \label{fig:score-function}
+\end{figure}
+
+
+\paragraph{엔트로피 최소화.} 점수는 직관적인 정보 이론적 및 기하학적 해석을 갖는다. 정보 이론에서, \(-\log p(\vx)\)는 \(\vx\)를 인코딩하는 데 필요한 비트 수에 해당한다\footnote{적어도 이산 변수에 대해, \Cref{ch:compression}에 자세히 설명된 바와 같이.}. 기울기 \(\nabla \log p(\vx)\)는 \Cref{fig:score-function} (왼쪽)에 나타난 것처럼 더 높은 확률 밀도 영역을 향한다. 이 방향으로 이동하면 \(\vx\)를 인코딩하는 데 필요한 비트 수가 줄어든다. 따라서 연산자 \(\nabla \log p(\vx)\)는 분포를 고밀도 영역으로 ``축소''하도록 밀어낸다. 공식적으로, (미분) 엔트로피
+\begin{equation}
+    H(\vx) = - \int p(\vw) \log p(\vw) \odif{\vw}
+\end{equation}
+는 이 연산 하에서 감소한다는 것을 보일 수 있다(\Cref{ch:compression} 및 \Cref{app:diffusion-denoising} 참조). 최적 코드북으로, 결과 분포는 더 낮은 코딩 율을 달성하고 따라서 더 압축된다. 이 노이즈 제거 프로세스를 무한정 반복하면 확률 질량이 더 낮은 차원의 지지에 집중된 분포가 생성된다. 예를 들어, \Cref{fig:score-function} (왼쪽)의 분포 \(p(\vx)\)는 \(p^{*}(\vx)\) (오른쪽)로 수렴한다:\footnote{엄밀히 말하면, \(p^{*}(\vx)\)는 일반화된 함수이다: \(p^{*}(\vx) = p^{*}(\vx_{1})\delta(\vx-\vx_{1}) + p^{*}(\vx_{2}) \delta(\vx-\vx_{2})\) 여기서 \(p^{*}(\vx_{1}) + p^{*}(\vx_{2}) = 1\).}\footnote{이 섹션에서 우리는 고엔트로피 노이즈 분포를 반복적으로 노이즈 제거하고 압축하여 저엔트로피 데이터 분포로 수렴하는 프로세스를 논의한다. \Cref{ch:general-distribution}에서 보게 되듯이, 이 문제는 데이터 분포에 대한 최적 인코딩을 학습하는 문제와 쌍대적이며, 이것 역시 유용한 응용이다 \cite{relic2024lossy}.}
+\begin{equation}
+    H(\vx) = - \int p(\vw) \log p(\vw) \odif{\vw} \quad \xrightarrow{\hspace{1mm} \text{decreasing} \hspace{1mm}} \quad H^{*}(\vx) = - \int p^{*}(\vw) \log p^{*}(\vw) \odif{\vw}.
+\end{equation}
+분포가 \(p^{*}(\vx)\)로 수렴함에 따라, 그 미분 엔트로피는 연속 및 이산 엔트로피 정의 간의 기술적 차이로 인해 음의 무한대에 접근한다. \Cref{ch:compression}은 통합된 \textit{율-왜곡} 측정을 사용하여 이를 해결한다.
+
+이 장의 나중 부분과 \Cref{ch:compression}에서, 우리는 이 간단한 노이즈 제거-압축 프레임워크가 자연 이미지 분포를 포함하여 고차원 공간에서 저차원 분포를 학습하기 위한 강력한 방법을 통합하는 방법을 탐구한다.
+
+\subsection{경험적 접근}
+실제로, 이미지, 소리, 텍스트와 같은 중요한 실제 데이터를 이전 섹션에서 논의한 이상화된 선형, 조각별 선형 또는 기타 분석적 모델로 모델링하기는 어렵다. 역사적으로, 많은 경험적 모델과 방법이 제안되었다. 이러한 모델은 종종 생물학적 신경계로부터 영감을 얻었는데, 동물이나 인간의 뇌가 그러한 데이터를 놀라운 효율성과 효과성으로 처리하기 때문이다.
+
+\subsubsection{고전적 인공 신경망}
+\paragraph{인공 뉴런.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.55\linewidth]{\toplevelprefix/chapters/chapter1/figs/neuron.png} \hspace{3mm}
+    \includegraphics[width=0.40\linewidth]{\toplevelprefix/chapters/chapter1/figs/Artificial_neuron.png}
+    \caption{뉴런(왼쪽)이 신호를 처리하는 방식을 모방한 인공 뉴런의 첫 번째 수학적 모델(오른쪽).}
+    \label{fig:neuron}
+\end{figure}
+
+뇌의 신경계에서 영감을 받아, 인공 뉴런의 첫 번째 수학적 모델\footnote{선형 임계값 단위(Linear Threshold Unit) 또는 퍼셉트론으로 알려져 있다.}은 1943년 Warren McCulloch\footnote{당시 시카고 대학교 정신과 교수}과 Walter Pitts에 의해 제안되었다 \cite{McCulloch-Pitts}. 그것은 입력 $x_i$와 출력 $o_j$ 간의 관계를 다음과 같이 설명한다:
+\begin{equation}
+    o_j = \varphi\Big( \sum_i w_{ji}x_i\Big),
+\end{equation}
+여기서 $\varphi(\cdot)$는 일반적으로 임계값 함수로 모델링되는 비선형 활성화이다. 이 모델은 \Cref{fig:neuron}에 그림으로 나타나 있다. 볼 수 있듯이, 이 형태는 이미 현대 심층 신경망의 기본 단위의 주요 특성을 공유한다. 이 모델은 우리 신경계에서 단일 뉴런이 작동하는 방식의 관찰로부터 유도되었다. 그러나 연구자들은 그러한 뉴런들의 집합이 정확히 어떤 기능을 실현하고 수행할 수 있는지 알지 못했다. 더 기술적인 수준에서, 그들은 또한 어떤 비선형 활성화 함수 $\varphi(\cdot)$를 사용해야 하는지 확신하지 못했다. 따라서 역사적으로 많은 변형이 제안되었다.\footnote{계단 함수, 하드 또는 소프트 임계값, 정류 선형 단위(ReLU), 시그모이드 등 \cite{dubey2022activation}.}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{\toplevelprefix/chapters/chapter1/figs/single-deep.png}
+    \caption{하나의 은닉층을 가진 네트워크(왼쪽) 대 심층 네트워크(오른쪽).}
+    \label{fig:single-deep}
+\end{figure}
+
+\paragraph{인공 신경망.}
+1950년대에, Frank Rosenblatt은 \Cref{fig:perceptron}에 나타난 것처럼 그러한 인공 뉴런의 \textit{네트워크}를 가진 기계를 최초로 구축했다. Mark I Perceptron이라고 불리는 이 기계는 입력층, 출력층, 그리고 \Cref{fig:perceptron} 왼쪽에 나타난 것처럼 512개의 인공 뉴런을 가진 단일 은닉층으로 구성되어 있으며, 이는 \Cref{fig:single-deep} (왼쪽)에 그림으로 나타난 것과 유사하다. 그것은 글자의 광학 이미지를 분류하도록 설계되었다. 그러나 단일층 네트워크의 용량은 제한적이며 선형적으로 분리 가능한 패턴만 학습할 수 있다. Marvin Minsky와 Seymour Papert의 1969년 책 \textit{Perceptrons: An Introduction to Computational Geometry} \cite{Minsky-1969}에서, Mark I Perceptron의 단일층 아키텍처가 XOR 함수를 학습할 수 없다는 것이 보였다. 이 결과는 인공 신경망에 대한 관심을 크게 약화시켰는데, 비록 나중에 다층 네트워크가 XOR 함수를 학습할 수 있다는 것이 증명되었지만 말이다 \cite{Rumelhart1986}. 사실, \Cref{fig:single-deep} (오른쪽)에 나타난 것처럼 그러한 간단한 뉴런으로 구성된 충분히 큰 다층 네트워크는 심지어 범용 튜링 기계를 포함하여 어떤 유한 상태 기계도 시뮬레이션할 수 있다.\footnote{신경망이 원칙적으로 무엇을 할 수 있는지와 특정 원하는 기능을 실현하는 신경망을 학습하는 것이 다루기 쉽거나 쉬운지를 혼동하지 말라.} 그럼에도 불구하고, 인공 신경망 연구는 이후 1970년대에 첫 번째 겨울에 들어갔다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\linewidth]{\toplevelprefix/chapters/chapter1/figs/visu-large.jpg}
+    \hspace{2mm} \includegraphics[width=0.45\linewidth]{\toplevelprefix/chapters/chapter1/figs/Original-Mark-I-perceptron-as-seen-in-its-operators-manual-20.ppm.png}
+    \caption{1950년대 후반 Frank Rosenblatt이 개발한 Mark I Perceptron 기계.}
+    \label{fig:perceptron}
+\end{figure}
+
+
+\paragraph{합성곱 신경망.}
+1950년대와 1960년대에 Mark I Perceptron과 같은 초기 인공 신경망 실험은 다소 실망스러웠다. 그것들은 다층 퍼셉트론(MLP)에서처럼 뉴런을 일반적인 방식으로 연결하는 것만으로는 충분하지 않을 수 있음을 시사했다. 효과적이고 효율적인 네트워크를 구축하기 위해서는, 네트워크의 뉴런이 달성해야 하는 집단적 목적이나 기능을 이해하는 것이 매우 도움이 되며, 그래야 그것들을 전문화된 방식으로 조직하고 학습할 수 있다. 따라서 이 시점에서, 다시 한번 기계 지능 연구는 영감을 얻기 위해 동물 신경계로 눈을 돌렸다.
+
+우리 뇌의 대부분이 시각 정보 처리에 전념하고 있다는 것은 알려져 있다 \cite{PalmerS1999}. 1950년대와 1960년대에, David Hubel과 Torsten Wiesel은 고양이의 시각 피질을 체계적으로 연구했다. 그들은 시각 피질이 서로 다른 방향과 위치의 시각 자극에 민감한 서로 다른 유형의 세포---단순 세포와 복잡 세포---를 포함한다는 것을 발견했다 \cite{Hubel-Wiesel-1959}. Hubel과 Wiesel은 이 획기적인 발견으로 1981년 노벨 생리의학상을 수상했다.
+
+인공 신경망 측면에서, Hubel과 Wiesel의 연구는 1980년에 Kunihiko Fukushima가 ``네오코그니트론'' 네트워크를 설계하도록 영감을 주었는데, 이는 시각 피질의 생물학적 뉴런을 모방하는 인공 뉴런으로 구성된다 \cite{Fukushima1980NeocognitronAS}. 이것이 최초의 \textit{합성곱 신경망}(CNN)으로 알려져 있으며, 그 아키텍처는 \Cref{fig:neocognitron}에 그림으로 나타나 있다. 퍼셉트론과 달리, 네오코그니트론은 하나 이상의 은닉층을 가지고 있으며 \Cref{fig:single-deep} (오른쪽)에 나타난 것처럼 심층 네트워크로 볼 수 있다.
+
+또한 고양이의 시각 피질에서 뉴런이 작동하는 방식에서 영감을 받아, Fukushima는 1969년에 \textit{정류 선형 단위}(ReLU)를 최초로 도입했다 \cite{Fukushima-1969}:
+\begin{equation}
+    \varphi(x) = \max\{0, x\} = \casework{x, & \text{if } x > 0, \\ 0, & \text{if } x \leq 0,}
+\end{equation}
+이를 활성화 함수 \(\varphi(\cdot)\)로 사용했다. 그러나 ReLU가 현대 심층(합성곱) 신경망에서 널리 사용되기 시작한 것은 최근 몇 년 동안이었다. 본서는 심층 네트워크가 구현하는 주요 연산인 압축을 논의한 후 왜 ReLU가 좋은 선택인지 설명할 것이다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{\toplevelprefix/chapters/chapter1/figs/neocognitron.png}
+    \caption{합성곱 신경망의 기원: 1980년 Kunihiko Fukushima의 네오코그니트론. 컨볼루션과 풀링의 교차 레이어가 고양이의 시각 피질에서 발견된 단순 세포와 복잡 세포의 기능을 모방한다는 점에 유의하라.}
+    \label{fig:neocognitron}
+\end{figure}
+
+CNN 유형의 네트워크는 1980년대에 계속 진화했으며, 많은 다양한 변형이 도입되고 연구되었다. 그러나 심층 네트워크의 놀라운 능력과 신경과학에서 영감을 받은 개선된 아키텍처에도 불구하고, 이미지 분류와 같은 실제 작업을 위해 그러한 심층 네트워크를 훈련시키는 것은 여전히 극도로 어려웠다. 네트워크가 작동하도록 만드는 것은 설명할 수 없는 많은 휴리스틱과 트릭에 의존했으며, 이는 신경망의 매력과 적용 가능성을 제한했다. 주요 돌파구는 1989년경 Yann LeCun이 손으로 쓴 숫자를 인식하기 위한 심층 합성곱 신경망을 학습하기 위해 \textit{역전파}(BP)를 성공적으로 사용했을 때 나왔다 \cite{LeCun-1989}, 나중에 LeNet으로 알려진다(\Cref{fig:LeNet-5} 참조). 몇 년간의 끈질긴 개발 끝에, 그의 인내심이 결실을 맺었다: LeNet의 성능은 결국 1990년대 후반에 실용적인 사용에 충분히 좋아졌다 \cite{LeCun-1998}. 그것은 미국 우체국에서 손으로 쓴 숫자(우편번호용)를 인식하는 데 사용되었다. LeNet은 나중에 논의할 AlexNet \cite{krizhevsky2012imagenet} 및 ResNet \cite{he2016deep}과 같은 모든 현대 심층 신경망의 ``프로토타입'' 네트워크로 간주되었다. 이 연구로 Yann LeCun은 2018년 튜링상을 수상했다.\footnote{심층 네트워크의 다른 두 선구자인 Yoshua Bengio 및 Geoffrey Hinton과 함께.}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\linewidth]{\toplevelprefix/chapters/chapter1/figs/LeNet-5.png}
+    \caption{1989년 Yann LeCun이 설계한 LeNet-5 합성곱 신경망.}
+    \label{fig:LeNet-5}
+\end{figure}
+
+\paragraph{역전파.}
+역사를 통틀어, 심층 신경망의 운명은 그것들이 얼마나 쉽고 효율적으로 훈련될 수 있는지와 연결되어 있었다. 역전파(BP)는 이 목적을 위해 도입되었다. 다층 퍼셉트론은 선형 매핑과 비선형 활성화의 합성으로 표현될 수 있다:
+\begin{equation}
+    h(\vW_{1}, \ldots, \vW_{L}) = f^{L}(\vW_{L}f^{L-1}(\vW_{L-1} \cdots f^{2}(\vW_{2}f^{1}(\vW_{1}\vx)))).
+\end{equation}
+경사 하강법을 통해 네트워크 가중치 \(\{\vW_{l}\}_{l=1}^{L}\)를 훈련시키려면, 기울기 \(\partial h/\partial \vW_{l}\)를 평가해야 한다. 미적분학의 연쇄 법칙은 그러한 함수에 대해 기울기를 효율적으로 계산할 수 있음을 보여주는데---이 기법은 나중에 역전파 또는 BP라고 불렸다; 자세한 내용은 \Cref{app:optimization} 참조. BP는 이미 1960년대와 1970년대에 최적 제어 및 동적 프로그래밍에서 알려져 있었으며, Paul Werbos의 1974년 박사 학위 논문에 나타났다 \cite{Werbos-1974, Werbos1994TheRO}. 1986년, David Rumelhart 등이 다층 퍼셉트론(MLP)을 훈련시키기 위해 이를 최초로 적용했다 \cite{Rumelhart1986}. 그 이후로, BP는 확장 가능하고 병렬 및 분산 컴퓨팅 플랫폼에서 효율적으로 구현될 수 있기 때문에 심층 네트워크를 훈련시키는 지배적인 기술이 되었다. 그러나 자연은 아마도 BP를 사용하지 않는데,\footnote{앞서 논의했듯이, 자연은 거의 보편적으로 폐루프 피드백을 통해 오류를 수정하는 것을 학습한다.} 그 메커니즘은 물리적 구현을 위해 너무 비싸기 때문이다.\footnote{엔드투엔드 BP는 특히 업데이트가 실시간으로 발생해야 하는 경우 뇌처럼 복잡한 신경 구조에 대해 계산적으로 다루기 어렵다. 대신, 신경 회로의 작은 섹션에 대한 국소화된 업데이트가 생물학적으로 훨씬 더 실현 가능하다. BP를 우회하여 심층 네트워크를 훈련시키기 위해 그러한 ``국소 학습'' 규칙을 이식하는 작업은 비교적 적다 \cite{baldi2016theory,millidge2022predictive,li2025noprop}. 우리는 이것이 심층 네트워크 훈련의 확장성을 개선하는 흥미로운 기회라고 믿는다.} 이는 미래의 개선을 위한 충분한 여지를 남긴다.
+
+앞서 언급한 알고리즘 진보에도 불구하고, 1980년대와 1990년대에 심층 네트워크를 훈련시키는 것은 까다롭고 계산적으로 비쌌다. 1990년대 후반까지, 서포트 벡터 머신(SVM) \cite{SVM-1995}은 분류 작업에 대한 우수한 대안으로 인기를 얻었다.\footnote{분류 문제에 대한 유사한 아이디어는 Thomas Cover의 1964년 박사 학위 논문으로 거슬러 올라가며, 이는 1964년 논문으로 압축되어 출판되었다 \cite{Cover-1964}.} SVM은 두 가지 장점을 제공했다: Vapnik--Chervonenkis(VC) 이론으로 알려진 엄격한 통계적 학습 프레임워크와 효율적인 볼록 최적화 알고리즘 \cite{BoydVa04}. SVM의 부상은 2000년대 초 신경망에 두 번째 겨울을 가져왔다.
+
+\paragraph{압축 자동 인코딩.}
+1980년대 후반과 1990년대에, 인공 신경망은 이미 이미지와 같은 고차원 데이터의 저차원 표현을 학습하는 데 사용되고 있었다. 신경망이 \Cref{sec:PCA-ICA}에서 논의된 고전적 방법을 사용하는 대신 데이터로부터 직접 PCA를 학습할 수 있다는 것이 보였다 \cite{Oja1982SimplifiedNM,Baldi89}. 또한 이 기간 동안 비선형 변환을 모델링하는 능력 때문에, 신경망이 비선형 분포를 가진 데이터에 대한 저차원 표현을 학습할 수 있다고 주장되었다. 선형 PCA 경우와 유사하게, 비선형 차원 축소 인코더 \(f\)와 디코더 \(g\)를 동시에 학습할 수 있으며, 각각 심층 신경망으로 모델링된다 \cite{Rumelhart1986,Kramer1991NonlinearPC}:
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} f \hspace{2mm}} \vZ  \xrightarrow{\hspace{2mm} g \hspace{2mm}} \hat{\vX}.
+       \label{eqn:auto-encoding-deep-networks}
+\end{equation}
+디코딩된 데이터 \(\hat{\vX}\)와 원본 \(\vX\) 간의 일관성을 강제함으로써---예를 들어, MSE 유형의 재구성 오류를 최소화함으로써\footnote{MSE 유형 오류는 복잡한 비선형 구조를 가진 이미지 데이터에 대해 문제가 있는 것으로 알려져 있다. 곧 논의하겠지만, GAN을 포함한 생성 방법의 최근 연구의 대부분은 원본 데이터 \(\vX\)와 재생성된 \(\hat{\vX}\) 간의 더 나은 대리 거리 함수를 찾는 데 집중했다.}:
+\begin{equation}
+    \min_{f,g} \|\vX - \hat{\vX}\|_{2}^{2}, \qquad \text{where} \quad \hat{\vX} = g(f(\vX)),
+\end{equation}
+자동 인코더를 데이터 \(\vX\)로부터 직접 학습할 수 있다.
+
+그러나 그러한 자동 인코딩이 중요하지 않은 중복 표현을 산출하는 대신 \(\vX\)의 진정한 저차원 구조를 포착한다는 것을 어떻게 보장할 수 있는가? 예를 들어, \(f\)와 \(g\)를 단순히 항등 매핑으로 선택하고 \(\vZ = \vX\)로 설정할 수 있다. 자동 인코딩이 가치 있도록 하기 위해, 결과 표현은 계산 가능한 복잡성 측정에 따라 압축적이어야 한다. 1993년, Geoffrey Hinton과 동료들은 코딩 길이를 그러한 측정으로 사용할 것을 제안했으며, 자동 인코딩 목적을 코딩 길이를 최소화하는 표현을 찾는 것으로 변환했다 \cite{Hinton-1993}. 이 연구는 최소 기술 길이 원리 \cite{Rissanen-1978}와 자유(헬름홀츠) 에너지 최소화 간의 근본적인 연결을 확립했다. Hinton 그룹의 나중 연구 \cite{Hinton504}는 그러한 자동 인코딩이 실제 이미지에 대한 의미 있는 저차원 표현을 학습할 수 있음을 경험적으로 입증했다. Pierre Baldi는 심층 네트워크가 널리 인기를 얻기 직전인 2011년에 자동 인코더에 대한 포괄적인 설문을 제공했다 \cite{Baldi2011}. 우리는 복잡성의 측정과 자동 인코딩을 \Cref{sec:unifying-approach}에서 더 논의할 것이며, \Cref{ch:consistent}에서 더 통합된 관점에서 압축 자동 인코딩에 대한 체계적인 연구를 제시할 것이다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter1/figs/Comparison_image_neural_networks.svg.png}
+    \caption{LeNet \cite{LeCun-1989} 대 AlexNet \cite{krizhevsky2012imagenet}의 아키텍처.}
+    \label{fig:LeNet-AlexNet}
+\end{figure}
+
+
+\subsubsection{현대 심층 신경망}
+거의 30년 동안---1980년대부터 2010년대까지---신경망은 주류 기계 학습 커뮤니티에서 진지하게 받아들여지지 않았다. LeNet과 같은 초기 심층 네트워크는 숫자 인식과 같은 소규모 분류 문제에서 유망한 성능을 보였지만, 그들의 설계는 대체로 경험적이었고, 사용 가능한 데이터셋은 작았으며, 역전파는 당시의 하드웨어에 대해 계산적으로 엄청나게 비쌌다. 이러한 요인들은 관심의 감소와 정체된 진전으로 이어졌으며, 소수의 연구자만이 끈질기게 계속했다.
+
+\paragraph{분류 및 인식.}
+심층 네트워크의 엄청난 잠재력은 충분한 데이터와 계산 능력이 사용 가능해진 후에야 발휘될 수 있었다. 2010년대까지, ImageNet과 같은 대규모 데이터셋이 등장했고, GPU는 LeNet보다 훨씬 큰 네트워크에 대해서도 역전파를 감당할 수 있을 만큼 강력해졌다. 2012년, 저자 중 한 명인 Alex Krizhevsky의 이름을 딴 심층 합성곱 네트워크 AlexNet \cite{krizhevsky2012imagenet}은 ImageNet에서 기존 분류 방법을 상당한 차이로 능가하여 광범위한 주목을 받았다.\footnote{심층 네트워크는 이미 음성 인식 작업에서 최첨단 결과를 달성했지만, 이러한 성공은 이미지 분류에서의 돌파구만큼 많은 주목을 받지 못했다.} \Cref{fig:LeNet-AlexNet}는 AlexNet을 LeNet과 비교한다. AlexNet은 LeNet의 많은 특성을 유지한다---단순히 더 크고 LeNet의 시그모이드 활성화를 ReLU로 대체한다. 이 연구는 Geoffrey Hinton의 2018년 튜링상에 기여했다.
+
+이 초기 성공은 기계 지능 커뮤니티가 새로운 신경망 아키텍처, 변형, 개선을 탐구하도록 영감을 주었다. 경험적으로, 더 크고 깊은 네트워크가 이미지 분류와 같은 작업에서 더 나은 성능을 산출한다는 것이 발견되었다. 등장한 주목할 만한 아키텍처로는 VGG \cite{Simonyan15}, GoogLeNet \cite{Szegedy2014GoingDW}, ResNet \cite{He2016-lc}, 그리고 최근에는 Transformer \cite{vaswani2017attention}가 있다. 급속한 경험적 성능 개선에도 불구하고, 이러한 아키텍처에 대한 이론적 설명---그리고 그것들 간의 관계(만약 있다면)---는 여전히 부족했다. 본서의 한 가지 목표는 이러한 네트워크가 최적화하는 공통 목표를 밝히고 비선형 활성화와 인터리빙된 여러 층의 선형 연산자와 같은 그들의 공유된 특성을 설명하는 것이다(\Cref{ch:representation} 참조).
+
+\paragraph{강화 학습.}
+초기 심층 네트워크 성공은 주로 음성 및 이미지 인식과 같은 지도 분류 작업에서 이루어졌다. 나중에, 심층 네트워크는 게임 플레이를 위한 의사 결정 또는 제어 정책을 학습하는 데 채택되었다. 이 맥락에서, 심층 네트워크는 \Cref{fig:Alpha-Go}에 나타난 것처럼 최적 의사 결정/제어 정책(즉, 기대 보상을 최대화하기 위해 취할 행동에 대한 확률 분포) 또는 관련된 최적 가치 함수(주어진 상태로부터의 기대 보상의 추정)를 모델링한다. 네트워크 파라미터는 현재 정책으로 게임을 플레이하는 성공 또는 실패로부터 반환된 보상을 기반으로 증분적으로 최적화된다.\footnote{일반적으로 역전파(BP)를 통해.} 이 학습 패러다임은 \textit{강화 학습}이라고 불린다 \cite{Sutton-Barto}; 그것은 1960년대 후반의 제어 시스템 실무에서 시작되었고 \cite{Waltz1965AHA,Mendel1970ReinforcementlearningCA} 1950년대 Richard Bellman의 \textit{동적 프로그래밍} \cite{Bellman-DP} 및 Marvin Minsky의 \textit{시행착오 학습} \cite{Minsky-1954}을 통해 길고 풍부한 역사를 거슬러 올라간다.
+
+구현 관점에서, 심층 네트워크와 강화 학습의 결합은 강력하다는 것이 입증되었다: 심층 네트워크는 분석적으로 모델링하기 어려운 실제 환경에 대한 제어 정책과 가치 함수를 근사할 수 있다. 이것은 2016년에 DeepMind의 AlphaGo 시스템에서 절정에 달했는데, 이는 최고의 바둑 기사 이세돌을 패배시키고, 2017년에는 세계 챔피언 커제를 패배시켜 세상을 놀라게 했다.\footnote{1996년, IBM의 Deep Blue는 트리 검색 및 가지치기와 같은 전통적인 기계 학습 기술을 사용하여 러시아 그랜드마스터 Garry Kasparov를 체스에서 패배시켜 역사를 만들었는데, 이러한 방법은 바둑과 같은 더 복잡한 게임에 대해서는 덜 확장 가능하고 성공적이지 못했다.}
+
+AlphaGo의 성공은 컴퓨팅 커뮤니티를 놀라게 했는데, 그들은 오랫동안 게임의 상태 공간이 계산 및 샘플 크기 측면에서 효율적인 해법을 위해 너무 방대하다고 여겼다. 유일한 그럴듯한 설명은 바둑의 최적 가치 및 정책 함수가 상당한 유리한 구조를 가지고 있다는 것이다: 정성적으로 말해서, 그들의 고유 차원은 관리 가능한 수의 샘플로부터 학습 가능한 신경망으로 잘 근사될 수 있을 만큼 충분히 낮다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter1/figs/Policy-Value.png}
+    \caption{AlphaGo: 바둑 게임을 위한 최적 정책 또는 가치 함수를 모델링하기 위해 심층 신경망 사용.}
+    \label{fig:Alpha-Go}
+\end{figure}
+
+\paragraph{생성 및 예측.}
+어떤 관점에서 보면, 2010년대 초기 심층 네트워크 실무는 데이터 \(\vX\)로부터 관련 정보를 추출하고 이를 작업별 표현 \(\vZ\)로 인코딩하는 데 집중했다(예를 들어 \(\vZ\)는 분류 작업에서 클래스 레이블을 나타낸다\footnote{이것은 레이블에 대한 매우 비전형적인 표기법이다---일반적인 표기법은 \(\vy\)이다---그러나 우리의 목적을 위해 레이블을 데이터의 고도로 압축되고 희소한 표현으로 간주하는 것이 유용하다. 자세한 내용은 \Cref{example:image_classification_feature_learning} 참조.}):
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} f \hspace{2mm}} \vZ.
+       \label{eqn:encoding-deep-networks}
+\end{equation}
+여기서 학습된 매핑 \(f\)는 \(\vX\)에 대한 대부분의 분포 정보를 보존할 필요가 없으며; 작업에 대한 충분 통계량만 유지하면 충분하다. 예를 들어, 샘플 \(\vx \in \vX\)는 사과의 이미지일 수 있으며, \(f\)에 의해 클래스 레이블 \(\vz = \text{``사과''}\)로 매핑된다.
+
+많은 현대 설정---소위 대형 범용(``기초'') 모델과 같은---에서는, \(\vZ\)를 디코딩하여 처방된 정밀도로 대응하는 \(\vX\)를 복구해야 할 수도 있다:
+\begin{equation}
+    \vZ   \xrightarrow{\hspace{2mm} g  \hspace{2mm}} \hat{\vX}.
+       \label{eqn:decoding-deep-networks}
+\end{equation}
+\(\vX\)는 일반적으로 외부 세계로부터 관찰된 데이터를 나타내기 때문에, 좋은 디코더는 세계에서 무슨 일이 일어나는지 시뮬레이션하거나 예측할 수 있게 한다. 예를 들어 ``텍스트에서 이미지로'' 또는 ``텍스트에서 비디오로'' 작업에서, \(\vz\)는 원하는 이미지 \(\vx\)를 설명하는 텍스트이고, 디코더는 \(\vx\)의 내용과 일치하는 \(\hat{\vx}\)를 생성해야 한다. 객체 클래스 \(\vz = \text{``사과''}\)가 주어지면, 디코더 \(g\)는 원본 \(\vx\)와 반드시 동일하지는 않지만 사과처럼 보이는 이미지 \(\hat{\vx}\)를 생성해야 한다.
+
+
+
+\paragraph{판별적 접근을 통한 생성.}
+생성된 이미지 \(\hat{\vX}\)가 진짜 자연 이미지 \(\vX\)와 유사하도록 하려면, 어떤 거리를 평가하고 최소화할 수 있어야 한다:
+\begin{equation}
+    \min \operatorname{dist}(\vX, \hat{\vX}).
+\end{equation}
+결과적으로, 대부분의 이론적으로 동기 부여된 거리는 저고유 차원을 가진 고차원 공간의 분포에 대해 계산하고 최적화하기가 극도로 어렵거나---불가능하지는 않더라도---어렵다.\footnote{이것은 \(\vX\)에 대한 파라메트릭 분포 패밀리가 지정된 경우에도 마찬가지다. 저차원 지지를 가진 분포에 대해 거리가 종종 조건이 나쁘거나 잘 정의되지 않는다. 더 나쁜 것은, 선택된 패밀리가 관심 있는 진정한 분포를 잘 근사하지 못할 수 있다는 것이다.}
+
+2007년, 자연 이미지를 모델링하고 생성하려는 초기 분석적 시도에 실망한 Zhuowen Tu는 완전히 다른 접근법을 시도하기로 결정했다. CVPR 2007에 출판된 논문 \cite{Tu-2007}에서, 그는 판별적 접근을 통해 이미지를 위한 생성 모델을 학습하는 것을 최초로 제안했다. 아이디어는 간단하다: 거리 \(\operatorname{dist}(\vX, \hat{\vX})\)를 평가하는 것이 어렵다면, 대신 \(\hat{\vX}\)를 \(\vX\)로부터 분리하는 판별자 \(d\)를 학습할 수 있다:
+\begin{equation}
+    \begin{tikzpicture}[node distance=1cm, auto]
+        \node (Z) {$\Z$};
+        \node (Xhat) [right=of Z] {$\hat{\X}$};
+        \node (X) [below=of Xhat] {$\X$};
+        \node (labels) [right=of Xhat] {$\{0, 1\}$};
+
+        \draw[->] (Z) -- (Xhat) node[midway, above] {$g$};
+        \draw[->] (Xhat) -- (labels) node[midway, above right] {$d$};
+        \draw[->] (X) -- (labels) node[midway, below right] {$d$};
+    \end{tikzpicture}
+    \label{eqn:gan-networks}
+\end{equation}
+여기서 레이블 \(0\)과 \(1\)은 이미지가 생성되었는지 실제인지를 나타낸다.
+직관적으로, \(\hat{\vX}\)와 \(\vX\)를 분리하기가 더 어려워질수록, 그것들은 더 가까울 가능성이 높다.
+
+Tu의 연구 \cite{Tu-2007}는 판별적 접근으로부터 생성 모델을 학습하는 가능성을 최초로 입증했다. 그러나 그 연구는 이미지 생성 및 분포 분류를 위해 전통적인 방법(부스팅과 같은)을 사용했는데, 이는 느리고 구현하기 어려운 것으로 입증되었다. 2012년 이후, 심층 신경망이 이미지 분류에 인기를 얻었다. 2014년, Ian Goodfellow와 동료들은 판별적 접근으로 자연 이미지를 생성하는 것을 다시 제안했다 \cite{Goodfellow-2014}. 그들은 생성자 \(g\)와 판별자 \(d\) 모두를 심층 신경망으로 모델링할 것을 제안했다. 더욱이, 그들은 \(g\)와 \(d\)를 미니맥스 게임을 통해 학습할 것을 제안했다:
+\begin{equation}
+    \min_{g} \max_{d} \ell(\vX, \hat{\vX}),
+\end{equation}
+여기서 \(\ell(\cdot)\)는 분류 작업과 연관된 어떤 자연스러운 손실 함수이다. 이 공식화에서, 판별자 \(d\)는 \(\vX\)와 \(\hat{\vX}\)를 분리하는 데 성공을 최대화하는 반면, 생성자 \(g\)는 그 반대를 한다. 이 접근법은 \textit{생성적 적대 신경망}(GAN)이라고 불린다. 대규모 데이터셋에서 훈련되면 GAN이 실제로 사진처럼 사실적인 이미지를 생성할 수 있다는 것이 보였다. 이 연구의 영향으로 인해 부분적으로, Yoshua Bengio는 2018년 튜링상을 받았다.
+
+판별적 접근은 분포 학습의 근본적인 어려움을 교묘하게 우회하는 것처럼 보인다. 그러나 엄밀히 말하면, 이 접근법은 근본적인 어려움을 완전히 해결하지 못한다. \cite{Goodfellow-2014}에서 보였듯이, 적절하게 선택된 손실과 함께, 미니맥스 공식화는 \(\vX\)와 \(\hat{\vX}\) 간의 Jensen-Shannon 거리(\cite{Cover-Thomas} 참조)를 최소화하는 것과 수학적으로 동등해진다. 이것은 고차원 공간에서 두 저차원 분포에 대해 여전히 어려운 문제이다. 결과적으로, GAN은 일반적으로 많은 휴리스틱과 엔지니어링 트릭에 의존하고 모드 붕괴와 같은 불안정성 문제로 종종 고통받는다.\footnote{그럼에도 불구하고, 그러한 미니맥스 공식화는 거리의 실용적인 근사를 제공한다. 그것은 구현을 단순화하고 거리를 직접 계산할 때의 특정 주의사항을 피한다.}
+
+\paragraph{노이즈 제거 및 확산을 통한 생성.}
+2015년, GAN이 도입되고 인기를 얻은 직후, Surya Ganguli와 그의 학생들은 심층 네트워크로 모델링된 반복적 노이즈 제거 프로세스가 자연 이미지의 분포와 같은 일반 분포를 학습하는 데 사용될 수 있다고 제안했다 \cite{Sohl-Dickstein2015}. 그들의 방법은 1949년에 William Feller가 연구한 특수한 가우시안 및 이항 프로세스의 속성에서 영감을 받았다 \cite{Feller1949OnTT}.\footnote{다시, 1940년대의 마법 같은 시대에!}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter1/figs/diffusion_pipeline.png}
+    \caption{가우시안 분포 \(q^{0} = \mathcal{N}(\vzero, \vI)\)로부터 시작하여 임의의 저차원 데이터 분포 \(q^{L} = p\)로 수렴하는 반복적 노이즈 제거 및 압축 프로세스의 그림.}
+    \label{fig:diffusion}
+\end{figure}
+
+곧, \Cref{sec:denoising-intro}에서 간략하게 소개된 점수 함수 \cite{hyvarinen05a}에 기반한 노이즈 제거 연산자가 더 일반적이며 노이즈 제거 및 확산 프로세스와 알고리즘을 통합한다는 것이 보였다 \cite{song2019,song2020score,ho2020denoising}. \Cref{fig:diffusion}는 일반 가우시안 분포 \(q^{0} = \mathcal{N}(\vzero, \vI)\)를 일련의 반복적 노이즈 제거(또는 압축) 연산을 수행함으로써 (임의의) 경험적 분포 \(p(\vx)\)로 변환하는 프로세스를 보여준다:
+\begin{equation}
+    \vz^{0} \sim  \mathcal{N}(\vzero, \vI) \xrightarrow{\hspace{2mm} g^{0} \hspace{2mm}} \vz^{1} \xrightarrow{\hspace{2mm} g^{1} \hspace{2mm}} \cdots \xrightarrow{\hspace{2mm} g^{L-1} \hspace{2mm}} \vz^{L} \sim p(\vx).
+\end{equation}
+현재, 노이즈 제거(및 확산)는 GAN을 대체하고 이미지 및 비디오의 분포를 학습하는 주류 방법이 되었으며, Midjourney 및 Stability.ai와 같은 인기 있는 상업용 이미지 생성 엔진으로 이어졌다.
+\Cref{ch:compression}에서 우리는 일반 저차원 분포를 학습하기 위한 노이즈 제거 및 확산 방법을 체계적으로 소개하고 연구할 것이다.
+
+
+\section{통합 접근법}\label{sec:unifying-approach}
+% Start of Selection
+지금까지, 우리는 기계 지능의 주요 목적과 역사에 대한 간략한 설명과 함께 그것과 관련된 많은 중요한 아이디어와 접근법을 제공했다. 최근 몇 년 동안, 심층 신경망의 경험적 성공에 따라, 경험적으로 설계된 심층 네트워크를 이해하는 데 도움이 되는 이론적 프레임워크를 개발하기 위한 엄청난 노력이 이루어졌다---특정하게 필요해 보이는 구성 요소(예: dropout \cite{srivastava2014dropout}, 정규화 \cite{ioffe2015batch,ba2016layer}, 어텐션 \cite{vaswani2017attention}) 또는 그들의 전반적인 행동(예: 이중 하강 \cite{belkin2019reconciling}, 신경 붕괴 \cite{papyan2020prevalence}).
+
+이러한 추세에 부분적으로 동기 부여되어, 본서는 몇 가지 중요하고 도전적인 목표를 추구한다:
+\begin{itemize}
+    \item 심층 신경망의 엄격한 수학적 해석을 산출하는 이론적 프레임워크를 개발한다.
+    \item 학습된 데이터 분포의 정확성과 학습된 표현과의 일관성을 보장한다.
+    \item 프레임워크가 성능이 좋은 아키텍처로 이어지고 추가적인 실용적 개선을 안내함을 입증한다.
+\end{itemize}
+최근 몇 년 동안, 이러한 목표가 실제로 앞서 논의한 고전적 분석적 저차원 모델의 이론과 해법을 활용하고(\Cref{ch:classic}에서 더 철저히 다룸) 관련 분야---즉 정보/코딩 이론, 제어/게임 이론, 최적화---로부터의 근본적인 아이디어를 통합함으로써 달성될 수 있다는 증가하는 증거가 있다. 본서는 이 새로운 접근법에 대한 체계적인 소개를 제공하는 것을 목표로 한다.
+
+\subsection{간결한 표현 학습}
+\label{sec:computational-approach-compression}
+어떤 학습 작업이 가능하기 위한 필요 조건 중 하나는 관심 있는 시퀀스가 적어도 Alan Turing \cite{Turing-1936}의 의미에서 \textit{계산 가능}해야 한다는 것이다. 즉, 시퀀스가 일반적인 컴퓨터의 프로그램을 통해 계산될 수 있어야 한다.\footnote{실제로 계산 가능하지 않은 잘 정의된 시퀀스가 있다.} 계산 가능한 것 외에도, 우리는 계산이 \textit{다루기 쉬워야} 한다고 요구한다.\footnote{우리는 계산 복잡성이 다루기 어려운---예를 들어, 시퀀스의 길이나 차원에서 기하급수적으로 증가하는---것을 예측하는 것을 고려할 필요가 없다.} 즉, 시퀀스를 학습하고 계산하는 계산 비용(공간과 시간)이 길이에서 기하급수적으로 증가해서는 안 된다. 더 나아가, 우리가 자연에서 보듯이(그리고 기계 지능의 현대 실무에서), 대부분의 실용적 작업을 위해 지능형 시스템은 시각, 소리, 촉각과 같은 매우 고차원 공간에서 방대한 데이터로부터 예측 가능한 것을 학습해야 한다. 따라서 지능을 위해 우리는 모든 계산 가능하고 다루기 쉬운 시퀀스나 구조를 고려할 필요가 없다; 우리는 그들의 학습 및 계산 알고리즘의 \textit{확장 가능한} 실현을 허용하는 예측 가능한 시퀀스와 구조에만 집중해야 한다:
+\begin{equation}
+    \text{\textbf{계산 가능}} \;
+   \Longrightarrow \; \text{\textbf{다루기 쉬움}} \; \Longrightarrow \;
+   \text{\textbf{확장 가능}}.
+\end{equation}
+
+이것은 지능적 존재가 유용한 정보를 학습하기 위해 사용하는 어떤 알고리즘이든 \textit{확장 가능}해야 하기 때문이다. 더 구체적으로, 알고리즘의 계산 복잡성은 데이터의 크기와 차원에서 우아하게---일반적으로 선형 또는 심지어 준선형으로---확장되어야 한다. 기술적 수준에서, 이것은 알고리즘이 학습하기 위해 의존하는 연산이 데이터로부터 효율적으로 계산될 수 있는 오라클 정보만 활용할 수 있다는 것을 요구한다. 더 구체적으로, 차원이 높고 규모가 클 때, 감당할 수 있는 유일한 오라클은 데이터에 대한 1차 기하학적 정보\footnote{비선형 구조를 선형 부분공간으로 국소적으로 근사하고 목적 함수의 기울기를 계산하는 것과 같은.} 또는 2차 통계적 정보\footnote{데이터 또는 그들의 특징의 공분산 또는 상관관계와 같은.}이다.
+본서의 주요 목표는 이론적이고 계산적인 프레임워크를 개발하는 것인데, 이 안에서 우리는 샘플링된 데이터로부터 저차원 구조를 \textit{학습}하고 이후 예측 함수를 학습하기 위해 그러한 확장 가능한 오라클과 연산을 사용하는 효율적이고 효과적인 해법 또는 알고리즘을 체계적으로 개발할 수 있다.
+
+
+\paragraph{압축을 통한 저차원성 추구.}
+\Cref{sec:predictability}에서 제공한 시퀀스의 예로부터, 일부 시퀀스는 모델링하고 계산하기 쉬운 반면, 다른 것들은 더 어렵다는 것이 명확하다. 시퀀스의 계산 비용은 예측 함수 \(f\)의 복잡성에 달려 있다. 회귀 차수 \(d\)가 높을수록, 계산하기가 더 비싸다. 함수 \(f\)는 간단한 선형 함수일 수 있거나, 임의로 지정하고 계산하기 어려운 비선형 함수일 수 있다.
+
+우리가 선택하는 어떤 측정에 의해서든---더 어려운 시퀀스를 지정하고 계산하는 것이 더 어렵다면, 그것의 샘플링된 세그먼트로부터 학습하는 것도 더 어려울 것이라고 믿는 것이 합리적이다. 그럼에도 불구하고, 주어진 예측 가능한 시퀀스에 대해, 실제로 그것을 지정하는 많은, 종종 무한히 많은 방법이 있다. 예를 들어, 간단한 시퀀스 \(x_{n+1} = a x_{n}\)에 대해, 우리는 \(x_{n+1} = a x_{n} + b x_{n-1} - b x_{n-1}\)로 동일한 시퀀스를 정의할 수도 있다.
+따라서 주어진 계산 가능한 시퀀스에 대한 ``복잡성''의 객관적이고 엄격한 개념을 개발하는 것이 매우 유용할 것이다.
+
+Andrey Kolmogorov, 러시아 수학자는 계산 가능한 시퀀스에 대한 복잡성을 정의한 최초의 사람 중 하나였다.\footnote{많은 사람들이 이 시퀀스 복잡성 개념에 기여했는데, 가장 주목할 만하게는 Ray Solomonoff와 Greg Chaitin이다. 세 사람 모두 알고리즘 정보 이론을 독립적으로 개발했다---Solomonoff는 1960년에, Kolmogorov는 1965년에 \cite{Kolmogorov1998OnTO}, 그리고 Chaitin은 1966년경에 \cite{Chaitin-1966}.} 그는 동일한 시퀀스를 계산하는 모든 프로그램 중에서, 가장 짧은 프로그램의 길이가 그것의 복잡성을 측정한다고 제안했다. 이것은 오컴의 면도날과 일치한다---\textit{동일한 관찰을 설명하는 가장 간단한 이론을 선택하라}. 공식적으로, \(p\)를 범용 컴퓨터 \(\cU\)에서 시퀀스 \(S\)를 생성하는 프로그램이라고 하자. \(S\)의 Kolmogorov 복잡성은:
+\begin{equation}
+    K(S) = \min_{p\,:\, \cU(p) = S} L(p).
+\end{equation}
+따라서 복잡성은 시퀀스를 얼마나 간결하게 지정하거나 계산할 수 있는지를 측정한다. 이 정의는 개념적으로 중요하고 역사적으로 계산 복잡성과 이론 컴퓨터 과학에서 심오한 연구에 영감을 주었다.
+
+가장 짧은 프로그램 길이는 시퀀스의 궁극적인 압축을 나타내며, 그것의 생성 메커니즘을 학습함으로써 얻는 이득을 정량화한다. 그러나 Kolmogorov 복잡성은 일반적으로 계산 불가능하고 \cite{Cover-Thomas} 근사하기도 다루기 어렵다. 결과적으로, 그것은 실용적 용도가 거의 없다---학습 어려움을 예측하거나 우리가 얼마나 잘 학습했는지 평가할 수 없다.
+
+
+\paragraph{간결성의 계산 가능한 측정.}
+실용적 목적을 위해, 동일한 예측 함수에 의해 생성된 시퀀스에 대한 효율적으로 계산 가능한 복잡성 측정이 필요하다.\footnote{실제로, 우리는 일반적으로 예측 함수 \(f\)를 학습하는 데 관심이 있으며, \(f\)에 의해 생성된 특정 시퀀스가 아니다.} Kolmogorov 복잡성이 계산 가능하지 않은 이유의 일부는 그것의 정의가 비구성적이기 때문이다.
+
+계산 가능한 복잡성 측정을 도입하기 위해, 우리는 정보 이론 프레임워크 \cite{Shannon-1948,Cover-Thomas}를 통해 Claude Shannon이 옹호한 것처럼 더 구성적인 접근법을 취할 수 있다.\footnote{이 프레임워크는 80년 이상 통신 산업의 엔지니어링 실무를 성공적으로 안내해왔다.} 시퀀스 \(S\)가 확률 분포 \(p(S)\)로부터 추출된다고 가정함으로써, 분포의 엔트로피:\footnote{여기서 우리는 시퀀스가 연속 변수로 구성된다고 가정하므로 미분 엔트로피를 고려한다. 이산 변수에 대해서는, \(H(S) = - \sum_{i}p(s_{i}) \log p(s_{i})\)를 사용할 것이다.}
+\begin{equation}
+    h(S) \doteq -\int p(s) \log p(s) \odif{s}
+    \label{eqn:entropy-definition}
+\end{equation}
+는 그것의 복잡성의 자연스러운 측정을 제공한다. 이 측정은 또한 그러한 시퀀스를 인코딩하는 데 필요한 이진 비트의 평균 수로서 자연스러운 해석을 가지며, \Cref{ch:compression}에서 볼 것이다.
+
+이 관점의 주요 아이디어를 설명하기 위해, 많은 수의 긴 시퀀스 세그먼트를 취하자:
+\begin{equation}
+    \{S_{1}, S_{2}, \ldots, S_{i}, \ldots, S_{N}\} \subset \R^{D},
+\end{equation}
+예측 함수 \(f\)에 의해 생성된. 일반성을 잃지 않고, 모든 시퀀스가 동일한 길이 \(D\)를 갖는다고 가정하므로, 각 시퀀스는 \(\R^{D}\)의 벡터로 볼 수 있다. (코드북을 가진) 코딩 체계를 도입하는데, \(\cE\)로 표시되며, 모든 세그먼트 \(S_{i}\)를 고유한 이진 비트 스트림 \(\cE(S_{i})\)로 매핑하고, 이진 비트 스트림을 시퀀스 세그먼트로 다시 매핑하는 대응하는 디코딩 체계 \(\cD\)(오류 \(\epsilon \geq 0\)에 따라, 그러한 인코딩 체계가 손실적일 수 있으므로). 가장 간단한 체계는 모든 세그먼트가 생성하는 공간을 \Cref{fig:coding-schemes}에 나타난 것처럼 \(\epsilon\)-볼로 채운다. 그런 다음 우리는 볼에 번호를 매기고, 각 시퀀스는 가장 가까운 볼의 이진 인덱스로 인코딩되며, 각 이진 인덱스는 대응하는 볼의 중심으로 다시 디코딩된다. 따라서 각 세그먼트는 그것의 비트 스트림으로부터 정밀도 \(\epsilon\)까지 복구될 수 있다.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter1/figs/Coding-schemes.png}
+    \caption{두 가지 코딩 체계의 비교. 진정한 데이터 분포가 두 개의 화살표 선을 따라 놓여 있다고 상상하라. 이러한 선으로부터의 샘플은 모든 파란색 볼의 코드북으로 인코딩될 수 있거나, 녹색 볼만의 코드북으로 인코딩될 수 있다. 두 번째 체계는 동일한 정밀도에 따라 훨씬 낮은 코딩 길이/율을 산출한다.}
+    \label{fig:coding-schemes}
+\end{figure}
+
+
+그러면, 인코딩 \(\cE\)에 대해, 예측 함수 \(f\)의 복잡성은 그것이 생성하는 모든 시퀀스 \(S\)의 평균 코딩 길이 \(L(\cE(S))\)로 평가될 수 있는데, 코딩 율로 알려져 있다:\footnote{\(R(S \mid \cE)\)를 길이 \(D\)의 모든 세그먼트 \(S\)에 대한 기대 코딩 길이로 취함으로써 이것을 더 정밀하게 만들 수 있다.}
+\begin{equation}
+   R(S \mid \cE) = \Ex[L(\cE(S))] \approx \frac{1}{N}\sum_{i=1}^{N} L(\cE(S_{i})).
+   \label{eqn:coding-rate}
+\end{equation}
+코딩 율 측정은 다른 코딩 체계(또는 코드북)를 사용하면 변경될 것이다. 실제로, 세그먼트가 분포되어 있는 저차원 구조를 더 잘 알수록, \Cref{fig:coding-schemes}에 그림으로 나타난 것처럼 더 효율적인 코드북을 설계할 수 있다. 명민한 독자는 개념적으로 \Cref{fig:diffusion}에 그림으로 나타난 노이즈 제거 프로세스가 파란색 볼이 있는 코딩 체계에서 녹색 볼이 있는 것으로 가는 것과 매우 유사하다는 것을 인식할 수 있다.
+
+세그먼트에 대한 두 가지 코딩 체계 \(\cE_{1}\)과 \(\cE_{2}\)가 주어졌을 때, 코딩 율의 차이가 양수이면:
+\begin{equation}
+   R(S \mid \cE_{1}) -  R(S \mid \cE_{2}) > 0,
+\end{equation}
+코딩 체계 \(\cE_{2}\)가 더 낫다고 말할 수 있다. 이 차이는 \(\cE_{2}\)가 데이터의 분포에 대해 \(\cE_{1}\)보다 얼마나 더 많은 정보를 가지고 있는지의 측정으로 볼 수 있다. 상당 부분, 데이터 분포를 학습하는 목표는 원하는 정밀도에 따라 코딩 율을 최소화하는 가장 효율적인 인코딩 및 디코딩 체계를 찾는 것과 동등하다:
+\begin{equation}
+   \min_{\cE, \cD} R(S \mid \cE) \quad \text{subject to} \quad \operatorname{dist}(S, \cD(\cE(S))) \leq \epsilon.
+\end{equation}
+\Cref{ch:compression}에서 볼 것처럼, 달성 가능한 최소 율은 엔트로피 \(H(S)\) \eqref{eqn:entropy-definition}의 개념과 밀접하게 관련되어 있다.
+
+
+\begin{remark}\label{rem:computable-complexity}
+    명시적 인코딩 체계로 데이터 복잡성을 측정하는 관점은 더 나은 계산 가능성을 위해 Kolmogorov 복잡성을 수정하기 위해 제안된 몇 가지 학습 목표를 동기 부여했다 \cite{WallaceC1999}, 1968년에 제안된 최소 메시지 길이(MML) \cite{WallaceC1968}와 1978년의 최소 기술 길이(MDL) \cite{Rissanen-1978,HansenM2001}를 포함한다. 이러한 목표는 일반적으로 관심 있는 데이터 \(S\) 외에 코딩 체계 \(\cE\) 자체(그것의 코드북 포함)에 대한 코딩 길이를 센다: \(L(\cE(S)) + L(\cE)\). 그러나 목표가 유한 크기 코드북을 학습하고 많은 수의 시퀀스에 적용하는 것이라면, 코드북의 분할 상환 비용은 무시될 수 있다
+    \begin{equation}
+        \frac{1}{N}\left( L(\cE) + \sum_{i=1}^{N} L(\cE(S_{i}))\right) \approx \frac{1}{N}\sum_{i=1}^{N} L(\cE(S_{i}))
+    \end{equation}
+    \(N\)이 커질수록.
+\end{remark}
+
+다시, 결과적인 최적 코딩 체계를 관찰된 데이터의 최상의 압축을 달성하는 것으로 볼 수 있다. 일반적으로, Kolmogorov 복잡성과 비교하여, 어떤 인코딩 체계에 의해 주어진 코딩 길이는 항상 더 클 것이다:
+\begin{equation}
+    K(S) < L(\cE(S)).
+\end{equation}
+따라서 코딩 율/길이를 최소화하는 것은 본질적으로 그렇지 않으면 계산 불가능한 Kolmogorov 복잡성의 상한을 최소화한다.
+
+\subsection{유익한 표현 학습}
+목표가 단순히 그 자체를 위해 주어진 데이터를 압축하는 것이었다면, Kolmogorov 복잡성에 접근하는 최적 코드는 이론적으로 거의 무작위적이거나 구조가 없게 될 것이다 \cite{Chaitin-1966}.\footnote{구조를 가진 어떤 코드도 더 압축될 수 있다.} 그러나 시퀀스 $S$의 데이터 분포를 학습하는 진정한 목적은 미래 예측에서 그것을 반복적으로 쉽게 사용하기 위한 것이다. 따라서 압축이 데이터의 저차원 분포를 식별할 수 있게 하는 동안, 우리는 이 분포를 \textit{구조화되고 조직된} 방식으로 인코딩하여 결과 표현이 유익하고 사용하기 효율적이 되도록 하고 싶다.\footnote{예를 들어, 다른 조건 하에서 분포를 샘플링하기 위해.} \Cref{fig:expansion}은 직관적으로 왜 그러한 변환이 바람직한지 보여준다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.98\linewidth]{\toplevelprefix/chapters/chapter1/figs/coding-transform.png}
+    \caption{식별된 저차원 데이터 분포를 더 유익하고 구조화된 표현으로 변환.}
+    \label{fig:expansion}
+\end{figure}
+\Cref{ch:compression}에서 보게 되듯이, 최종 표현에서 이러한 원하는 구조는 선택된 코딩 체계의 코딩 율에 기반한 \textit{정보 이득}의 자연스러운 측정을 선택함으로써 정밀하게 촉진될 수 있다.\footnote{정보 이득은 알고리즘 정보 이론에서 만연한 아이디어이며 이 주제에 대한 여러 접근법에 통합되었는데, 가장 최근에는 \(\mathcal{V}\)-information \cite{xu2020theory}이 있다. 이 특정 인스턴스화는, 우리가 논의한 다른 많은 복잡성 측정과 유사하게, 데이터 지지가 더 컴팩트하고 저차원이 됨에 따라 점점 더 조건이 나빠지는 것으로 고통받으므로, 우리의 필요에 적합하지 않다.} 본서 전반에 걸쳐, 그러한 명시적이고 구성적인 코딩 접근법은 실제 데이터의 저차원 구조의 좋은 표현을 학습하기 위한 강력한 계산 프레임워크를 제공한다. 실용적으로 중요한 많은 경우에, 코딩 길이 함수는 효율적으로 계산되거나 정확하게 근사될 수 있다. 일부 양성 경우에는, 심지어 폐쇄형 공식을 얻을 수도 있다---예를 들어, 부분공간 및 가우시안 모델(\Cref{ch:compression} 참조).
+
+더욱이, 이 계산 프레임워크는 이 학습 프로세스에서 심층 네트워크가 수행하는 역할을 자연스럽게 밝히는 원칙적 접근법으로 이어진다. \Cref{ch:representation}에서 체계적으로 유도할 것처럼, 심층 네트워크의 층은 관심 있는 목적 함수를 증분적으로 최적화하는 연산을 수행한다. 이 관점에서, 심층 네트워크의 역할은 목적 함수---예를 들어, 경사 하강법---를 최적화하기 위한 특정 반복 최적화 알고리즘을 에뮬레이트하는 것으로 정밀하게 해석될 수 있다. 결과적인 심층 아키텍처의 층은 정밀한 통계적 및 기하학적 해석을 부여받을 수 있는데, 즉 증분적 압축 인코딩 및 디코딩 연산을 수행하는 것이다. 결과적으로, 유도된 심층 네트워크는 수학적으로 완전히 설명 가능한 투명한 ``화이트 박스''가 된다.
+
+
+
+\subsection{일관된 표현 학습}
+
+\label{sec:consistency}
+
+지금까지의 논의를 요약하기 위해, 데이터를 다음과 같이 표시하자
+\begin{equation}
+    \vX = \{S_{1}, S_{2}, \ldots, S_{i}, \ldots, S_{N}\} \subset \R^{D},
+\end{equation}
+그리고 \(\vZ = \cE(\vX)\)를 어떤 인코더 \(\cE\)를 통한 \(\vX\)의 코드라고 하자:
+\begin{equation}
+    \vX  \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \vZ.
+    \label{eqn:open-loop}
+\end{equation}
+기계 학습 맥락에서, \(\vZ\)는 종종 \(\vX\)의 ``특징''이라고 불린다. \(\vX\)의 기저 분포를 알지 못하면, \(\vX\)의 분포에 대한 가장 유용한 정보를 유지하기 위해 어떤 인코더 \(\cE\)를 사용해야 하는지 알 수 없다. 실제로, 사람들은 종종 특정 작업을 잘 제공하는 컴팩트한 인코딩 체계로 시작한다. 특히, 그들은 학습된 표현에 대한 특정 (경험적) 간결성 측정을 최적화하는 인코더를 학습하려고 시도한다:
+\begin{equation}
+    \min \rho(\vZ).
+\end{equation}
+
+\begin{example}\label{example:image_classification_feature_learning}
+    예를 들어, 이미지 분류가 그러한 경우이다: 우리는 동일한 클래스의 모든 이미지를 단일 코드에 할당하고 다른 클래스의 이미지를 다른 코드에 할당한다, 예를 들어 ``원-핫'' 벡터:
+    \begin{equation}
+        \vx \mapsto \vz \in \{  [1, 0, 0, \ldots , 0, 0], \;  [0, 1, 0 \ldots, 0, 0], \; \ldots, \;  [0,0,0, \ldots, 0, 1].\}
+        \label{eqn:class-labels}
+    \end{equation}
+    이제, 분류기 \(f(\cdot)\)는 주어진 \(\vx\)가 \(k\)개 클래스 각각에 속할 확률을 예측하는 함수로 모델링될 수 있다: \(\hat{\vz} = f(\vx) \in \R^{K}\). 그러면 분류기의 ``좋음''은 소위 {\em 교차 엔트로피}로 측정될 수 있다:\footnote{교차 엔트로피는 \(\vz\)의 실제 분포와 예측 \(\hat{\vz}\)의 분포 간의 거리 측정으로 볼 수 있다. 또한 \(\hat{\vz\)에 대한 최적 코드북을 사용하여 \(\vz\)를 인코딩하는 경우의 기대 코딩 길이로도 볼 수 있다. 교차 엔트로피는 \(\vz\)와 \(\hat{\vz}\)가 동일한 분포를 가질 때 최소값에 도달한다.}
+    \begin{equation}
+        \ell(\hat{\vz}, \vz) = \sum_{k=1}^{K} - z_{k} \log \hat{z}_{k},
+    \end{equation}
+    여기서 \(z_{k}\)는 벡터 \(\vz\)의 \(k\)-번째 항목을 나타낸다. 심층 네트워크의 초기 실무가 보여준 것처럼 \cite{krizhevsky2012imagenet}, 충분한 데이터가 주어지면, 그러한 인코딩 체계는 종종 심층 네트워크로 표현될 수 있고 교차 엔트로피를 최적화함으로써 엔드투엔드 방식으로 학습될 수 있다.
+\end{example}
+
+교차 엔트로피 손실 \(\ell(\hat{\vz}, \vz)\)는 분류에 적합한 인코딩 체계의 특정 패밀리와 연관된 간결성 \(\rho(\vz)\)의 특수한 측정으로 볼 수 있다. 그러나 그러한 인코딩은 명백히 \textit{매우 손실적}이다. 학습된 \(\vz\)는 그것의 클래스 유형을 제외하고 \(\vx\)에 대한 다른 정보를 포함하지 않는다. 예를 들어, 이미지에 클래스 레이블 ``사과''를 나타내는 (코드를) 할당함으로써, 우리는 더 이상 레이블만으로는 원본 이미지에 어떤 특정 유형의 사과가 있는지 알 수 없다.
+
+물론, 다른 극단은 코딩 체계가 \textit{무손실}이어야 한다는 것이다. 즉, \(\vx\)와 그것의 코드 \(\vz\) 간에 일대일 매핑이 있다. 그러나 \Cref{ch:compression}에서 볼 것처럼, 무손실 코딩(또는 압축)은 \(\vx\)가 이산적이지 않으면 비실용적이다. 연속 확률 변수에 대해, 우리는 데이터에 대한 코딩 길이가 유한할 수 있도록 손실적 코딩 체계만 고려할 수 있다. 즉, 우리는 데이터를 특정 처방된 정밀도까지만 인코딩한다. \Cref{ch:compression}에서 더 자세히 설명하겠지만, 손실적 코딩은 단순히 실용적 선택이 아니다; 그것은 분포의 유한 샘플로부터 기저 연속 분포의 학습을 가능하게 하는 데 근본적인 역할을 한다.
+
+많은 학습 목적을 위해, 우리는 특징 \(\vz\)가 \textit{손실적}이지만 그것의 클래스 유형보다 \(\vx\)에 대한 더 많은 정보를 유지하기를 원한다. 본서에서, 우리는 코딩 길이/율에 기반한 간결성의 더 일반적인 측정을 도입할 것인데, 이는 부분공간 또는 가우시안의 혼합으로 코딩하는 더 일반적인 코딩 체계 패밀리와 연관되어 있다. 이 패밀리는 임의의 실제 분포를 특정 정밀도까지 밀접하게 근사할 수 있는 능력을 가지고 있다. \Cref{ch:compression}과 \Cref{ch:representation}에서 볼 것처럼, 그러한 측정은 \(\vX\)의 분포에 대한 대부분의 정보를 보존할 뿐만 아니라 학습된 표현 \(\vZ\)에 대한 특정 바람직한 기하학적 및 통계적 구조를 촉진할 것이다.
+
+
+\paragraph{일관성을 위한 양방향 자동 인코딩.}
+더 넓은 학습 맥락에서, 압축 코딩 체계 \(\cE\)의 주요 목표는 원래 데이터 공간의 것들을 예측하는 데 사용될 수 있도록 데이터 \(\vX\)의 저차원 구조를 식별하는 것이다. 이것은 학습된 인코딩 체계 \(\cE\)가 특징 또는 인코딩된 데이터 \(\vZ\)를 데이터 공간으로 다시 매핑하는 효율적인 디코딩 체계, \(\cD\)로 표시되는, 를 허용해야 한다는 것을 요구한다:
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \vZ  \xrightarrow{\hspace{2mm} \cD \hspace{2mm}} \hat{\vX}.
+       \label{eqn:auto-encoding}
+\end{equation}
+우리는 그러한 인코딩--디코딩 쌍 \((\cE, \cD)\)를 \textit{자동 인코딩}이라고 부른다. \Cref{fig:autoencoder}는 이 프로세스를 보여준다.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter1/figs/Autoencoder.jpg}
+    \caption{자동 인코더의 아키텍처 그림.}
+    \label{fig:autoencoder}
+\end{figure}
+
+이상적으로, 디코딩은 인코딩의 대략적인 ``역''이어서, \(\vZ\)로부터 디코딩된 데이터 (분포) \(\hat{\vX}\)가 원본 데이터 (분포) \(\vX\)와 어느 정도 유사하다.\footnote{우리는 나중에 ``유사''가 무엇을 의미하는지 정밀하게 만들 것이다.} 이것이 성립하면, \(\vZ\)로부터 원래 데이터 공간에서 무슨 일이 일어나는지 복구하거나 예측할 수 있다. 이 경우, 우리는 쌍 \((\cE, \cD)\)가 \textit{일관된} 자동 인코딩을 제공한다고 말한다. 대부분의 실용적 목적을 위해, 우리는 그러한 디코딩이 존재할 뿐만 아니라 효율적으로 실현 가능하고 물리적으로 구현 가능해야 한다. 예를 들어, \(\vx\)가 실수값이면, \Cref{ch:compression}에서 설명할 것처럼 유한 상태 기계에서 어떤 디코딩 체계든 실현 가능하기 위해 양자화가 필요하다. 따라서 일반적으로, 실현 가능한 인코딩 및 디코딩 체계는 필연적으로 손실적이다. 중심 질문은 여전히 \(\vX\)를 잘 예측할 수 있는 컴팩트한 (손실적) 표현 \(\vZ\)를 학습하는 방법이다.
+
+일반적으로 말해서, 인코더와 디코더 모두 심층 네트워크로 모델링되고 실현될 수 있으며 다음 형태의 최적화 문제를 풀어서 학습된다:
+\begin{equation}
+   \min_{f, g} [\ell(\vX, \hat{\vX}) + \rho(\vZ)], \qquad \text{where} \quad \vZ = f(\vX), \quad \hat{\vX} = g(\vZ)
+   \label{eqn:auto-encoding-objective}
+\end{equation}
+여기서 \(\ell(\cdot, \cdot)\)는 \(\vX\)와 \(\hat{\vX}\) 간의 유사성을 촉진하는 거리 함수이고\footnote{\(\ell\)의 선택에 따라, 샘플 단위로 또는 분포 단위로.} \(\rho(\vZ)\)는 \(\vZ\)의 간결성과 정보 풍부성을 촉진하는 측정이다. 고전적 주성분 분석(PCA) \cite{JolliffeI2002}은 일관된 자동 인코딩의 전형적인 예인데, 우리는 \Cref{ch:classic}에서 더 일반적인 저차원 구조의 전구체로서 이를 매우 자세히 연구할 것이다. \Cref{ch:autoencoding}에서, 우리는 일반 (예를 들어 비선형) 저차원 분포에 대한 일관된 자동 인코딩을 학습하는 방법을 연구할 것이다.
+
+
+\subsection{자기 일관된 표현 학습}
+위의 자동 인코딩 목적에서, 디코딩된 데이터 \(\hat{\vX}\)가 원본 \(\vX\)에 얼마나 가까운지를 평가해야 한다. 이것은 일반적으로 외부 감독 또는 적절한 유사성 측정에 대한 지식을 요구한다. \(\hat{\vX}\)와 \(\vX\) 간의 유사성을 계산하는 것은 엄청나게 비싸거나, 심지어 불가능할 수 있다.\footnote{예를 들어, 두 확률 변수 간의 분포적 거리를 최소화하는 것은 통계적으로 그리고 계산적으로 어렵다.} 자연에서, 동물은 데이터 공간에서 그들의 추정 \(\hat{\vX}\)를 실제 \(\vX\)와 비교하지 않고 자율적으로 학습한다; 그들은 일반적으로 그 옵션이 없다.\footnote{동물과 인간에서, 눈은 뇌에 도착하기 훨씬 전에 시각 데이터를 처리한다; 뇌는 원시 시각 데이터를 처리하는 메커니즘을 가지고 있지 않으며 어떤 학습을 하기 위해 눈의 특징에 의존해야 한다.}
+
+그렇다면, 시스템은 외부 감독이나 비교 없이 어떻게 학습할 수 있는가? 직접 비교 없이 \(\hat{\vX}\)가 \(\vX\)와 일관된다는 것을 어떻게 알 수 있는가? 이것은 ``루프를 닫는'' 아이디어로 이어진다. 온화한 조건 하에서(\Cref{ch:closed-loop}에서 정밀하게 만듦), \(\vX\)와 \(\hat{\vX}\) 간의 일관성을 보장하는 것은 \(\hat{\vX}\)를 \(\hat{\vZ}\)로 인코딩하고 \(\vZ\)와 \(\hat{\vZ}\) 간의 일관성을 확인하는 것으로 축소된다. 우리는 이 개념을 \textit{자기 일관성}이라고 부르며, 다음에 의해 그림으로 나타난다:
+\begin{equation}
+    \vX   \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \vZ  \xrightarrow{\hspace{2mm} \cD \hspace{2mm}} \hat{\vX} \xrightarrow{\hspace{2mm} \cE\hspace{2mm}} \hat{\vZ},
+    \label{eqn:closed-loop}
+\end{equation}
+우리는 이 프로세스를 \textit{폐루프 전사},\footnote{DNA와 RNA 또는 다른 단백질 간의 전사에서 영감을 받음.}라고 부르며, \Cref{fig:closed-loop}에 묘사되어 있다.
+
+\begin{figure}[t]
+    \centering
+\includegraphics[width=0.9\linewidth]{\toplevelprefix/chapters/chapter1/figs/diagrams_redu_gan_2.pdf}
+\caption{폐루프 전사의 그림. 여기서 우리는 인코더 \(\cE\)를 나타내기 위해 매핑 \(f\)를 사용하고 디코더 \(\cD\)를 나타내기 위해 \(g\)를 사용한다.}  \label{fig:closed-loop}
+\end{figure}
+
+모든 자율 지능적 존재는 관찰된 데이터 \(\vX\)의 자기 일관된 표현 \(\vZ\)만 학습하면 된다고 주장할 수 있는데, 원래 데이터 공간에서---종종 외부 세계에서---일관성을 확인하는 것이 너무 비싸거나 심지어 물리적으로 실현 불가능하기 때문이다. 폐루프 공식화는 내부 (학습된) 특징 \(\vZ\)에만 의존하는 민-맥스 게임을 통해 최적 인코딩 \(f(\cdot, \vtheta)\)와 디코딩 \(g(\cdot, \veta)\)를 학습할 수 있게 한다:
+\begin{equation}
+    \max_{\vtheta}\min_{\veta} [\ell( \vZ, \hat{\vZ}) + \rho(\vZ)],  \qquad \text{where} \quad \vZ = f(\vX), \quad \hat{\vX} = g(\vZ), \quad \hat{\vZ} = f(\hat{\vX})
+   \label{eqn:closed-loop-objective}
+\end{equation}
+여기서 \(\ell( \vZ, \hat{\vZ})\)는 특징 \(\vZ\)와 \(\hat{\vZ}\)의 코딩 율에 기반한 손실 함수인데, 우리가 볼 것처럼, 계산하기가 훨씬 더 쉬울 수 있다. 여기서 다시, \(\rho(\vZ)\)는 \(\vZ\)의 간결성과 정보 풍부성을 촉진하는 어떤 측정이다. 다소 놀랍게도, \Cref{ch:closed-loop}에서 볼 것처럼, \(\vX\)가 충분히 저차원이라는 것과 같은 상당히 온화한 조건 하에서 \((\vZ, \hat{\vZ})\) 간의 자기 일관성은 \((\vX, \hat{\vX})\)에서의 일관성을 함의한다! 또한, 우리는 폐루프 시스템이 분포를 \textit{연속적이고 증분적인} 방식으로,\footnote{즉, 한 번에 하나의 클래스 또는 심지어 한 번에 하나의 샘플로 학습하는 것.} 개루프 모델과 연관된 치명적 망각과 같은 문제로 고통받지 않고 학습할 수 있게 한다는 것도 볼 것이다.
+
+% Start of Selection
+\section{기계 지능을 위한 이론과 실무의 가교}
+지금까지, 우리는 주어진 데이터 분포 \(\vX\)에 대한 컴팩트하고 구조화된 표현 \(\vZ\)를 학습하기 위한 세 가지 관련 프레임워크를 소개했다:
+\begin{itemize}
+    \item 개방형 인코딩 \eqref{eqn:open-loop};
+    \item 양방향 자동 인코딩 \eqref{eqn:auto-encoding};
+    \item 폐루프 전사 \eqref{eqn:closed-loop}.
+\end{itemize}
+본서에서, 우리는 세 가지 프레임워크를 모두 체계적으로 연구할 것이다, 하나씩 차례로:
+\begin{equation}
+    \text{\textbf{개방형}} \; \Longrightarrow \;
+    \text{\textbf{양방향}} \; \Longrightarrow \; \text{\textbf{폐루프}},
+\end{equation}
+각각 \Cref{ch:representation}, \Cref{ch:autoencoding}의 \Cref{sec:consistent-representation} 및 \Cref{sec:self-consistency}에서.
+
+최근 몇 년 동안, 심층 네트워크를 이해하는 데 도움이 되는 많은 이론적 프레임워크가 제안되었다. 그러나 대부분은 실제 데이터 및 작업에서 경험적 방법의 성능에 맞는 확장 가능한 해법을 제공하는 데 실패했다. 많은 이론은 추가적인 경험적 개선을 위한 실용적 안내를 거의 제공하지 않는다. \Cref{ch:conditional-inference}와 \Cref{ch:applications}는 본서에서 제시된 프레임워크가 이론과 실무 간의 간극을 어떻게 가교할 수 있는지를 입증할 것이다. \Cref{ch:conditional-inference}는 학습된 분포와 그것의 표현을 사용하여 (조건부) 생성, 추정, 예측과 관련된 실용적 작업에 대한 (베이지안) 추론을 수행하는 방법을 보여줄 것이다. \Cref{ch:applications}는 제1원리로부터 설계된 네트워크와 시스템이 시각적 표현 학습, 이미지 분류, 이미지 완성, 분할, 텍스트 생성과 같은 작업에서 경쟁력 있는---그리고 잠재적으로 우수한---성능을 달성할 수 있다는 설득력 있는 실험적 증거를 제공할 것이다.
+
+\paragraph{지능으로 돌아가기.}
+처음에 언급했듯이, 모든 지능적 존재의 근본적인 과제는 감지된 데이터로부터 예측 가능한 정보를 학습하는 것이다. 우리는 이제 이 과제의 계산적 본질을 이해하고 그것이 두 가지 이유로 끝나지 않는다는 것을 인식한다:
+\begin{itemize}
+    \item 데이터로부터 학습된 지식, 예를 들어 인코딩 및 디코딩 체계를 통해, 은 정확하거나 최적일 가능성이 낮다. 지능은 새로운 관찰의 예측이 오류를 포함할 때 개선할 수 있어야 한다.
+    \item 관찰된 데이터는 아직 모든 예측 가능한 정보를 다루지 않는다. 지능은 현재 지식이 부적절함을 인식하고 사용 가능해질 때마다 새로운 정보를 획득해야 한다.
+\end{itemize}
+
+따라서 지능은 모든 데이터를 미리 수집하고 예측 가능한 정보를 암기하도록 모델을 훈련시키는 것에 관한 것이 \textit{아니다}. 대신, 그것은 현재 지식을 지속적으로 개선하고 필요할 때 새로운 정보를 획득하는 계산 메커니즘을 요구한다. 모든 지능적 존재 또는 시스템---동물, 인간, 로봇, 과학 공동체, 또는 문명이든---의 근본적인 특성은 \textit{스스로 정보를 지속적으로 개선하거나 획득하는 능력}이다. 우리는 지능과 정보 간의 관계를 상징적으로 다음과 같이 표현할 수 있다:
+\begin{equation}
+    \operatorname{Intelligence}(t) = \odv*{\operatorname{Information}}{t}(t), \qquad
+    \operatorname{Information}(t)  = \int_{0}^{t} \operatorname{Intelligence}(s) \odif{s}.
+\end{equation}
+폐루프 프레임워크는 피드백---강화가 자연 선택에서처럼 원시적 형태이거나---또는 게이밍을 통한 자기 개선 및 자기 학습을 위한 보편적 메커니즘을 제공하는데, 과학적 탐구는 가설 공식화 및 검증을 통해 그것의 가장 진보된 형태를 나타낸다. 자연의 모든 지능적 존재와 시스템은 모든 수준과 규모에서 학습을 위해 폐루프 메커니즘을 사용한다. 이 편재성은 특히 1940년대에 Norbert Wiener가 시작한 사이버네틱스 운동에서, 지능을 기계와 컴퓨터로 모델링하려는 초기 시도에 영감을 주었다.
+
+우리는 이 책이 독자가 지능의 배후에 있는 목표, 원리, 계산 메커니즘을 더 잘 이해하는 데 도움이 되기를 바란다. 그것은 더 높은 수준의 인간 지능---진정한 인공지능---의 미래 연구를 위한 기초를 마련한다. 우리는 \Cref{ch:future}에서 이러한 방향의 몇 가지 중요한 미해결 문제를 개요할 것이다.
+
+\end{document}
