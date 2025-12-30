@@ -1,0 +1,286 @@
+\providecommand{\toplevelprefix}{../..}  %
+\documentclass[../../book-main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{선형 및 독립 구조 학습}
+\label{ch:classic}\label{ch:linear-independent}
+
+\begin{quote}
+\hfill  ``{\em 수학을 하는 예술은 모든 일반성의 씨앗을 포함하는 특수한 경우를 찾는 데 있다}.''
+
+
+$~$\hfill -- David Hilbert
+\end{quote}
+\vspace{5mm}
+
+
+
+
+
+
+
+\textit{실제 데이터는 저차원 구조를 가진다.} 이것이 왜 사실인지 알아보기 위해, 위성이 작동하지 않을 때 TV에 나타나는 정적 노이즈라는 평범한 경우를 생각해 보자. 각 프레임마다 (대략 매 \(\frac{1}{30}\)초마다), 크기 \(H \times W\)인 화면의 RGB 정적 노이즈는, 대략적으로, \([0, 1]^{3 \times H \times W}\) 상의 균등 분포에서 독립적으로 샘플링된다. 이론적으로, 정적 노이즈는 어떤 주어진 프레임에서도 자연 이미지로 \textit{나타날 수 있지만}, 천 년 동안 TV 화면을 바라보더라도 그렇게 되지 않을 것이다. 이러한 불일치는 \(H \times W\) 자연 이미지의 집합이 초입방체 \([0, 1]^{3 \times H \times W}\)에서 극히 작은 부분만을 차지한다는 사실로 설명된다. 특히, 주변 공간 차원과 비교하여 극도로 저차원적이다. 텍스트, 오디오, 비디오와 같은 다른 모든 유형의 자연 데이터에서도 유사한 현상이 발생한다. 따라서, 자연 데이터를 처리하고 그 구조나 분포를 학습하는 시스템과 방법을 설계할 때, 이것은 우리가 고려해야 할 자연 데이터의 핵심 속성이다. %
+
+따라서, 우리의 중심 과제는 고차원 공간에서 낮은 내재 차원을 가진 분포를 학습하는 것이다. 이 섹션의 나머지 부분에서, 우리는 분포에 대한 몇 가지 다소 {\em 이상적인} 모델, 즉 기하학적으로 선형적이거나 통계적으로 독립적인 모델에 대해 이 작업을 수행하는 여러 \textit{고전적인} 방법을 논의한다. 이러한 모델과 방법은 그 자체로 중요하고 유용하지만, 우리는 이것들이 심층 (표현) 학습을 포함하는 더 일반적인 분포에 대한 보다 현대적인 방법의 동기를 부여하고, 영감을 주며, 선행 또는 유사체 역할을 하기 때문에 여기서 논의한다.
+
+우리의 주요 접근 방식 (및 일반적인 문제 정식화)은 다음과 같이 요약될 수 있다:
+\begin{tcolorbox}\centering
+    \textbf{문제:} \textit{데이터 분포에서 나온 실제 샘플의 하나 또는 여러 (잡음이 있거나 불완전한) 관찰이 주어졌을 때, 이 샘플의 추정치를 얻는다.}
+\end{tcolorbox}
+이 접근 방식은 이 장에서 논의하는 데이터 처리를 위한 여러 고전적인 방법의 기초가 된다.
+\begin{itemize}
+    \item \Cref{sec:lowrank} --- 주성분 분석 (PCA): {\em 하나의 저차원 부분공간} 상에서 지원되는 분포에서 나온 잡음이 있는 샘플이 주어졌을 때, 이 부분공간 상에 있는 진짜 샘플의 추정치를 얻는다.
+    \item  \Cref{sec:ica} --- 완전 사전 학습 및 독립 성분 분석 (ICA): {\em 몇 개의 저차원 부분공간의 합집합 (생성 공간이 \textit{아님})} 상에서 지원되는 분포에서 나온 잡음이 있는 샘플이 주어졌을 때, 진짜 샘플의 추정치를 얻는다.
+    \item \Cref{sec:dictionary_learning} --- 희소 코딩 및 과완전 사전 학습: 좌표 축과 같은 {\em 몇 개의 비간섭 벡터의 조합 상에서 지원되는 분포}에서 나온 잡음이 있는 샘플이 주어졌을 때, 이 속성을 가진 진짜 샘플의 추정치를 얻는다.
+\end{itemize}
+나중 장에서 곧 밝혀지겠지만, 심층 학습 시대에 현대적인 방법은 본질적으로 동일한 접근 방식을 채택하여 학습한다.
+
+이 장에서, 위에서 설명한 바와 같이, 우리는 데이터가 기하학적으로 (거의, 부분적으로) 선형 구조와 통계적으로 독립적인 성분을 가진다고 본질적으로 가정하는 단순화된 모델링 가정을 한다. \Cref{ch:intro}에서, 우리는 이러한 데이터 모델을 ``분석적 모델''이라고 언급했다. 이러한 모델링 가정은 대규모로 데이터를 처리하기 위한 증명 가능한 효율성 보장\footnote{데이터 및 계산 복잡도 측면에서 모두.}을 가진 효율적인 알고리즘을 도출할 수 있게 한다. 그러나, 이것들은 종종 복잡한 실제 데이터 분포에 대한 불완전한 모델이므로, 그들의 기본 가정은 근사적으로만 성립한다. 이는 이러한 알고리즘의 상세한 분석이 제공하는 보장도 실제 데이터의 경우 근사적으로만 성립한다는 것을 의미한다. 그럼에도 불구하고, 이 장에서 논의된 기술은 그 자체로 유용하며, 그 이상으로, 말하자면 ``일반성의 씨앗을 가진 특수한 경우'' 역할을 하여, 나중에 다루는 더 일반적인 분포의 (심층) 학습 내의 보다 일반적인 패러다임에 대한 안내 동기와 직관을 제시한다. %
+
+
+
+
+
+
+
+
+
+\section{저차원 부분공간} \label{sec:lowrank}
+
+\subsection{주성분 분석 (PCA)}\label{sub:pca}
+
+저차원 구조에 대해 가능한 가장 단순한 모델링 가정은 소위 \textit{저계수(low-rank)} 가정이다. 이 가정 하에서, 우리 데이터 \(\vx_{i} \in \R^{D}\), \(i = 1, 2, \dots, N\)은 다음과 같이 주어진다고 가정한다:
+\begin{equation}\label{eq:pca_dgp}
+    \vx_{i} = \vU\vz_{i} + \veps_{i}, \quad \forall i \in [N].
+\end{equation}
+여기서 \(\vU \in \R^{D \times d}\)는 \(D \gg d\)인 행렬이고 직교 정규 열을 가지며, 각 \(\vz_{i} \in \R^{d}\)는 \(d\)-차원 벡터이고, 각 \(\veps_{i} \in \R^{D}\)는 \textit{작은} 잡음 벡터이다. 이 모델에서 우리의 목표는 \(\vU\)를 복구하는 것이다.
+
+\paragraph{문제 정식화.}
+이를 수학적 표기법으로 작성하기 위해, 부분공간을 직교 정규 열을 가진 행렬 \(\vU \in \R^{D \times d}\)로 표현하며, 여기서 \(d \ll D\)이다. 행렬 \(\vU\)의 열은 \(\R^{D}\)의 \(d\)-차원 부분공간을 생성한다. 우리의 목표는, 주어진 \(N\)개의 데이터 포인트 \(\vx_{1}, \dots, \vx_{N}\)에 대해, 이들이 거의 놓여 있는 \(d\)-차원 부분공간, 또는 동등하게 그것을 생성하는 행렬 \(\tilde{\vU}\)를 찾는 것이다. 즉, 각 \(i\)에 대해 어떤 \(\tilde{\vz}_{i} \in \R^{d}\)가 존재하여 \(\vx_{i} \approx \tilde{\vU}\tilde{\vz}_{i}\)가 되도록 하는 것이다. 우리는 다음의 최적화 문제를 풀어서 이를 수행한다:
+\begin{equation}\label{eq:pca_problem}
+    \min_{\tilde{\vU}, \tilde{\vz}_{1}, \dots, \tilde{\vz}_{N}}\sum_{i = 1}^{N}\norm{\vx_{i} - \tilde{\vU}\tilde{\vz}_{i}}_{2}^{2},
+\end{equation}
+여기서 최소화는 직교 정규 열을 가진 \(\tilde{\vU} \in \R^{D \times d}\)와 모든 \(\tilde{\vz}_{i} \in \R^{d}\)에 대해 이루어진다. 이 문제를 \textit{주성분 분석 (Principal Components Analysis, PCA)}이라고 한다.
+
+이제 이 최적화 문제를 어떻게 풀 수 있는지 살펴보자. 먼저, 각 \(\tilde{\vz}_{i}\)에 대해 최적화할 수 있다. 주어진 부분공간 지지 \(\tilde{\vU}\)에 대해, 각 \(\vx_{i}\)를 그 부분공간에 투영함으로써 최소 \(\ell_{2}\) 거리를 달성할 수 있다는 것은 잘 알려져 있다. 수학적으로, 이는
+\begin{equation}
+    \tilde{\vz}_{i}^{\star} = \tilde{\vU}^{\top}\vx_{i}
+\end{equation}
+임을 의미한다. (이를 확인하려면, 함수 \(\tilde{\vz}_{i} \mapsto \norm{\vx_{i} - \tilde{\vU}\tilde{\vz}_{i}}_{2}^{2}\)가 볼록하고 미분 가능하다는 점에 주목하라. 따라서 기울기를 \(\vzero\)로 설정하여 임계점을 찾을 수 있으며, 이 임계점이 최소값이다. 기울기를 \(\vzero\)로 설정하면 다음을 얻는다:
+\begin{equation}
+    \nabla_{\tilde{\vz}_{i}}\norm{\vx_{i} - \tilde{\vU}\tilde{\vz}_{i}}_{2}^{2} = -2\tilde{\vU}^{\top}(\vx_{i} - \tilde{\vU}\tilde{\vz}_{i}) = \vzero.
+\end{equation}
+\(\tilde{\vU}\)가 직교 정규 열을 가지므로, \(\tilde{\vU}^{\top}\tilde{\vU} = \vI_{d}\)이다. 따라서 위의 방정식을 \(\tilde{\vz}_{i}\)에 대해 풀면 \(\tilde{\vz}_{i}^{\star} = \tilde{\vU}^{\top}\vx_{i}\)를 얻는다.)
+
+이제 이 최적 \(\tilde{\vz}_{i}^{\star}\)를 목적 함수에 대입하면:
+\begin{align}
+    \min_{\tilde{\vU}, \tilde{\vz}_{1}, \dots, \tilde{\vz}_{N}}\sum_{i = 1}^{N}\norm{\vx_{i} - \tilde{\vU}\tilde{\vz}_{i}}_{2}^{2} &= \min_{\tilde{\vU}}\sum_{i = 1}^{N}\norm{\vx_{i} - \tilde{\vU}\tilde{\vU}^{\top}\vx_{i}}_{2}^{2}.
+\end{align}
+우변의 목적 함수는 \(\tilde{\vU}\)에 대해서만 의존한다. 이 목적 함수를 더 단순화할 수 있다. 먼저, 모든 \(i\)에 대해 다음이 성립한다:
+\begin{align}
+    \norm{\vx_{i} - \tilde{\vU}\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} &= \norm{\vx_{i}}_{2}^{2} - 2\vx_{i}^{\top}\tilde{\vU}\tilde{\vU}^{\top}\vx_{i} + \norm{\tilde{\vU}\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} \\
+    &= \norm{\vx_{i}}_{2}^{2} - 2\norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} + \norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} \\
+    &= \norm{\vx_{i}}_{2}^{2} - \norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2}.
+\end{align}
+여기서 두 번째 등식은 \(\tilde{\vU}^{\top}\tilde{\vU} = \vI_{d}\)라는 사실로부터 따라온다. 따라서 우리는 다음을 얻는다:
+\begin{equation}
+    \min_{\tilde{\vU}}\sum_{i = 1}^{N}\norm{\vx_{i} - \tilde{\vU}\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} = \min_{\tilde{\vU}}\sum_{i = 1}^{N}\paren{\norm{\vx_{i}}_{2}^{2} - \norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2}}.
+\end{equation}
+\(\sum_{i = 1}^{N}\norm{\vx_{i}}_{2}^{2}\)는 \(\tilde{\vU}\)에 의존하지 않으므로, 최소화 문제는 다음과 같이 다시 작성될 수 있다:
+\begin{equation}
+    \min_{\tilde{\vU}}\sum_{i = 1}^{N}\norm{\vx_{i} - \tilde{\vU}\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} = \min_{\tilde{\vU}} - \sum_{i = 1}^{N}\norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} = \max_{\tilde{\vU}}\sum_{i = 1}^{N}\norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2}.
+\end{equation}
+이제 오른쪽 항을 단순화할 수 있다:
+\begin{align}
+    \sum_{i = 1}^{N}\norm{\tilde{\vU}^{\top}\vx_{i}}_{2}^{2} &= \sum_{i = 1}^{N}\vx_{i}^{\top}\tilde{\vU}\tilde{\vU}^{\top}\vx_{i} = \sum_{i = 1}^{N}\tr(\tilde{\vU}^{\top}\vx_{i}\vx_{i}^{\top}\tilde{\vU}) \\
+    &= \tr\paren{\tilde{\vU}^{\top}\paren{\sum_{i = 1}^{N}\vx_{i}\vx_{i}^{\top}}\tilde{\vU}} = \tr(\tilde{\vU}^{\top}\vX\vX^{\top}\tilde{\vU}),
+\end{align}
+여기서 \(\vX = \mat{\vx_{1}, \dots, \vx_{N}} \in \R^{D \times N}\)은 데이터 행렬이다. 따라서 우리의 최적화 문제는 다음과 같이 된다:
+\begin{equation}\label{eq:pca_trace}
+    \max_{\tilde{\vU}}\tr(\tilde{\vU}^{\top}\vX\vX^{\top}\tilde{\vU}).
+\end{equation}
+
+이 문제의 해는 잘 알려져 있다: 최적 \(\tilde{\vU}^{\star}\)는 행렬 \(\vX\vX^{\top}\)의 상위 \(d\)개 고유벡터에 의해 주어진다. 이는 다음 정리를 통해 공식화된다.
+
+\begin{theorem}[주성분 분석]\label{thm:pca}
+    데이터 행렬 \(\vX = \mat{\vx_{1}, \dots, \vx_{N}} \in \R^{D \times N}\)이 주어졌을 때, 문제 \eqref{eq:pca_problem}의 해는 다음과 같이 주어진다:
+    \begin{equation}
+        \vU^{\star} = \argmax_{\tilde{\vU} \in \R^{D \times d}, \tilde{\vU}^{\top}\tilde{\vU} = \vI_{d}}\tr(\tilde{\vU}^{\top}\vX\vX^{\top}\tilde{\vU}),
+    \end{equation}
+    여기서 \(\vU^{\star}\)의 열은 행렬 \(\vX\vX^{\top}\)의 상위 \(d\)개 고유벡터이다. 이 열들을 \textit{주성분 (principal components)}이라고 부른다.
+\end{theorem}
+
+\begin{remark}
+    행렬 \(\vX\vX^{\top}\)는 양의 준정부호 행렬이므로, 모든 고유값은 음이 아니다. 또한, \(\vX\vX^{\top}\)는 대칭이므로, 직교 정규 고유벡터를 가진다. 따라서 위의 정리는 잘 정의되어 있다.
+\end{remark}
+
+\begin{remark}
+    실제로, \(\vX\vX^{\top}\)의 고유벡터를 직접 계산하는 것은 \(D\)가 클 때 계산적으로 비효율적일 수 있다. 대신, 우리는 \(\vX\)의 특이값 분해 (SVD)를 사용할 수 있다. \(\vX = \vU\bSigma\vV^{\top}\)라고 쓰면, 여기서 \(\vU \in \R^{D \times r}\), \(\bSigma \in \R^{r \times r}\), \(\vV \in \R^{N \times r}\)이고 \(r = \rank(\vX)\)이다. 그러면 \(\vX\vX^{\top} = \vU\bSigma^{2}\vU^{\top}\)이므로, \(\vU\)의 열은 \(\vX\vX^{\top}\)의 고유벡터이고, \(\bSigma^{2}\)의 대각 원소는 대응하는 고유값이다.
+\end{remark}
+
+\paragraph{PCA의 해석.}
+PCA는 여러 가지 방식으로 해석될 수 있다. 첫째, \eqref{eq:pca_problem}의 목적 함수를 고려하면, 우리는 데이터를 부분공간에 투영했을 때의 재구성 오차를 최소화하고 있다. 즉, 데이터에 가장 가까운 부분공간을 찾고 있다. 둘째, \eqref{eq:pca_trace}의 관점에서, 우리는 데이터를 부분공간에 투영했을 때의 분산을 최대화하고 있다. 이는 데이터의 변동성을 가장 많이 설명하는 방향을 찾고 있다는 것을 의미한다.
+
+또 다른 관점은 \textit{디노이징 (denoising)}의 관점이다. \eqref{eq:pca_dgp}의 모델을 다시 생각해 보자. 여기서 \(\vx_{i} = \vU\vz_{i} + \veps_{i}\)이다. 만약 \(\veps_{i}\)가 작은 잡음이라면, \(\vx_{i}\)를 부분공간 \(\mathop{\mathrm{col}}(\vU)\)에 투영하는 것은 본질적으로 잡음 \(\veps_{i}\)를 제거하고 \(\vU\vz_{i}\)를 복구하는 것이다. 실제로, \(\vU^{\star}\)를 PCA의 해라고 하면, 각 \(\vx_{i}\)에 대한 디노이징된 버전은 다음과 같이 주어진다:
+\begin{equation}
+    \hat{\vx}_{i} = \vU^{\star}(\vU^{\star})^{\top}\vx_{i}.
+\end{equation}
+행렬 \(\vU^{\star}(\vU^{\star})^{\top}\)는 부분공간 \(\mathop{\mathrm{col}}(\vU^{\star})\)로의 직교 투영이다. 따라서 PCA는 선형 디노이저로 볼 수 있다.
+
+\paragraph{PCA와 데이터 압축.}
+PCA의 또 다른 중요한 응용은 데이터 압축이다. 원래 데이터 포인트 \(\vx_{i} \in \R^{D}\)를 저장하는 대신, 저차원 표현 \(\vz_{i} = \vU^{\star\top}\vx_{i} \in \R^{d}\)를 저장할 수 있으며, 여기서 \(d \ll D\)이다. 나중에 \(\vU^{\star}\vz_{i}\)를 계산함으로써 원래 데이터의 근사치를 복구할 수 있다. 이는 특히 \(d \ll D\)일 때 상당한 저장 공간 절약을 가져온다.
+
+\paragraph{중심화 (Centering).}
+실제로, PCA를 적용하기 전에 데이터를 중심화하는 것이 일반적이다. 즉, 각 데이터 포인트에서 데이터의 평균을 뺀다:
+\begin{equation}
+    \bar{\vx} = \frac{1}{N}\sum_{i = 1}^{N}\vx_{i}, \quad \tilde{\vx}_{i} = \vx_{i} - \bar{\vx}.
+\end{equation}
+그런 다음 중심화된 데이터 \(\tilde{\vx}_{i}\)에 PCA를 적용한다. 이는 첫 번째 주성분이 데이터의 평균을 설명하지 않도록 보장한다.
+
+\subsection{멱 반복을 통한 저계수 구조 추구}\label{subsec:power_iteration}
+
+PCA 문제를 푸는 한 가지 방법은 특이값 분해 (SVD)를 사용하는 것이지만, 이는 계산적으로 비용이 많이 들 수 있다. 대신, 상위 주성분을 더 효율적으로 찾기 위해 \textit{멱 반복 (power iteration)}이라는 반복 알고리즘을 사용할 수 있다.
+
+멱 반복 알고리즘은 다음과 같다: 대칭 양의 준정부호 행렬 \(\vM \in \R^{D \times D}\)의 상위 고유벡터를 찾고 싶다고 가정하자. (PCA의 경우, \(\vM = \vX\vX^{\top}/N\)이 될 것이다.) 우리는 다음 반복을 수행한다:
+\begin{enumerate}
+    \item 임의의 벡터 \(\vv_{0} \in \R^{D}\)로 초기화하고, 단위 노름으로 정규화한다: \(\vv_{0} \gets \vv_{0}/\norm{\vv_{0}}_{2}\).
+    \item \(t = 1, 2, \dots\)에 대해:
+    \begin{equation}
+        \vv_{t} = \frac{\vM\vv_{t - 1}}{\norm{\vM\vv_{t - 1}}_{2}}.
+    \end{equation}
+\end{enumerate}
+다음 정리는 이 알고리즘이 상위 고유벡터로 수렴함을 보장한다.
+
+\begin{theorem}[멱 반복의 수렴성]\label{thm:power_iteration}
+    \(\vM \in \R^{D \times D}\)를 대칭 양의 준정부호 행렬이라 하고, 고유값을 \(\lambda_{1} \geq \lambda_{2} \geq \cdots \geq \lambda_{D} \geq 0\)이라 하자. \(\vv_{0} \sim \dNorm(\vzero, \vI_{D})\)가 표준 가우스 분포에서 샘플링되었다고 가정하자. 그러면, 극한에서, \(\vv_{t}\)는 \(\vM\)의 상위 단위 노름 고유벡터로 수렴할 것이다.
+\end{theorem}
+
+\begin{proof} 먼저, 모든 \(t\)에 대해 다음이 성립함을 주목하라:
+\begin{equation}
+    \vv_{t} = \frac{\vM\vv_{t - 1}}{\norm{\vM\vv_{t - 1}}_{2}} = \frac{\vM^{2}\vv_{t - 2}}{\norm{\vM\vv_{t - 1}}_{2}\norm{\vM\vv_{t - 2}}_{2}} = \cdots = \frac{\vM^{t}\vv_{0}}{\prod_{s = 1}^{t}\norm{\vM\vv_{s}}_{2}}.
+\end{equation}
+따라서, \(\vv_{t}\)는 \(\vM^{t}\vv_{0}\)와 같은 방향을 가지며 단위 노름이므로, 다음과 같이 쓸 수 있다:
+\begin{equation}
+    \vv_{t} = \frac{\vM^{t}\vv_{0}}{\norm{\vM^{t}\vv_{0}}_{2}}.
+\end{equation}
+\(\vM\)의 모든 고유벡터 \(\vw_{i}\)가 \(\R^{D}\)에 대한 직교 정규 기저를 형성하므로, 다음과 같이 쓸 수 있다:
+\begin{equation}
+    \vv_{0} = \sum_{i = 1}^{D}\alpha_{i}\vw_{i},
+\end{equation}
+여기서 \(\vv_{0}\)가 가우스 분포이므로 \(\alpha_{i}\)는 모두 확률 \(1\)로 0이 아니다. 따라서, \(\vv_{t}\)에 대한 앞의 표현을 사용하여 다음과 같이 쓸 수 있다:
+\begin{equation}
+    \vv_{t} = \frac{\vM^{t}\vv_{0}}{\norm{\vM^{t}\vv_{0}}_{2}} = \frac{\sum_{i = 1}^{D}\lambda_{i}^{t}\alpha_{i}\vw_{i}}{\norm{\sum_{i = 1}^{D}\lambda_{i}^{t}\alpha_{i}\vw_{i}}_{2}} = \frac{\sum_{i = 1}^{D}\lambda_{i}^{t}\alpha_{i}\vw_{i}}{\sum_{i = 1}^{D}\lambda_{i}^{t}\abs{\alpha_{i}}}.
+\end{equation}
+이제, \(\lambda_{1} > \lambda_{2} \geq \cdots \geq \lambda_{D} \geq 0\)인 경우를 고려하자. (반복되는 상위 고유값이 있는 경우도 유사하게 진행된다.) 그러면 다음과 같이 쓸 수 있다:
+\begin{equation}
+    \vv_{t} = \frac{\alpha_{1}\vw_{1} + \sum_{i = 2}^{D}(\lambda_{i}/\lambda_{1})^{t}\alpha_{i}\vw_{i}}{\abs{\alpha_{1}} + \sum_{i = 2}^{D}(\lambda_{i}/\lambda_{1})^{t}\abs{\alpha_{i}}}.
+\end{equation}
+모든 \(i > 1\)에 대해 \(\lambda_{1} > \lambda_{i}\)이므로, 합 내부의 항들은 지수적으로 빠르게 \(0\)으로 수렴하고, 나머지는 다음의 극한이다:
+\begin{equation}
+    \lim_{t \to \infty}\vv_{t} = \frac{\alpha_{1}}{\abs{\alpha_{1}}}\vw_{1} = \sign(\alpha_{1})\vw_{1},
+\end{equation}
+이는 \(\vM\)의 상위 단위 고유벡터이다. \(\vM\)의 상위 고유값 \(\lambda_{1}\)은 \(\vv_{t}^{\top}\vM\vv_{t}\)로 추정할 수 있으며, 이는 유사하게 빠르게 \(\lambda_{1}\)로 수렴한다.
+\end{proof}
+
+
+두 번째 상위 고유벡터를 찾기 위해, \(\vM - \lambda_{1}\vv_{1}\vv_{1}^{\top}\)에 멱 반복 알고리즘을 적용하며, 이는 고유벡터 \((\vw_{i})_{i = 2}^{D}\)와 대응하는 고유값 \((\lambda_{i})_{i = 2}^{D}\)를 가진다. 이 절차를 순차적으로 \(d\)번 반복함으로써, 임의의 대칭 양의 준정부호 행렬 \(\vM\)에 대해 상위 \(d\)개의 고유벡터를 매우 효율적으로 추정할 수 있다. 따라서 \(\vX\vX^{\top}/N\)에도 이를 적용하여 상위 \(d\)개의 주성분을 복구할 수 있으며, 이것이 애초에 우리가 원했던 것이다. 이 접근 방식은 한 번에 하나의 주성분을 복구한다는 점에 주목하라; 우리는 이를 전역 목적 함수에 대한 경사 하강법과 같은 다른 알고리즘적 접근 방식과 향후 섹션에서 대조할 것이다.
+
+
+
+
+
+\subsection{확률적 PCA}\label{subsec:probabilistic PCA}
+
+위의 정식화는 데이터 생성 과정에 대한 통계적 가정을 하지 않는다는 점에 주목하라. 그러나, 주어진 데이터 모델 내에 통계적 요소를 포함하는 것이 일반적이며, 이는 분석 결과에 대한 추가적인 통찰력 있는 해석을 더할 수 있다. 따라서, 우리는 자연스러운 질문을 던진다: \textit{저차원 구조의 통계적 유사체는 무엇인가?} 우리의 답은 저차원 \textit{분포}는 그 지지가 저차원 기하학적 구조 주변에 집중되어 있는 것이라는 것이다.
+
+이 점을 설명하기 위해, 우리는 \textit{확률적 주성분 분석 (Probabilistic Principal Component Analysis, PPCA)}을 논의한다. 이 정식화는 정규 PCA의 통계적 변형으로 볼 수 있다. 수학적으로, 우리는 이제 데이터를 \(\R^{D}\)에서 값을 취하는 확률 변수 \(\vx\)로부터의 샘플로 간주한다 (때때로 \textit{확률 벡터}라고도 불린다). 우리는 \(\vx\)가 (근사) 저계수 통계적 구조를 가진다고 말하는데, 이는 직교 정규 행렬 \(\vU \in \O(D, d)\), \(\R^{d}\)에서 값을 취하는 확률 변수 \(\vz\), 그리고 \(\R^{D}\)에서 값을 취하는 \textit{작은} 확률 변수 \(\veps\)가 존재하여 \(\vz\)와 \(\veps\)가 독립이고,
+\begin{equation}
+    \vx = \vU\vz + \veps
+\end{equation}
+일 때이다. 우리의 목표는 다시 \(\vU\)를 복구하는 것이다. 이를 위해, \Cref{sub:pca}에서와 같이 유사한 문제를 설정한다. 즉, 부분공간 지지 \(\tilde{\vU}\)와 확률 변수 \(\vz\)에 대해 최적화하여 다음 문제를 푼다:
+\begin{equation}
+    \min_{\tilde{\vU}, \tilde{\vz}}\Ex\norm{\vx - \tilde{\vU}\tilde{\vz}}_{2}^{2}.
+\end{equation}
+우리가 찾을 수 있는 최선의 확률 변수 \(\vz\)를 찾고 있으므로, \(\vx\)의 각 값에 대해 별도로 그 실현 \(\vz(\vx)\)를 찾을 수 있다. \Cref{sub:pca}에서와 같은 계산을 수행하면, 다음을 얻는다: %
+\begin{equation}\label{eq:ppca_denoising}
+    \min_{\tilde{\vU}, \tilde{\vz}}\Ex\norm{\vx - \tilde{\vU}\tilde{\vz}}_{2}^{2} = \min_{\tilde{\vU}}\Ex\min_{\tilde{\vz}(\vx)}\norm{\vx - \tilde{\vU}\tilde{\vz}(\vx)}_{2}^{2} = \min_{\tilde{\vU}}\Ex\norm{\vx - \tilde{\vU}\tilde{\vU}^{\top}\vx}_{2}^{2},
+\end{equation}
+주성분으로 추정된 부분공간 \(\vU^{\star}\)가 그 부분공간으로 투영하는 디노이저 \(\vU^{\star}(\vU^{\star})^{\top}\)에 대응한다는 사실을 다시 강조한다. 이전과 같이, 다음을 얻는다:
+\begin{align}\label{eq:PPCA}
+    \argmin_{\tilde{\vU}}\Ex\norm{\vx - \tilde{\vU}\tilde{\vU}^{\top}\vx}_{2}^{2}
+    &= \argmax_{\tilde{\vU}}\Ex\norm{\tilde{\vU}^{\top}\vx}_{2}^{2} \\
+    &= \argmax_{\tilde{\vU}}\tr(\tilde{\vU}^{\top}\Ex[\vx\vx^{\top}]\tilde{\vU}),
+\end{align}
+그리고 후자 문제의 해는 2차 모멘트 행렬 \(\Ex[\vx\vx^{\top}]\)의 상위 \(d\)개 주성분일 뿐이다. 실제로, 위의 문제들은 이전 하위 섹션에서 주성분을 계산하는 방정식과 시각적으로 매우 유사하지만, \(\vX\vX^{\top}/N\)이 \(\Ex[\vx\vx^{\top}]\)로 대체되었다. 사실, 후자의 양은 전자의 추정치이다. 두 정식화 모두 본질적으로 같은 일을 하며, 같은 실용적인 해를 가진다---데이터 행렬 \(\vX\)의 왼쪽 특이 벡터를 계산하거나, 동등하게 추정된 공분산 행렬 \(\vX\vX^{\top}/N\)의 상위 고유벡터를 계산한다. 그러나, 통계적 정식화는 추가적인 해석을 가진다. \(\Ex[\vz] = \vzero\)이고 \(\Ex[\veps] = \vzero\)라고 가정하자. 다음을 얻는다:
+\begin{equation}
+    \Ex[\vx] = \vU\Ex[\vz] + \Ex[\veps] = \vzero,
+\end{equation}
+따라서 \(\Cov[\vx] = \Ex[\vx\vx^{\top}]\)이다. 이제 \(\Cov[\vx]\)를 계산하면 다음을 얻는다:
+\begin{equation}
+    \Cov[\vx] = \vU\Cov[\vz]\vU^{\top} + \Cov[\veps] = \vU\Ex[\vz\vz^{\top}]\vU^{\top} + \Cov[\veps].
+\end{equation}
+특히, \(\Cov[\veps]\)가 작으면, \(\Cov[\vx] = \Ex[\vx\vx^{\top}]\)는 근사적으로 저계수 행렬, 특히 계수 \(d\)를 가진다. 따라서 \(\Ex[\vx\vx^{\top}]\)의 상위 \(d\)개 고유벡터는 본질적으로 전체 공분산 행렬을 요약한다. 그러나 이들은 또한 주성분이므로, 우리는 주성분 분석을 \(\Cov[\vx]\)의 저계수 분해를 수행하는 것으로 해석할 수 있다.
+
+\begin{remark}
+    PCA의 확률적 관점을 사용함으로써, 우리는 그것이 디노이징과 어떻게 관련되는지에 대한 더 명확하고 정량적인 이해를 얻는다. 먼저, \eqref{eq:ppca_denoising}의 디노이징 문제를 고려하라. 즉,
+    \begin{equation}
+        \min_{\tilde{\vU}}\Ex\norm{\vx - \tilde{\vU}\tilde{\vU}^{\top}\vx}_{2}^{2}.
+    \end{equation}
+    \(\tilde{\vU}\)가 \(d\)개의 열을 가지고 \(\veps\)가 등방성 가우스 확률 변수, 즉, 분포 \(\veps \sim \dNorm(\vzero, \sigma^{2}\vI)\)를 가진다면,\footnote{\(\R^{D}\) 전체를 지원하는 한 다른 분포도 작동하지만, 가우스가 여기서 가장 다루기 쉽다.} \textit{임의의} 최적 해 \(\vU^{\star}\)에 대해 다음이 성립함을 증명하는 것은 그리 어렵지 않다:
+    \begin{equation}
+        \vU^{\star}(\vU^{\star})^{\top} = \vU\vU^{\top}
+    \end{equation}
+    따라서 진짜 지지 부분공간, 즉 \(\cS \doteq \mathop{\mathrm{col}}(\vU)\)는 \(\vU^{\star}\)의 열의 생성 공간으로 복구된다. 왜냐하면,
+    \begin{equation}
+        \cS = \mathop{\mathrm{col}}(\vU) = \mathop{\mathrm{col}}(\vU\vU^{\top})
+        = \mathop{\mathrm{col}}(\vU^{\star}(\vU^{\star})^{\top})
+        = \mathop{\mathrm{col}}(\vU^{\star}).
+    \end{equation}
+    특히, 학습된 \textit{디노이징 맵} \(\vU^{\star}(\vU^{\star})^{\top}\)은 \(\cS\)로의 직교 투영이며, 잡음이 있는 점을 실제 지지 부분공간으로 밀어낸다. 우리는 \Cref{thm:pca}에서처럼 유한한 샘플만 가지고 있는 경우에도 유사한 기술적 결과를 확립할 수 있지만, 이는 더 많은 노력과 기술성을 요구한다. 이 논의를 요약하면, 다음의 비공식적인 정리가 있다.
+\end{remark}
+
+
+\begin{theorem}\label{thm:ppca}
+    확률 변수 \(\vx\)가 다음과 같이 쓰여질 수 있다고 가정하자:
+    \begin{equation}
+        \vx = \vU\vz + \veps
+    \end{equation}
+    여기서 \(\vU \in \O(D, d)\)는 \textit{저계수 구조}를 포착하고, \(\vz\)는 \(\R^{d}\)에서 값을 취하는 확률 벡터이고, \(\veps\)는 \(\R^{D}\)에서 값을 취하는 확률 벡터이며, \(\vz\)와 \(\veps\)는 독립이고, \(\veps\)는 작다. 그러면 우리 데이터셋의 \textit{주성분} \(\vU^{\star} \in \O(D, d)\)는 \(\Ex[\vx\vx^{\top}]\)의 상위 \(d\)개 고유벡터에 의해 주어지며, 근사적으로 최적 선형 디노이저에 대응한다: \(\vU^{\star}(\vU^{\star})^{\top} \approx \vU\vU^{\top}\).
+\end{theorem}
+
+
+
+\subsection{행렬 완성}
+
+이전 하위 섹션에서, 우리는 데이터가 가법적 잡음과 함께 부분공간에서 샘플링된 \textit{저계수 기하학적 또는 통계적 분포를 학습하는} 문제를 논의했다. 그러나 이것이 연구할 가치가 있는 저차원 분포로부터의 교란의 유일한 유형은 아니다. 이 하위 섹션에서, 우리는 심층 학습에서 점점 더 중요해지는 비가법적 오류의 한 가지 추가 클래스를 소개한다. \eqref{eq:pca_dgp}에 따라 생성된 데이터 \(\{\vx_{i}\}_{i = 1}^{N}\)이 있는 경우를 고려해 보자. 이제 이들을 행렬 \(\vX = \mat{\vx_{1}, \dots, \vx_{N}} \in \R^{D \times N}\)로 배열한다. 이전과 달리, 우리는 \(\vX\)를 직접 관찰하지 않는다; 대신 우리의 관찰이 전송 중에 손상되어 다음을 얻었다고 상상한다:
+\begin{equation}
+    \vY = \vM \hada \vX,
+\end{equation}
+여기서 \(\vM \in \{0, 1\}^{D \times N}\)는 우리에게 알려진 \textit{마스크}이고, \(\hada\)는 원소별 곱셈이다. 이 경우, 우리의 목표는 손상된 관찰 \(\vY\), 마스크 \(\vM\), 그리고 \(\vX\)가 (근사적으로) 저계수라는 지식만을 사용하여 \(\vX\)를 복구하는 것이다 (그 시점에서 PCA를 사용하여 \(\vU\) 등을 복구할 수 있다). 이를 \textit{저계수 행렬 완성}이라고 한다.
+
+이 문제를 푸는 알고리즘과 접근 방식을 논의하는 많은 훌륭한 자료가 있다 \cite{Wright-Ma-2022}. 실제로, 이것과 이 저계수 구조 복구 문제의 유사한 일반화는 ``강건한 PCA''에 의해 해결된다. 우리는 여기서 해법 방법에 대해 다루지 않을 것이다. 대신, 이 문제가 풀리기에 \textit{그럴듯한} 조건이 무엇인지 논의할 것이다. 한편으로, 가장 터무니없는 경우에, 행렬 \(\vX\)의 각 원소가 다른 모든 원소와 독립적으로 선택되었다고 가정하자. 그러면 하나의 원소만 누락되고 \(DN - 1\)개의 원소를 가지고 있더라도 \(\vX\)를 정확히 복구할 희망이 없을 것이다. 반면에, \(\vX\)가 정확히 계수 1을 가진다는 것을 알고 있다고 가정하자. 이는 데이터의 저차원 구조에 대한 극도로 강한 조건이며, 우리가 다음의 마스크를 다루고 있다고 하자:
+\begin{equation}
+    \vM = \mat{\vone_{(D - 1) \times 1} & \vzero_{(D - 1) \times (N - 1)} \\ 1 & \vone_{1 \times (N - 1)} }.
+\end{equation}
+그러면 데이터가 직선 상에 분포되어 있음을 알고, 그 직선 상의 벡터를 알고 있다---그것은 행렬 \(\vY = \vM \hada \vX\)의 첫 번째 열일 뿐이다. 마스크에 의해 우리에게 드러난 각 열의 마지막 좌표로부터, 각 최종 좌표에 대해 이 좌표를 가진 직선 상의 벡터가 하나만 있으므로 각 열을 풀 수 있다. 따라서 우리는 완벽한 정확도로 \(\vX\)를 재구성할 수 있으며, 선형 개수의 관찰 \(D + N - 1\)만 필요하다.
+
+실제 세계에서, 실제 문제는 위에서 논의된 두 극단 사이 어딘가에 있다. 그러나 이 두 극단 사이의 차이, 그리고 PCA에 대한 이전 논의는 일반적인 진리의 핵심을 드러낸다:
+\begin{quote}
+    \centering
+    \textit{데이터 분포가 더 저차원적이고 더 구조화될수록, 처리하기 쉬우며, 필요한 관찰이 더 적다---알고리즘이 이 저차원 구조를 효과적으로 활용한다는 조건 하에.}
+\end{quote}
+아마도 예측할 수 있듯이, 우리는 이 주제를 원고의 나머지 부분에서, 바로 다음 섹션부터 시작하여, 반복적으로 만나게 될 것이다.
+
+
+
+
+
+
+
+
+
+\section{완전한 저차원 부분공간의 혼합}%
+\label{sec:ica}
+
+\end{document}
