@@ -680,4 +680,67 @@ FastICA 알고리즘 \eqref{eq:fast-ica}를 PCA 문제에 대해 \Cref{sub:pca}�
 여기서, 디코더는 희소 사전 학습 문제에 대한 점진적 해법에 대응할 것이며, 희소 사전 학습을 위한 심층 네트워크와 유사한 인코더 디코더 쌍을 산출할 것이다.
 이 구조는 우리가 분석적 모델에서 현대 신경망으로 진행함에 따라 모노그래프의 나머지 부분에서 올 많은 발전을 예고할 것이다.
 
+
+
+\subsection{과완전 사전을 사용한 희소 코딩}
+
+이 섹션에서, 우리는 많은 모티프 또는 \textit{원자}의 희소 선형 조합을 수용하는 데이터 모델 \eqref{eq:model-DL-overcomplete}을 고려할 것이다. 이 모델을 만족하는 데이터 \(\{\vx_{i}\}_{i = 1}^{N} \subseteq \R^{D}\)가 주어졌을 때, 즉 다음과 같이 표현 가능할 때
+\begin{equation}\label{eq:vectorized_sparse_dl_dgp}
+    \vx_{i} = \vA\vz_{i} + \veps_{i}, \qquad \forall i \in [N]
+\end{equation}
+여기서 \(m\)개 원자를 가진 사전 \(\vA \in \bR^{D \times m}\), \(\norm{\vz_i}_0 \leq d\)인 희소 코드 \(\vz_i\), 그리고 작은 오류 \(\veps_i\)에 대해, 희소 코딩 문제는 사전 \(\vA\)가 주어졌을 때 데이터 \(\vx_i\)로부터 코드 \(\vz_i\)를 가능한 한 정확하게 복구하는 것이다.
+이 문제를 푸는 효율적인 알고리즘은 사전 \(\vA\)가 내적 \(\va_{i}^{\top}\va_{j}\)가 균일하게 작아서 원자가 거의 직교에 가깝다는 의미에서 \textit{비간섭적}일 때 성공한다.\footnote{알고 보면, 고차원 공간에서는 주변 차원보다 훨씬 큰 수의 거의 직교인 벡터를 채우는 것이 상당히 쉽다 \cite{Wright-Ma-2022}.}
+
+
+\(\vx_{i}\)를 \(\vX = \mat{\vx_{1}, \dots, \vx_{N}} \in \R^{D \times N}\)로, \(\vz_{i}\)를 \(\vZ = \mat{\vz_{1}, \dots, \vz_{N}} \in \R^{d  \times N}\)로, 그리고 \(\veps_{i}\)를 \(\vE = \mat{\veps_{1}, \dots, \veps_{N}} \in \R^{D \times N}\)로 모아서 \eqref{eq:vectorized_sparse_dl_dgp}를 다음과 같이 다시 쓸 수 있다
+\begin{equation}\label{eq:sparse_dl_dgp}
+    \vX = \vA\vZ + \vE.
+\end{equation}
+희소 코딩 문제를 푸는 자연스러운 접근법은 우리의 관측과 일치하는 가장 희소한 신호를 찾는 것이며, 이는 자연스럽게 다음 최적화 문제로 이어진다:
+\begin{equation}\label{eq:sparse_dl_lasso}
+    \min_{\vZ \in \R^{d \times N}}\bc{\norm{\vX - \vA\vZ}_{F}^{2} + \lambda \norm{\vZ}_{1}},
+\end{equation}
+여기서 원소별로 취한 \(\ell^1\) 노름 \(\norm{\vZ}_{1}\)은 해의 희소성을 촉진하는 것으로 알려져 있다 \cite{Wright-Ma-2022}.
+이 최적화 문제는 LASSO 문제로 알려져 있다.
+
+그러나, PCA나 완전 사전 학습 문제와 달리, \(\vZ^{\star}\)를 복구하는 명확한 멱 반복 유형 알고리즘이 없다. 자연스러운 대안은 경사 하강 유형 알고리즘으로 위의 최적화 문제를 푸는 것을 고려하는 것이다.
+\(f(\vZ) = \norm{\vX - \vA\vZ}_{2}^{2} + \lambda \norm{\vZ}_{1}\)이라고 하자.
+개념적으로, 우리는 다음 반복으로 \(\vZ^{\star}\)를 찾으려고 시도할 수 있다:
+\begin{equation}
+    \vZ_{t+1} \leftarrow \vZ_t + \eta \nabla f(\vZ_t).
+\end{equation}
+그러나, \(\ell^1\) 노름 \(\norm{\vZ}_{1}\)과 연관된 항이 비평활이기 때문에, 우리는 단순히 경사 하강을 실행할 수 없다. 이 유형의 함수에 대해, 우리는 기울기 \(\nabla f(\vZ)\)를 기울기의 개념을 일반화하는 것, 즉 부기울기(subgradient) \(\partial f(\vZ)\)로 대체해야 한다:
+\begin{equation}
+    \vZ_{t+1} \leftarrow \vZ_t + \eta \partial f(\vZ_t).
+\end{equation}
+그러나, 부기울기 하강의 수렴이 보통 매우 느리다는 것은 알려져 있다. 따라서, 이 유형의 최적화 문제에 대해서는, 소위 {\em 근접 경사 하강(proximal gradient descent)} 유형 알고리즘을 채택하는 것이 관례이다. 우리는 이 방법의 기술적 개요를 \Cref{subsec:pgd}에서 제공한다.
+
+근접 경사를 LASSO 목적 함수 \eqref{eq:sparse_dl_lasso}에 적용하면 고전적인 \textit{반복적 축소-임계화 알고리즘(iterative shrinkage-thresholding algorithm, ISTA)}으로 이어지며, 이는 다음 반복을 구현한다
+\begin{eqnarray}
+    \vZ_{1} &\sim& \dNorm(\vzero, \vI), \\
+    \vZ_{t + 1} &=& S_{\eta\lambda}\rp{\vZ_{t} - 2\eta \vA^{\top}(\vA\vZ_{t} - \vX)}, \quad \forall t \geq 1,\label{eq:ista_update}
+\end{eqnarray}
+여기서 스텝 크기 \(\eta \geq 0\)이고, 소프트-임계화 연산자 \(S_{\alpha}\)는 스칼라에 대해 다음과 같이 정의된다
+\begin{align}
+    S_{\alpha}(x) &
+    \doteq \begin{cases}x - \alpha, & x \geq \alpha, \\ 0,
+    & -\alpha < x < \alpha, \\ x + \alpha, & x \leq -\alpha\end{cases}
+    \\
+    &=
+    \sign(x) \max \set{\abs{x} - \alpha, 0},
+\end{align}
+그리고 입력 행렬에 원소별로 적용된다. 볼록 문제에 적용된 근접 경사 하강 알고리즘으로서, 전역 최적으로의 수렴이 보장되며, 정확한 수렴 속도가 직접적으로 유도될 수 있다 \cite{Wright-Ma-2022}.
+
+이제 우리는 \eqref{eq:ista_update}에서 갱신 연산자의 함수 형태에 대해 잠시 언급한다. 이것은 다음의 형태를 취한다
+\begin{equation}
+    \vZ_{t + 1} = \texttt{nonlinearity}(\vZ_{t} + \texttt{linear}^{\top}(\texttt{linear}(\vZ_{t}) + \texttt{bias})).
+\end{equation}
+이 함수 형태는 잔차 네트워크 계층의 형태, 즉
+\begin{equation}
+    \vZ_{t + 1} = \vZ_{t} + \texttt{linear}_{1}^{\top}(\texttt{nonlinearity}(\texttt{linear}_{2}(\vZ_{t}) + \texttt{bias}_{1}) + \texttt{bias}_{2},
+\end{equation}
+와 매우 유사하며, 단지 선형 매핑 (즉, 행렬 곱셈)을 분리하고, 바이어스를 추가하고, 비선형성을 이동시킨 것이다.
+\eqref{eq:ista_update}의 비선형성은 특히 심층 학습에서 일반적으로 사용되는 ReLU 활성화 함수 \(x \mapsto \max\set{x, 0}\)와 유사하다---특히, 소프트-임계화 연산자는 바이어스만큼 이동된 ``부호가 있는'' ReLU 활성화와 같다.
+따라서 ISTA는 원시적 (순환 단일 계층) 신경망의 순방향 통과로 볼 수 있다. 우리는 \Cref{ch:representation}에서 그러한 연산이 심층 표현 학습에 필수적이라고 주장한다.
+
 \end{document}
