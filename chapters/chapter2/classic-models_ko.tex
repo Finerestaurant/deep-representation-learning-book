@@ -877,4 +877,229 @@ FastICA 알고리즘 \eqref{eq:fast-ica}를 PCA 문제에 대해 \Cref{sub:pca}�
 
 위의 계층별 기법은 또한 \Cref{app:BP-section}에서 자세히 설명된 역전파(BP)에 주로 의존하는 현재의 종단간 최적화 전략에 대한 그럴듯한 대안을 시사한다는 점에 주목하라. 대규모 네트워크 훈련을 BP로부터 자유롭게 하는 것은 우리가 \Cref{ch:future}의 책 끝에서 더 논의할 것처럼 미래의 가장 큰 도전과 기회 중 하나가 될 것이다.
 
+
+\section{요약 및 참고 사항}
+
+이 장에서 제시한 이상적인 모델들---PCA, ICA, 그리고 사전 학습---은 20세기 동안 개발되었다. 각 방법에 대해서만 많은 책들이 쓰였으므로, 우리는 여기서 주요 연구들과 역사에 대한 광범위한 개요만을 제공하려고 시도할 것이다.
+
+Jolliffe \cite{Jolliffe1986}는 주성분 분석을 Pearson \cite{Pearson1901}과 독립적으로 Hotelling \cite{Hotelling1933}에게 귀속시킨다. 수학에서, 단위 불변 노름에서의 저랭크 근사의 관련 문제에 대한 주요 결과는 Eckart와 Young \cite{Eckart1936-ep}에게, 그리고 완전한 일반성에 대해서는 Mirsky \cite{Mirsky1960-ek}에게 귀속된다. PCA는 비지도 표현 학습을 위한 아마도 가장 간단한 모델 문제로서 연구에서 계속 중요한 역할을 한다: 1980년대 초반부터, \textcite{Oja1982SimplifiedNM}와 \textcite{Baldi89}와 같은 연구들은 원시적 신경망에서의 학습을 이해하기 위해 이 문제를 사용했으며, 더 최근에는 확산 모델과 같은 더 복잡한 표현 학습 프레임워크를 이해하기 위한 도구로 사용되었다 \cite{wang2024diffusion}.
+
+독립 성분 분석은 \textcite{Ans-1985}에 의해 제안되었고 1990년대와 2000년대 초반에 Aapo Hyv\"{a}rinen에 의해 일련의 영향력 있는 연구들에서 개척되었다: 요약은 \textcite{Hyvrinen-2000}을 참조하라. 실용적 데이터에서 발생하는 구조에 대한 간단한 모델로서, 이것은 처음에 블라인드 소스 분리와 같은 응용에서 상당한 사용을 보았는데, 여기서 각 독립 성분 $z_i$는 관측값 $\vx = \vU \vz$를 생성하기 위해 중첩되는 독립 소스(음악 녹음에서 별개의 악기와 관련된 소리와 같은)를 나타낸다.
+
+사전 학습 문제는 완전하거나 직교하는 경우, 20세기 신호 처리의 기초적인 문제 중 하나로 볼 수 있으며, 특히 푸리에 기저가 핵심 역할을 하는 선형 시스템 이론에서 그러하다; 1980년대 이후로, 계산 조화 해석 분야는 푸리에 이외의 기저에서만 최적 근사가 실현될 수 있는 신호 클래스를 위한 대체 사전의 연구를 중심으로 결정화되었다(예: 웨이블릿) \cite{Donoho1998-zf}. 그러나 중복 기저, 즉 과완전 사전의 경우의 중요성은 Olshausen과 Field의 선구적인 연구 \cite{Olshausen1996-ap,Olshausen1997-yv} 이후에만 강조되었다. 초기 후속 연구는 종종 자연 이미지를 표현하는 것을 목표로 하는 희소하게 사용되는 과완전 사전을 학습하기 위한 개념적 및 알고리즘적 기반을 확립했다 \cite{Donoho2001-tl,DonohoD2003-PNAS,Elad2006-yi,Murray2007-cw,aharon2006k,Mairal2014-nq,Gribonval2015-fy}. 나중에, 비지도 표현 학습을 위한 중요하고 비자명한 모델 문제로서 이 문제에 대한 상당한 이론적 관심이 신호 처리, 이론적 기계 학습, 그리고 이론적 컴퓨터 과학 커뮤니티에 의한 연구로 이어졌으며, 특히 문제가 증명 가능하고 효율적으로 풀릴 수 있는 조건에 초점을 맞추었다. 이 라인의 주목할 만한 연구들의 비-완전한 목록은 완전한 경우에 대한 \textcite{Spielman2012-tl}과 \textcite{sun2017complete_a}; \textcite{pmlr-v40-Arora15}; \textcite{Barak2015-uu}; 그리고 \textcite{Qu2020Geometric}의 연구들을 포함한다. 이 간단하게 진술되는 문제에 대한 많은 깊은 이론적 질문들이 여전히 열려 있는데, 아마도 부분적으로는 문제의 최악의 경우 NP-난해성과의 긴장 때문일 것이다(예: \textcite{Tillmann2015-up} 참조).
+
+\begin{table}[tb]
+\centering
+    \caption{이 장에서 제시된 (일반화된) 거듭제곱 방법의 요약}
+    \label{tab:power-method-summary}
+\begin{tabular}{llll}
+\toprule
+문제 & 알고리즘 & 반복 & 강제되는 구조의 유형 \\
+\midrule
+PCA & 거듭제곱 방법 & $\vu_{t} = \frac{\vX\vX^\top
+    \vu_{t}}{\norm{\vX\vX^\top \vu_{t}}_2}$ & $1$-차원 부분공간 (단위 벡터) \\
+    \addlinespace
+    ICA & FastICA &
+    $\vu_{t+1} = \frac{\tfrac{1}{N}\vX (\vX^\top \vu_{t})^{\hada 3}-
+    3 \vu_{t}}{\norm*{\tfrac{1}{N}\vX (\vX^\top \vu_{t})^{\hada 3}-
+    3 \vu_{t}}_2}$
+    & $1$-차원 부분공간 (단위 벡터) \\
+    \addlinespace
+    완전 DL & MSP 알고리즘 &
+    $\vU_{t+1} = \mathcal{P}_{\mathrm O(D)}[( {\vU_t \vX})^{\hada 3}\vX^\top]$
+    & $D$-차원 부분공간 (직교 행렬) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+저차원 구조에 대한 이러한 고전적인 분석 모델의 연구로부터 우리가 강조하고자 하는 한 가지 점은 다양한 \textit{일반화된 거듭제곱 방법}이 수행하는 공통적인 역할이다---적어도 국소적으로는 다양한 유형의 저차원 구조로 매우 빠르게 수렴하는 알고리즘들이다. 이 알고리즘 클래스에 대한 용어는 \textcite{JourneeM2010}의 연구를 따른다. 높은 수준에서, 반정부호 행렬 $\vA \in \bR^{n \times n}$의 최상위 고유벡터 계산을 위한 고전적인 거듭제곱 반복을 모델로 하여, 즉
+\begin{equation}
+    \vu_{t+1} = \frac{\vA \vu_{t}}{\norm{\vA \vu_{t}}_2},
+\end{equation}
+이 알고리즘 클래스는 데이터와 관련된 행렬 $\vA$를 포함하는 ``거듭제곱'' 연산과 함께, 원하는 유형의 구조를 강제하는 ``투영'' 연산으로 구성된다. \Cref{tab:power-method-summary}는 이 구조를 따르는 이 장에서 연구한 알고리즘들의 요약을 제시한다. 독자는 서로 다른 유형의 저차원 구조와 서로 다른 손실(즉, PCA로부터의 이차 손실과 ICA로부터의 첨도 유형 손실 모두)에 대한 이 방법론의 적용 가능성뿐만 아니라, 이러한 알고리즘에 대한 문헌의 폭에도 불구하고 과완전 사전 학습에 대한 그러한 알고리즘의 부재를 인식할 수 있을 것이다. 우리는 더 많은 저차원 구조 계열, 특히 심층 학습이 널리 퍼진 응용과 관련된 것들에 대한 거듭제곱 방법의 개발을 이 장에서 제안된 더 중요한 (그리고 열린) 연구 질문 중 하나로 본다.
+
+\Cref{sec:mixture-and-dict}에서 우리가 만드는 기하학적 부분공간의 혼합 분포 가정과 더 분석적으로 편리한 희소 사전 가정 사이의 연결은 이전 연구에서, 특히 일반화된 주성분 분석과 부분공간 클러스터링과 같은 응용에 초점을 맞춘 사람들에 의해 언급되었다, 예를 들어 \textcite{GPCA}의 연구. 부분공간의 혼합 가정은 이 원고 전체에서 계속 중요한 역할을 할 것인데, 서로 다른 알고리즘 패러다임에 대한 분석적 테스트 케이스로서 뿐만 아니라, \Cref{sec:LISTA}의 LISTA에서와 같이 서로 다른 심층 네트워크 아키텍처를 도출하기 위한 기초로서도 그러하지만, 이는 더 복잡한 데이터 분포로 확장될 수 있다.
+
+
+\section{연습 문제 및 확장}
+
+
+\begin{exercise}\label{exercise:principal-components-derivation}
+    임의의 대칭 행렬 \(\vA\)에 대해, 문제 \(\max_{\vU \in \O(D, d)}\tr\left(\vU^{\top}\vA\vU\right)\)의 해가 \(\vA\)의 상위 \(d\)개의 단위 고유벡터를 열로 가지는 행렬 \(\vU^{\star}\)임을 증명하라.
+\end{exercise}
+
+\begin{exercise}\label{exercise:gaussian-rot-invar}
+    $\vz \sim \cN(\Zero, \sigma^2 \vI)$를 각 성분이 분산 $\sigma^2$를 가지는 독립 성분을 가진 가우시안 확률 변수라고 하자. 임의의 직교 행렬 $\vQ$ (즉, $\vQ^\top \vQ = \vI$)에 대해, 확률 변수 $\vQ \vz$가 $\vz$와 동일하게 분포됨을 증명하라. \textit{(힌트: 가우시안 확률 밀도 함수의 공식과 확률 변수의 선형 함수의 밀도에 대한 공식을 상기하라.)}
+\end{exercise}
+
+\begin{exercise}\label{exercise:symmetry-identifiability}
+    위에서 논의된 통계적 식별 가능성의 개념은 모델 클래스의 \textit{대칭성}과 관련될 수 있으며, 이는 통계적 가정 없이 순수하게 결정론적인 방식으로 추정을 이해할 수 있게 한다.
+
+    호환되는 크기의 행렬 $\vX, \vU, \vZ$에 대한 모델 $\vX = \vU \vZ$를 고려하라.
+    \begin{enumerate}
+        \item 만약 $\vA$가 호환되는 크기의 임의의 정사각 가역 행렬이라면, 쌍 $(\vU \vA, \vA^{-1} \vZ)$도 모델 하에서 $\vX$와 같음을 보여라. 우리는 이것을 \textit{$\GL(d)$ 대칭성}이라고 부른다.
+        \item $\vZ$의 각 열이 공통 통계 모델 $\vz$로부터의 독립적이고 동일하게 분포된 관측값이며, 더욱이 영 평균과 양의 분산을 가진 독립 성분 $z_i$를 가진다고 가정하라. 임의의 정사각 가역 행렬 $\vA$에 대해, 만약 $\vA \vz$가 비상관 성분을 가진다면, $\vA$는 $\vD_1 \vQ \vD_2$로 쓰일 수 있음을 보여라, 여기서 $\vQ$는 직교 행렬이고 $\vD_1$, $\vD_2$는 대각 행렬이다. \textit{이것은 ICA의 ``독립성'' 가정을 ``대칭성 깨짐'' 효과와 연결하며, 이는 스케일과 회전 대칭성만을 허용한다.}
+    \end{enumerate}
+
+\end{exercise}
+
+\begin{exercise}\label{exercise:whitening}
+    $D \geq d$인 $\vU \in \R^{D \times d}$가 고정되고 랭크 $d$를 가지며, $\vz$가 영 평균 확률 변수인 모델 $\vx = \vU \vz$를 고려하라. $\vx_1, \dots, \vx_N$을 이 모델로부터의 독립 동일 분포 관측값이라고 하자.
+    \begin{enumerate}
+        \item 행렬 $\vX = [\vx_1, \dots, \vx_N]$이 $d$보다 크지 않은 랭크를 가지며, 따라서 $\vX = \vV \vY$가 되도록 하는 정규직교 행렬 $\vV \in \R^{D \times d}$가 존재함을 보여라, 여기서 $\vY \in \R^{d \times N}$이다. (\textit{힌트: PCA를 사용하라.})
+        \item \textit{백색화된 행렬} $(\vY \vY^\top)^{-1/2}\vY$가 $\Cov(\vz)$가 비특이일 때 기대값에서 존재하며, 단위 경험적 공분산을 가짐을 보여라.\footnote{특히, 이것이 백색화된 행렬이 $\vz$가 적절한 집중 부등식을 만족하고 $N$이 충분히 클 때 높은 확률로 존재하는 것을 보장하기에 충분하다는 것이 수학적으로 증명될 수 있다.}
+        \item $\vU$의 특이값 분해를 사용하여, 백색화된 행렬이 $(\vY \vY^\top)^{-1/2} \vY = \vW [\vz_1, \dots, \vz_N]$를 만족하도록 행렬 $\vV$를 선택할 수 있음을 보여라, 여기서 $\vW$는 정규직교 행렬이다.
+    \end{enumerate}
+\end{exercise}
+
+\begin{exercise}\label{exercise:kurtosis-linearity-properties}
+    $X$와 $Y$를 영 평균 독립 확률 변수라고 하자.
+    \begin{enumerate}
+        \item $\kurt(X + Y) = \kurt(X) + \kurt(Y)$임을 보여라.
+        \item 임의의 $\alpha \in \R$에 대해, $\kurt(\alpha X) = \alpha^4 \kurt(X)$임을 보여라.
+    \end{enumerate}
+\end{exercise}
+
+\begin{exercise}\label{exercise:sphere-calculus}
+    $f : \R^d \to \R$를 주어진 두 번 연속 미분 가능한 목적 함수라고 하자. 다음의 구면 제약 최적화 문제를 고려하라:
+    \begin{equation}\label{eq:exercise-sphere-constrained-max}
+        \max_{\norm{\vu}_2^2 = 1}\, f(\vu).
+    \end{equation}
+    이 연습 문제에서, 우리는 구면 위에서 첨도를 최대화하기 위한 경사 상승 알고리즘을 통해 FastICA 유도에서 제공한 표현식을 도출할 것이다. 이러한 표현식들은 다양체 위에서의 미적분과 최적화에 대한 풍부한 이론의 특별한 경우이며, 구면은 특별한 예이다. 이 분야에 대한 깊은 기술적 연구는 우리의 목적 범위를 벗어나므로, 우리는 관심 있는 독자를 위해 두 가지 주요 참고 문헌만을 언급한다: Absil, Mahony, 그리고 Sepulchre의 선구적인 교과서 \cite{Absil2009-nc}, 그리고 Boumal의 더 최근의 입문 논문 \cite{Boumal2023-rj}.
+    \begin{enumerate}
+        \item $\R^d$의 미분 가능한 부분다양체인 임의의 제약 집합 $\cM$에 대해, 점 $\vu \in \cM$에서의 \textit{접공간}은 비공식적으로 점 $\vu$에서 다양체 $\cM$에 대한 최선의 국소 선형 근사이다. $\cM$가 함수 $F : \R^d \to \R$의 레벨 집합으로 $\vu$에서 국소적으로 정의되는 중요한 특별한 경우, 즉
+        \begin{equation*}
+            U \cap \cM = F^{-1}(\set{0})
+        \end{equation*}
+        가 $\vu \in U$인 어떤 열린 집합 $U \subset \cM$에 대해 성립할 때, $\vu$에서 $\cM$에 대한 접공간은 미분을 통해 계산될 수 있다:
+        \begin{equation*}
+            T_{\vu} \cM = \Ker(DF_{\vu}).
+        \end{equation*}
+        구면이 정의 방정식 $F(\vu) = \norm{\vu}_2^2 - 1$을 가진다는 것은 쉽게 알 수 있다. 이러한 사실들을 사용하여, $\vu$에서 구면에 대한 접공간이 다음과 같이 주어짐을 보여라:
+        \begin{equation*}
+            T_{\vu} \bS^{d-1} = \set{\vv \in \R^d \given \ip{\vv}{\vu} = 0},
+        \end{equation*}
+        그리고 이 부분공간에 대한 직교 투영이 $\vP_{\vu}^\perp = \vI - \vu\vu^\top$임을 보여라.
+        \item 벡터장
+        \begin{equation}\label{eq:exercise-riemann-grad-sphere}
+        \mathrm{grad}\, f(\vu) = \vP_{\vu}^\perp \nabla f
+        \end{equation}
+        는 구면으로 제한된 함수 $f$의 \textit{리만 경사}로 알려져 있다. 최적화 문제 \eqref{eq:exercise-sphere-constrained-max}에 대한 \textit{1차 최적성 조건}은 리만 경사로 표현될 수 있다:
+        \begin{equation*}
+            \mathrm{grad}\, f(\vu) = \mathbf{0}.
+        \end{equation*}
+        기하학적으로, 이것은 $\vu$에서 $f$의 유클리드 경사가 $\vu$에서 구면에 대한 접공간에 직교해야 함을 말한다. 이제 $\vv \in \R^d$가 영이 아니라고 가정하자. 다음을 보여라:
+        \begin{equation*}
+            \mathrm{proj}_{\bS^{d-1}}(\vv) \doteq
+            \min_{\norm{\vu}_2^2 = 1}\, \norm{\vu - \vv}_2
+            =
+            \frac{\vv}{\norm{\vv}_2},
+        \end{equation*}
+        1차 최적성 조건을 사용하여.
+        \item $\R^d$ 위에서의 최적화에서, 임계점이 최대값, 최소값, 또는 안장점인지를 결정하기 위해 2차 최적성 조건을 \textit{헤시안 행렬} $\nabla^2 f(\vu)$를 사용하여 검사한다. 이 연습 문제의 첫 번째 부분에서와 같이 $\vu$에 대해 구면에 대한 리만 경사 $\mathrm{grad}\, f(\vu)$를 미분함으로써, 구면 제약 최적화에 대한 2차 최적성 조건을 결정하기 위한 해당 객체가 다음과 같이 정의되는 \textit{리만 헤시안}임을 보여라:
+        \begin{equation}\label{eq:exercise-riemann-hess-sphere}
+            \mathrm{Hess}\, f(\vu) = \vP_{\vu}^\perp \left(
+            \nabla^2 f(\vu) - \ip{\nabla f(\vu)}{\vu} \vI
+            \right) \vP_{\vu}^\perp.
+        \end{equation}
+    \end{enumerate}
+\end{exercise}
+
+\begin{exercise}\label{exercise:kurtosis-sphere-landscape}
+    이 연습 문제에서, 우리는 구면 제약 모집단 첨도 최대화 문제 \eqref{eq:kurtosis-maximization-sphere-population-simple}에 대한 문헌에서 \textit{경관 분석}이라고 언급되는 논증을 스케치한다. 우리는 양의 첨도를 가진 독립 성분이 적어도 하나 있을 때, 그것의 전역 최대값이 실제로 사전 $\vU$의 한 열의 복원으로 이어짐을 보일 것이다. 단순성을 위해, 우리는 각 $i = 1, \dots, d$에 대해 $\kurt(z_i) \neq 0$라고 가정할 것이다.
+    \begin{enumerate}
+        \item \Cref{exercise:sphere-calculus}의 Part 1의 결과를 사용하여, \eqref{eq:kurtosis-maximization-sphere-population-simple}에 대한 1차 최적성 조건이 다음임을 보여라:
+        \begin{equation}\label{eq:kurtosis-sphere-landscape-stationarity}
+            \left(\sum_{i=1}^d \kurt(z_i) w_i^4 \right)
+            \vw = \kurt(\vz) \hada \vw^{\hada 3},
+        \end{equation}
+        여기서 첨도는 요소별로 계산되고, $\hada$는 벡터의 요소별 곱셈을 나타내며 $\vw^{\hada 3}$는 인수의 요소별 세제곱을 나타낸다.
+        \item 또한 \eqref{eq:kurtosis-sphere-landscape-stationarity}를 만족하는 단위 노름을 가진 벡터 $\vw$가 모두 다음의 형태를 취함을 보여라. $S^+ = \set{i \in [d] \given \kurt(z_i) > 0}$, 그리고 $S^- = \set{i \in [d] \given \kurt(z_i) < 0}$라고 하자. $S$를 $S^+$ 또는 $S^-$의 부분집합이라고 하자. 그러면
+        \begin{equation}\label{eq:kurtosis-sphere-landscape-cps}
+            \vw_S = \sum_{i \in S} \pm \sqrt{\frac{1}{\kurt(z_i) \sum_{j \in S} \frac{1}{\kurt(z_j)}}} \ve_i
+        \end{equation}
+        가 \eqref{eq:kurtosis-sphere-landscape-stationarity}를 만족하며, 여기서 $\ve_i$는 $i$-번째 위치에 $1$을 가지고 다른 곳에 $0$을 가지는 벡터이고, $\pm$ 부호는 양 또는 음의 부호의 선택을 나타낸다.
+        \item $\kurt(z_i) > 0$인 적어도 하나의 $i$가 있다고 가정하라. \Cref{exercise:sphere-calculus}의 Part 2의 결과를 사용하여, \eqref{eq:kurtosis-maximization-sphere-population-simple}의 목적 함수의 유일한 국소 최대값이 $i \in S^+$인 부호가 있는 일-희소 벡터 $\pm \ve_i$임을 보여라. \eqref{eq:kurtosis-maximization-sphere-population-simple}의 전역 최대값이 최대 첨도를 가진 성분에 해당하는 부호가 있는 일-희소 벡터임을 결론지어라. (\textit{힌트: 각 임계점에서 리만 헤시안 \eqref{eq:exercise-riemann-hess-sphere}의 양과 음의 고유값의 수를 세어라.})
+        \item 이제 모든 $j =1, \dots, d$에 대해 $\kurt(z_j) < 0$라고 가정하라. 이것은 첨도 최대화 문제의 ``과도하게 수축된'' 인스턴스화에 해당한다. \Cref{exercise:sphere-calculus}의 Part 2의 결과를 다시 사용하여, \eqref{eq:kurtosis-maximization-sphere-population-simple}의 목적 함수의 유일한 국소 최대값이 부호가 있는 조밀 벡터 $\sum_{i=1}^d \pm \ve_i$임을 보여라. 이것은 최적화 공식화 \eqref{eq:kurtosis-maximization-sphere-population-simple}가 순진하게 적용될 수 없음을 보여준다.
+    \end{enumerate}
+\end{exercise}
+
+
+
+\begin{exercise}\label{exercise:orthogonal-group-calculus}
+    이 연습 문제는 \Cref{exercise:sphere-calculus}에서 소개된 구조와 형식주의를 따르지만, 대신 직교 군 $\O(d) = \set{\vU \in \R^{d \times d} \given \vU^\top \vU = \vI}$에 적용한다. 필요한 개념적 배경에 대해서는 \Cref{exercise:sphere-calculus}의 설명을 참조하라; 관련 내적이 $\ip{\vX}{\vY} = \tr(\vX^\top \vY)$인 행렬이라는 것을 상기하는 한, 형식주의는 주변 공간이 $d \times d$ 행렬의 집합인 경우에도 동일하게 적용된다. 직교 군에 대한 최적화에 관한 사실들에 대한 훌륭한 일반 참고 문헌은 Edelman, Arias, 그리고 Smith \cite{Edelman1998-lg}이다.
+
+    $f : \R^{d\times d} \to \R$를 주어진 두 번 연속 미분 가능한 목적 함수라고 하자. 다음의 직교 제약 최적화 문제를 고려하라:
+    \begin{equation}\label{eq:exercise-orthogonal-group-constrained-max}
+        \max_{\vQ^\top \vQ = \vI}\, f(\vQ).
+    \end{equation}
+    \begin{enumerate}
+        \item 직교 군이 정의 방정식 $F(\vQ) = \vQ^\top \vQ = \vI$를 가진다는 것은 쉽게 알 수 있다. 이 사실을 사용하여, $\vQ$에서 직교 군에 대한 접공간이 다음과 같이 주어짐을 보여라:
+        \begin{equation*}
+            T_{\vQ} \O(d) = \set{\vQ \vOmega \in \R^{d\times d} \given \vOmega^\top = - \vOmega},
+        \end{equation*}
+        그리고 이 부분공간에 대한 직교 투영이 다음임을 보여라:
+        \begin{equation*}
+        \cP_{T_{\vQ}\O(d)}(\vDelta) =  \vQ \Skew(\vQ^\top \vDelta),
+        \end{equation*}
+        여기서 $\Skew(\vDelta) = \tfrac{1}{2} ( \vDelta - \vDelta^\top)$는 왜대칭 행렬의 집합에 대한 직교 투영이다. 벡터장
+        \begin{equation}\label{eq:exercise-riemann-grad-orthogonal-group}
+        \mathrm{grad}\, f(\vQ) = \cP_{T_{\vQ} \O(d)} \left( \nabla f(\vQ) \right)
+        \end{equation}
+        는 직교 군으로 제한된 함수 $f$의 \textit{리만 경사}로 알려져 있다. 최적화 문제 \eqref{eq:exercise-orthogonal-group-constrained-max}에 대한 \textit{1차 최적성 조건}은 리만 경사로 표현될 수 있다:
+        \begin{equation*}
+            \mathrm{grad}\, f(\vQ) = \mathbf{0}.
+        \end{equation*}
+        \item 이 연습 문제의 첫 번째 부분에서와 같이 $\vQ$에 대해 직교 군에 대한 리만 경사 $\mathrm{grad}\, f(\vQ)$를 미분함으로써, \textit{리만 헤시안}이 다음과 같이 주어짐을 보여라:
+        \begin{equation}\label{eq:exercise-riemann-hess-orthogonal-group}
+            \mathrm{Hess}\, f(\vQ) = \cP_{T_{\vQ}\O(d)} \left(
+            \nabla^2 f(\vQ) - \Symm(\vQ^\top \nabla f(\vQ)) \kron \vI
+            \right) \cP_{T_{\vQ}\O(d)},
+        \end{equation}
+        여기서 $\Symm(\vDelta) = \tfrac{1}{2}(\vDelta + \vDelta^\top)$는 대칭 행렬의 집합에 대한 직교 투영을 나타내고, $\kron$는 행렬의 크로네커 곱을 나타낸다. 이전 표현식에 나타나는 연산자들을 ${d \times d}$ 행렬 자체가 \textbf{아니라} \textit{${d \times d}$ 행렬에 대한 선형 변환}으로 해석하도록 주의하라. 최적화 문제 \eqref{eq:exercise-orthogonal-group-constrained-max}에 대한 \textit{2차 최적성 조건}은 리만 헤시안으로 표현될 수 있다:
+        \begin{equation*}
+            \mathrm{Hess}\, f(\vQ) \preceq \mathbf{0}.
+        \end{equation*}
+        최소화 문제의 경우, 부호가 반대이다.
+
+        (\textit{힌트: 핵심은 가능한 한 간결한 형태인 \eqref{eq:exercise-riemann-hess-orthogonal-group}를 얻기 위해 계산을 조작하는 것이다. 이를 위해, 크로네커 곱의 다음 동형을 사용하라: 만약 $\vA$, $\vX$, 그리고 $\vB$가 호환되는 크기의 행렬이라면, 다음이 성립한다:
+        \begin{equation*}
+            (\vB^\top \kron \vA) \Vec(\vX) = \Vec(\vA \vX \vB),
+        \end{equation*}
+        여기서 $\Vec(\vX)$는 행렬 인수의 열을 ``왼쪽에서 오른쪽으로'' 벡터로 쌓는 것을 나타낸다. 우리는 \eqref{eq:exercise-riemann-hess-orthogonal-group}에서 이 동형을 사용하여 두 행렬의 크로네커 곱을 정규적인 방법으로 행렬에 대한 연산자로 정의한다.})
+
+        \item 이제 $\vX \in \R^{d\times d}$가 풀 랭크라고 가정하자. 이 부분과 연습 문제의 다음 부분에서, 우리는 $\vX$의 직교 군에 대한 투영을 고려한다:
+        \begin{equation}\label{eq:projection-onto-ogrp-defn}
+            \mathrm{proj}_{\O(d)}(\vX) \doteq
+            \min_{\vQ \in \O(d)
+            }\, \norm{\vQ - \vX}_F^2.
+        \end{equation}
+        우리는 이 문제의 해가 다음과 같이 주어짐을 증명할 것이다:
+        \begin{equation*}
+            \mathrm{proj}_{\O(d)}(\vX)
+            =
+            \vU \vV^\top,
+        \end{equation*}
+        여기서 $\vX = \vU \vS \vV^\top$는 $\vX$의 특이값 분해이다.
+
+        \begin{enumerate}
+            \item 1차 및 2차 최적성 조건을 사용하여, \eqref{eq:projection-onto-ogrp-defn}의 모든 국소 최소값 $\vQ$가 다음을 만족함을 보여라:
+            \begin{align*}
+                \left( \vQ^\top \vX \right)^\top &= \vQ^\top \vX, \\
+                \vQ^\top \vX &\succeq \mathbf{0}.
+            \end{align*}
+            (\textit{힌트: 다른 하나가 고정될 때 크로네커 곱의 두 인수 중 하나에서의 선형성을 사용하라.})
+            \item 이러한 조건들을 사용하여, \eqref{eq:projection-onto-ogrp-defn}의 모든 국소 최소값 $\vQ$에서, $\vQ^\top \vX = (\vX^\top \vX)^{1/2}$임을 논증하라. (\textit{힌트: 만약 $\vS \succeq \mathbf{0}$가 대칭 양의 반정부호 행렬이라면, $(\vS^\top\vS)^{1/2} = \vS$라는 선형대수학의 사실을 사용하라.})
+            \item 특이값 분해 $\vX = \vU \vS \vV^\top$를 사용하여, 다음을 결론지어라:
+            \begin{equation*}
+                \vU \vV^\top
+                =
+                \mathrm{proj}_{\O(d)}(\vX).
+            \end{equation*}
+        \end{enumerate}
+    \end{enumerate}
+\end{exercise}
+
+
+
 \end{document}
