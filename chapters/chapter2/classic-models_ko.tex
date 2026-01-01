@@ -513,4 +513,113 @@ PCA 문제를 푸는 한 가지 방법은 특이값 분해 (SVD)를 사용하는
 증분 변환 \(\delta \vA_{t+1}\)의 각 계층에서의 계산은 이전 계층의 특징 출력 \(\vZ_t\)에만 의존한다는 점에 주목하라. 네트워크는 각 계층이 노름 보존 직교 변환이므로 자연스럽게 안정적이다. 선형 심층 네트워크와의 유사성에도 불구하고, 각 계층을 학습하는 데 역전파가 불필요하다. 모든 계층이 하나의 순방향 통과에서 학습된다!
 \end{remark}
 
+\subsection{ICA와 첨도와의 연결}
+베르누이-가우스 모델에서, 변수 \(z_i\)는 독립적이고 비가우스적이다. 그러면, 사전 학습과 고전적인 독립 성분 분석(independent component analysis, ICA) 사이에 명확한 대응이 있어서, 한 문제를 푸는 알고리즘이 다른 문제를 푸는 데 사용될 수 있는 정도이다.\footnote{우리는 \Cref{exercise:symmetry-identifiability}에서 이 문제를 더 깊이 탐구하며, 여기서 독립 성분의 비가우스성과 순전히 기하학적인 대칭 개념 사이의 연결이 이루어진다. 이 문제는 PCA가 희소하게 사용되는 직교 사전을 복구하는 데 작동하지 않는다는 위의 관찰과 관련이 있다: 통계적 설정에서, 이것은 가우스 분포의 회전 불변성과 관련될 수 있다 (\Cref{exercise:gaussian-rot-invar}).}
+
+
+ICA에 기반한 알고리즘을 유도하기 위해, 우리는 성분의 비가우스성의 직접적인 결과로 ICA에서 사용되는 \textit{첨도(kurtosis)}로 알려진 목적 함수에 집중한다. 평균이 0인 확률 변수 \(X\)의 \textit{첨도}, 또는 4차 누적량은 다음과 같이 정의된다
+\begin{equation}\label{eq:kurtosis}
+\kurt(X) = \Ex{X^4} - 3 (\Ex{X^2})^2.
+\end{equation}
+확률 변수 \(X\)로부터의 유한한 샘플만 벡터 \(\vx = [x_1, \dots, x_N]\)으로 배열되어 있다면, 우리는 경험적 평균을 통해 첨도를 정의하며, 이는 다음을 산출한다
+\begin{equation}\label{eq:kurtosis-vector}
+\kurt(\vx) = \frac{1}{N} \norm{\vx}_4^4 - \frac{3}{N^2} \norm{\vx}_2^4.
+\end{equation}
+마지막으로, 확률 벡터에 대해, 우리는 그들의 첨도를 각 성분의 스칼라 첨도의 합으로 정의한다.
+첨도는 ICA에 대한 자연스러운 손실 함수인데, 가우스 \(X\)에 대해 첨도는 0이기 때문이다; 독자는 베르누이-가우스 분포가 양의 첨도를 가진다는 것을 추가로 확인할 수 있다.
+따라서 비가우스 독립 성분을 찾기 위한 자연스러운 절차는 \(\vV^\top \vX\)가 최대 첨도를 가지도록 하는 상호 직교 방향의 집합 \(\vV \in \R^{d \times k}\)를 찾는 것이며, 여기서 \(\vX = \vU \vZ \in \R^{D \times N}\)은 베르누이-가우스 ICA 데이터 행렬이다.
+공식적으로, 우리는 다음 문제를 풀려고 한다
+\begin{equation}
+    \max_{\vV^\top \vV = \vI} \kurt(\vV^\top \vX).
+\end{equation}
+한 극단에서, 우리는 \(k = D\)로 설정하고 전체 사전 \(\vU\)를 한 번에 복구하려고 시도할 수 있다. 이 문제는 우리가 이전에 본 MSP 알고리즘으로 풀 수 있다는 것을 보일 수 있다.
+다른 극단에서, 우리는 \(k=1\)로 설정하고 한 번에 단일 방향 (\(\vU\)의 열)을 복구하려고 시도할 수 있으며, \textit{축소(deflation)}를 수행하는데, 즉, 다른 방향을 찾기 전에 각 단계 후 데이터 행렬 \(\vX\)를 \((\vI - \vu\vu^\top) \vX\)로 대체한다.
+\(k=1\) 점진적 접근법의 확장성과 \(k=D\) 접근법의 효율성 및 견고성 사이에는 자연스러운 트레이드오프가 있다.
+
+\paragraph{점진적 ICA: 정확성과 FastICA 알고리즘.}
+FastICA 알고리즘은 Hyv\"{a}rinen과 Oja \cite{hyvarinen-1997}가 발전시킨 것으로, ICA에 대한 \(k=1\) 첨도 최대화 체계를 푸는 빠른 고정점 알고리즘이다.
+당면한 문제는
+\begin{equation}\label{eq:kurtosis-maximization-sphere-finitesample}
+    \max_{\norm{\vv}_2^2 = 1}\, \kurt(\vX^\top \vv).
+\end{equation}
+먼저, 우리는 이 목적 함수의 정확성을 검증하기 위해 몇 가지 매우 기본적인 분석을 수행할 것이다. 변수 변환 \(\vw = \vU^\top \vv\)에 의해 이 문제가 다음과 동등함을 주목하라
+\begin{equation*}
+    \max_{\norm{\vw}_2^2 = 1}\,
+    \mathrm{kurt}(\vZ^\top \vw).
+\end{equation*}
+이 목적 함수는 사전 \(\vU\)를 복구하기 위한 정식화로서의 정확성에 대해 강한 진술을 할 수 있을 만큼 충분히 간단하다.
+예를 들어, \(N \to \infty\)인 모집단 설정에서,
+우리는 첨도의 가법성 속성 (\Cref{exercise:kurtosis-linearity-properties})과 독립 성분에 대한 우리의 가정된 정규화를 사용하여 이전 문제를 다음과 동등하게 쓸 수 있다
+\begin{equation}\label{eq:kurtosis-maximization-sphere-population-simple}
+    \max_{\norm{\vw}_2^2 = 1}\,
+    \sum_{i=1}^d \mathrm{kurt}(z_i) w_i^4.
+\end{equation}
+베르누이-가우스 가정 하에서, 이 문제의 최적화 경관이 ``양호하다''는 것을 보일 수 있다 (\Cref{exercise:kurtosis-sphere-landscape})---즉, 목적 함수의 모든 국소 최대값이 독립 성분 중 하나의 복구에 대응한다는 것을 의미한다.
+이러한 최대값 중 하나를 계산하는 효율적이고 확장 가능한 한 가지 방법은 1차 최적화 알고리즘을 통하는 것이며, 이는 목적 함수의 기울기를 반복적으로 따라가며 제약 집합 \(\set{\vw \given \norm{\vw}_2^2 = 1}\)에 투영한다.
+각 \(z_i\)가 \(\Var(z_i)=1\)을 만족한다고 가정했으므로, 큰 \(N\)에 대해
+\begin{equation}\label{eq:kurtosis-approximation-l4}
+    \kurt(\vX^\top \vu)
+    \approx
+    \tfrac{1}{N} \norm{\vX^\top \vu}_4^4 - 3 \norm{\vu}_2^4.
+\end{equation}
+그런 다음 기울기에 대한 대응하는 근사를 유도할 수 있다:
+\begin{equation*}
+    \nabla_{\vu} \kurt(\vX^\top \vu)
+    \approx
+    \tfrac{4}{N} \vX (\vX^\top \vu)^{\hada 3}
+    - 12 \norm{\vu}_2^2 \vu.
+\end{equation*}
+FastICA 알고리즘은 최대 첨도의 방향을 계산하기 위해 고정점 방법을 사용한다. 이것은 선행 기울기 근사와 제약 집합이 주어진 첨도 최대화 문제에 대한 1차 최적성 조건으로부터 시작하며, 이는 다음과 같이 읽힌다
+\begin{align}\label{eq:kurtosis-max-sphere-stationarity}
+   \vX (\vX^\top \vu)^{\hada 3}
+   =
+   \underbrace{
+   \ip*{\vu}{
+   \vX (\vX^\top \vu)^{\hada 3}
+   }}_{\lambda} \vu,
+\end{align}
+여기서 \(\lambda\)의 특정 값은 \(\vu\)에 대한 단위 노름 제약을 사용하여 결정된다.
+\Cref{exercise:sphere-calculus}는 제1원리로부터 이러한 최적성 조건을 유도하는 데 필요한 수학적 배경을 설명한다.
+방정식 \eqref{eq:kurtosis-max-sphere-stationarity}는 첨도 최대화 문제의 \textit{임의의} 임계점에 의해 만족된다; 우리는 최대값만 만족하는 방정식을 유도하기를 원한다.
+\(\lambda = \norm{\vX^\top \vu}_4^4\)임을 주목한 후, 우리는 \eqref{eq:kurtosis-max-sphere-stationarity}를 수정된 방정식으로 동등하게 재표현한다
+\begin{align}\label{eq:kurtosis-max-sphere-stationarity-modified}
+   \frac{1}{N}\vX (\vX^\top \vu)^{\hada 3}
+   -
+   3 \vu
+   =
+   \left(
+   \frac{\lambda}{N} - 3
+   \right)
+   \vu,
+\end{align}
+그리고 \eqref{eq:kurtosis-maximization-sphere-finitesample}의 임의의 최대값이 \(\lambda / N - 3 > 0\)을 만족해야 함을 깨닫는데,
+\(N\)이 충분히 크다고 가정한다.
+따라서, 우리는 \eqref{eq:kurtosis-max-sphere-stationarity-modified}의 양변을 \textit{정규화}할 수 있으며,
+\eqref{eq:kurtosis-maximization-sphere-finitesample}의 모든 최대값이 만족하는 다음 고정점 방정식을 제공한다:
+\begin{align}\label{eq:kurtosis-max-sphere-fxp}
+\frac{
+   \frac{1}{N}\vX (\vX^\top \vu)^{\hada 3}
+   -
+   3 \vu
+   }{
+   \norm*{
+   \frac{1}{N}\vX (\vX^\top \vu)^{\hada 3}
+   -
+   3 \vu
+   }_2
+   }
+   =
+   \vu.
+\end{align}
+이 고정점 표현의 좌변에 의해 정의된 매핑을 반복하면 Hyv\"{a}rinen과 Oja \cite{hyvarinen-1997}의 FastICA 알고리즘을 산출한다:
+\begin{equation}
+\begin{split}\label{eq:fast-ica}
+   \vv^+ &= \tfrac{1}{N}\vX (\vX^\top \vu)^{\hada 3}- 3 \vu
+   ,  \\
+   \vu^+ &= \vv^+ / \norm*{\vv^+}_2.
+   \end{split}
+\end{equation}
+FastICA 알고리즘은 사전 \(\vU\)의 열로 극도로 빠르게 (실제로 \textit{3차} 속도로) 수렴한다는 것이 밝혀졌다; 관심 있는 독자는 자세한 내용을 \cite{hyvarinen-1997}에서 참조할 수 있다.
+FastICA 알고리즘 \eqref{eq:fast-ica}를 PCA 문제에 대해 \Cref{sub:pca}에서 연구한 멱 방법 및 MSP 알고리즘 \eqref{eq:msp_iteration}과 비교하면, 놀라운 유사성을 발견한다. 실제로, FastICA는 본질적으로 수정된 멱 방법이며, PCA 목적 함수의 더 간단한 선형 기울기보다는 경험적 첨도의 기울기를 포함한다.
+
 \end{document}
