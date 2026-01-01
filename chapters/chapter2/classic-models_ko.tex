@@ -797,4 +797,84 @@ FastICA 알고리즘 \eqref{eq:fast-ica}를 PCA 문제에 대해 \Cref{sub:pca}�
 
 사전 학습 문제가 비볼록 문제임에도 불구하고, 교대 최소화 유형 알고리즘이 실제로 적어도 국소적으로 올바른 해로 수렴한다는 것이 보여졌다. 예를 들어, \cite{alekh-2016}를 참조하라. 실용적 시연으로서, 위의 알고리즘($L = T = 1$로)은 \Cref{fig:ReconMNIST}에서 과완전 사전 학습에 대한 결과를 생성하는 데 사용되었다.
 
+\subsection{학습된 심층 희소 코딩}
+\label{sec:LISTA}
+이전 섹션의 과완전 사전 학습을 위한 교대 최소화 알고리즘(\Cref{eqn:ISTA-update,eqn:DL-update})의 주요 통찰력은 \textit{\(\vA\)를 고정할 때, $\vZ^\ell$에 대한 ISTA 업데이트 \eqref{eqn:ISTA-update}가 \(\vA\) (그리고 \(\vA^{\top}\))에 의해 주어진 가중치를 가진 심층 신경망의 순방향 통과처럼 보인다}는 것을 알아차리는 것이다. 그러나 일반적으로, 우리는 진정한 $\vA$를 알지 못하며, 현재 추정치 $\vA_+$는 오류가 있을 수 있다. 따라서 현재 희소 코드 추정치 $\vZ^+$를 사용하여 $\vX$를 재구성하는 잔차에 기반하여 \eqref{eqn:DL-update}를 사용하여 더 업데이트되어야 한다. 교대 최소화 알고리즘은 수렴할 때까지 이 두 절차를 반복한다. 그러나 우리는 대신 외삽하여, 이러한 통찰력을 심층 학습의 기법과 결합함으로써 다른 학습 절차를 설계할 수 있다. 이것은 더 해석 가능한 네트워크 아키텍처로 이어지며, 이는 이 원고 전체에서 반복되는 주제가 될 것이다.
+
+\paragraph{학습된 ISTA.} 위의 교대 최소화에 대한 심층 네트워크 해석은 실용적이기보다는 개념적인데, 이 과정이 수렴하기 위해 많은 계층 또는 반복을 필요로 하여 다소 비효율적일 수 있기 때문이다. 그러나 이것은 주로 우리가 \(\vX\)로부터 \(\vZ\)와 \(\vA\) 모두를 추론하려고 시도하기 때문이다. 이 문제는 \textit{지도(supervised)} 설정에서 상당히 단순화될 수 있고 위의 반복이 훨씬 더 효율적으로 만들어질 수 있는데, 여기서 우리는 \eqref{eq:overcomplete-dl-section-data-model}에 따라 분포된 입력 및 출력 쌍 \((\vX, \vZ)\)의 데이터셋을 가지고 있으며 계층별 학습 가능한 희소 코딩 반복 \eqref{eq:ISTA-update-layerwise}에 대해 \(\vA^\ell\)만 학습하고자 한다:
+\begin{align}
+    & \vZ^{\ell + 1} = S_{\eta\lambda}\rp{\vZ^{\ell} - 2\eta(\vA^{\ell})^{\top}(\vA^\ell\vZ^{\ell} - \vX)}, \quad \forall \ell \in [L].
+\end{align}
+각 반복에 대한 연산자를 $\vZ^{\ell + 1} = f(\vA^\ell, \vZ^\ell)$로 나타내면, 위의 반복은 다음의 다이어그램으로 나타낼 수 있다:
+\begin{equation*}
+\vX, \vZ^1 \xrightarrow{\hspace{1mm} f(\vA^1,\,\cdot\,) \hspace{1mm}}  \vZ^2 \xrightarrow{\hspace{1mm} f(\vA^2,\,\cdot\,) \hspace{1mm}}  \vZ^3  \xrightarrow{\hspace{1mm} f(\vA^3,\,\cdot\,) \hspace{1mm}} \cdots \vZ^{L}  \xrightarrow{\hspace{1mm} f(\vA^{L},\,\cdot\,) \hspace{1mm}} \vZ^{L + 1} \approx \vZ.
+\label{eqn:deep-sparse-encoding}
+\end{equation*}
+따라서, 순차적 아키텍처가 주어지면, 각 계층에서 연산자 \(\vA^\ell\)를 학습하기 위해, 예를 들어 역전파(BP)\footnote{\Cref{sec:autodiff}에서 BP에 대한 간략한 설명을 참조하라.}를 통해 최종 코드 $\vZ^L$과 실제값 $\vZ$ 사이의 오차를 최소화함으로써 학습하는 것은 완전히 자연스럽다:
+\begin{equation}\label{eq:lista-training}
+    \min_{\{\vA^\ell\}} \big\|\vZ^L(\vA^1, \ldots, \vA^{L}) - \vZ\big\|_2^2.
+\end{equation}
+이것은 학습된 ISTA (LISTA) 알고리즘 \cite{gregor2010learning}의 기초이며, 이는 $\vX$에서 $\vZ$로의 희소 인코딩 과정을 모방하려는 심층 신경망을 위한 학습 알고리즘으로 볼 수 있다. 특히, 이것은 \textit{단순한 표현 학습 알고리즘}으로 볼 수 있다. 실제로, 이와 동일한 방법론이 트랜스포머와 같은 더 강력한 네트워크 아키텍처에서 계산되는 표현을 이해하는 기초로 사용될 수 있다. 우리는 \Cref{ch:unrolling}에서 이러한 함의를 자세히 개발한다.
+
+
+
+
+\paragraph{희소 오토인코더.}
+과완전 사전 학습에 대한 원래 동기는 고차원 데이터에 대한 간단한 생성 모델을 제공하는 것이었다. 우리는 LISTA를 통해, 추가로, 희소하게 사용되는 과완전 사전을 학습하기 위한 반복 알고리즘이 ReLU와 유사한 심층 네트워크에 대한 해석을 제공한다는 것을 보았으며, 이를 나중 장들에서 \eqref{eq:overcomplete-dl-section-data-model}보다 더 복잡한 데이터 분포로 일반화할 것이다. 그러나 대규모 모델의 현대 시대에서도, 데이터 생성 모델 \eqref{eq:overcomplete-dl-section-data-model}이 트랜스포머와 같은 사전 훈련된 대규모 심층 네트워크에서 \textit{피처를 해석하기} 위한 유용한 실용적 기반을 제공한다는 점은 주목할 가치가 있다. 이는 이러한 네트워크의 (해석 불가능한, \textit{선험적}) 피처가 그 자체로는 해석 가능한 기본 피처의 희소 ``중첩(superpositions)''으로 구성된다는 가설을 따른다 \cite{elhage2022superposition}. 이러한 \textit{비지도(unsupervised)} 학습 패러다임은 일반적으로 지도 훈련을 위해 대량의 레이블이 있는 $(\vX, \vZ)$ 쌍을 필요로 하는 LISTA보다 데이터 친화적이기도 하다.
+
+우리는 위의 LISTA 알고리즘 개발을 사용하여 이 연구 분야의 일반적인 관행을 이해할 수 있다. 가장 직접적인 구현에서 (\citep{huben2024sparse, gao2025scaling} 참조), 사전 훈련된 심층 네트워크 $h$로부터의 많은 수의 피처가 서로 다른 입력 $\vx_i$로부터 수집되며, 이들 자체는 원하는 해석 작업에 기반하여 선택된다.\footnote{예를 들어, 입력 $\vx_i$는 서로 다른 프로그래밍 언어의 컴퓨터 코드 샘플을 포함하는 텍스트에 해당할 수 있으며, 우리의 작업은 입력의 서로 다른 중요한 측면에 해당하는 트랜스포머 피처 맵 $h$에서 해석 가능한 피처를 식별하려고 시도하는 것이다. 예를 들어 특정 프로그래밍 언어(입력 ``클래스'' 간에 구별됨) 또는 현재 위치에 일치하는 괄호를 삽입할 필요성(입력 ``클래스'' 간에 공통됨) 등이 있다. 우리는 텍스트 표현 학습을 위한 심층 네트워크, 특히 트랜스포머의 사용에 대해 \Cref{ch:applications}에서 더 자세히 논의한다.} 단순성을 위해, 우리는 $h$를 사용하여 문제의 사전 선택된 피처 맵을 나타낼 것이며, $D$-차원 피처를 가진다; $N$개의 샘플 입력이 주어지면, $\vH \in \bR^{D \times N}$를 $h$의 피처의 전체 행렬로 나타낸다. 그런 다음 디코더 $g : \bR^d \to \bR^D$를 가진 소위 희소 오토인코더 $f : \bR^D \to \bR^d$가 LASSO 손실 \eqref{eq:sparse_dl_lasso}를 통해 훈련된다:
+\begin{equation}\label{eq:sae-loss}
+  \min_{f, g} \| \vH - g(f(\vH))) \|_F^2 + \lambda \|f(\vH)\|_1 ,
+\end{equation}
+여기서 희소 오토인코더 $f$는 단일 계층 신경망의 형태를 취한다, 즉 $f(\vh_i) = \sigma(\vW_{\mathrm{enc}}(\vh_i - \vb) + \vb_{\mathrm{enc}})$이며, 여기서 $\sigma(x) = \max \{x, 0\}$는 ReLU 활성화 함수이고, 디코더 $g$는 선형이므로 $g(\vz_i) = \vW_{\mathrm{dec}}\vz + \vb$이다.
+
+매개변수화 및 훈련 절차 \eqref{eq:sae-loss}는 처음에는 희소 코딩 문제에 대한 심층 학습의 임의적 적용처럼 보일 수 있지만, 실제로는 학습된 사전을 사용한 계층별 희소 코딩을 위해 위에서 연구한 알고리즘과 높은 정렬도를 가진다. 특히, LISTA 아키텍처 $\vZ^{L} = f(\vA^L, f(\vA^{L-1}, \cdots, f(\vA^1, \vX) \cdots ))$를 상기하라. $L=2$인 특별한 경우에, 우리는
+\begin{equation}
+    \vZ^2 = f(\vA^1, \vX)
+    =S_{\eta\lambda}\rp{\vZ^{1} - 2\eta(\vA^{1})^{\top}(\vA^1\vZ^{1} - \vX)}.
+\end{equation}
+문제의 희소 코드 $\vZ$가 비음수라고, 즉 $\vZ \geq \Zero$라고 가정하자.\footnote{데이터 생성 모델 \eqref{eq:overcomplete-dl-section-data-model}에서, 임의의 사전-희소 코드 쌍 $(\vA, \vZ)$는 단순히 $\vA$의 열 수를 두 배로 늘림으로써 $\vZ \geq \Zero$인 것으로 대체될 수 있으므로, 모델링 관점에서 이것은 매우 약한 가정이다.} 그러면 (\Cref{example:prox-of-nonnegative-l1} 참조), 우리는 $\vZ$에 대한 추가 비음수 제약을 가진 희소 코딩 목적 함수로부터 얻은 동등한 LISTA 아키텍처를 고려할 수 있다:
+\begin{equation}
+    \vZ^2 = f(\vA^1, \vX)
+    =\max \set*{\vZ^{1} - 2\eta(\vA^{1})^{\top}(\vA^1\vZ^{1} - \vX)
+    - \lambda\eta \mathbf{1}, 0},
+\end{equation}
+그리고 약간의 대수 후에, 이것을 다음과 같이 표현할 수 있다:
+\begin{equation}
+    \vZ^2 = f(\vA^1, \vX)
+    =\max \set*{
+        2\eta(\vA^{1})^{\top}
+        +
+        \left(
+        \vZ^{1} - 2\eta(\vA^{1})^{\top}\vA^1\vZ^{1} - \lambda\eta \mathbf{1}
+        \right), 0
+    }.
+\end{equation}
+학습 가능한 매개변수로 희소 코드 초기화 $\vZ^1$을 변경할 수 있는 능력이 주어지면(현재 프레임워크에서는 모든 열이 동일한 학습 가능한 벡터와 같아야 함), 이것은 학습 가능한 바이어스를 가진 ReLU 신경망의 형태를 가진다—희소 오토인코더 $f$와 동일하다! 더욱이, 학습된 희소 코드 $\vZ^2$를 \textit{디코딩}하기 위해, 학습된 사전 $\vZ^2 \mapsto \vA^1 \vZ^2$를 적용하는 것이 자연스럽다. 그러면 이것과 SAE 디코더 $g$ 사이의 유일한 차이는 추가 바이어스 $\vb$인데, 이는 기술적으로 훈련 목적 함수 \eqref{eq:sae-loss}에서 $\vH$와 $f$에 흡수될 수 있다.
+
+따라서, SAE 매개변수화 및 훈련 절차는 $L=1$인 LISTA 훈련과 일치하며, 수정된 훈련 목적 함수를 가진다—바닐라 LISTA에서 사용되는 지도 재구성 손실 \eqref{eq:lista-training} 대신 {\em 비지도}로 남아있는 LASSO 목적 함수 \eqref{eq:sparse_dl_lasso}를 사용한다. 특히, 우리는 \eqref{eq:ISTA-update-layerwise}의 계층별 희소 코딩 관점에서 LISTA 아키텍처의 해석 측면에서 SAE 아키텍처를 이해할 수 있다. 이 연결은 실용적 해석 가능성 방법론을 개선하기 위한 일련의 새로운 설계 전략을 시사하며, 그 중 많은 것들이 유혹적으로 탐구되지 않은 채로 남아 있다. 우리는 \Cref{ch:autoencoding}에서 더 넓은 오토인코딩 방법론과의 연결을 제시하기 시작한다.
+
+
+
+\paragraph{계층별 학습된 희소 코딩?}
+
+
+
+지도 설정에서, LISTA는 교대 최소화에서 영감을 받아 계층별 학습된 사전을 가진 희소 코딩 반복의 심층 신경망 유사체를 제공한다; 비지도 설정에서도, 동일한 방법론이 희소 오토인코더와 같이 학습에 적용될 수 있다. 그러나 저차원 구조 탐색 최적화 알고리즘과 심층 네트워크 아키텍처 사이의 연결은 이것보다 훨씬 더 깊으며, 역전파 없이도 사용 가능할 수 있는 확장 가능하고 자연스러운 신경 학습 아키텍처의 배열을 시사한다.
+
+간단한 예시로, 우리는 교대 최소화 반복 \eqref{eqn:ISTA-update}와 \eqref{eqn:DL-update}로 돌아간다. 이 기법은 모든 그러한 업데이트마다 사전 $\vA_1$을 무작위로 재초기화한다. 개선된 방법은 대신 \textit{웜 스타팅(warm starting)}을 사용하는데, 여기서 잔차가 사전에 대한 이전 추정치 $\vA_+$를 사용하여 생성된다. 그런 다음 각 ISTA 업데이트 \eqref{eqn:ISTA-update}를 계층으로 보고 관련 사전이 이제 희소 코드 업데이트와 $\vA_\ell$로 결합되어 시간에 따라 업데이트되도록 허용하면, 이것은 ``계층별 학습 가능한'' 희소 코딩 기법으로 이어진다:
+\begin{align}
+    & \vZ^{1}
+     = \Zero, \quad (\vA_{1})_j
+     \simiid \dNorm(\vzero, \tfrac{1}{D}\vI), \enspace \forall j \in [m], \\
+    & \vZ^{\ell + 1} = S_{\eta\lambda}\rp{\vZ^{\ell}
+    - 2\eta(\vA_{\ell})^\top(\vA_{\ell}\vZ^{\ell}
+    - \vX)},\label{eq:ISTA-update-layerwise}\\
+    & \vA_{\ell + 1} = \vA_{\ell}- 2\nu (\vA_{\ell}\vZ^{\ell + 1}
+    - \vX)(\vZ^{\ell + 1})^\top.
+\end{align}
+이 반복은 $T = L = 1$에 대한 \eqref{eqn:ISTA-update}와 \eqref{eqn:DL-update}의 재레이블링에 해당하며, 무한히 많은 블록에 걸쳐 있다는 점에 주목하라. $\vZ$를 업데이트하는 각 '내부' 단계는 단일 계층 순방향 통과로 간주될 수 있으며, $\vA$를 업데이트하는 각 '외부' 단계는 원시적 심층 신경망의 단일 계층 역방향 통과로 간주될 수 있다. 특히, 이 알고리즘은 순방향 최적화와 역방향 학습 사이의 명확한 분리가 나타나는 가장 간단한 경우이다. 이 분리는 현재 신경망과 오토인코더에서 여전히 관찰된다—우리는 \Cref{ch:unrolling}과 \Cref{ch:autoencoding}에서 이에 대해 훨씬 더 많이 말할 것이다.
+
+위의 계층별 기법은 또한 \Cref{app:BP-section}에서 자세히 설명된 역전파(BP)에 주로 의존하는 현재의 종단간 최적화 전략에 대한 그럴듯한 대안을 시사한다는 점에 주목하라. 대규모 네트워크 훈련을 BP로부터 자유롭게 하는 것은 우리가 \Cref{ch:future}의 책 끝에서 더 논의할 것처럼 미래의 가장 큰 도전과 기회 중 하나가 될 것이다.
+
 \end{document}
