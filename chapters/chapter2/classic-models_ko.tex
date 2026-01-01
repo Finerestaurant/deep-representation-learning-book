@@ -282,5 +282,124 @@ PCA 문제를 푸는 한 가지 방법은 특이값 분해 (SVD)를 사용하는
 
 \section{완전한 저차원 부분공간의 혼합}%
 \label{sec:ica}
+우리가 본 바와 같이, 저계수 신호 모델은 데이터의 저차원성과 오류 하에서의 표현 및 복구를 위한 효율적이고 확장 가능한 계산 알고리즘 사이의 상호 작용에 대한 완전한 그림을 제공하기에 충분히 풍부하다.
+이러한 모델은 \textit{선형}이고 대칭적인 표현 학습 파이프라인 \eqref{eqn:autoencoding-PCA}를 의미한다:
+\begin{equation*}
+    \vz = \cE(\vx) = \vU^\top \vx, \quad \hat{\vx} = \cD(\vz) = \vU \vz,
+\end{equation*}
+이는 \(\vx\)의 분포가 진정으로 선형일 때마다 주성분 분석을 통해 (예를 들어, 멱 방법으로 효율적으로 해결되는) \(\vx\)의 유한한 샘플로부터 증명 가능하게 학습될 수 있다.
+이것은 제한적인 가정이다---20세기의 저명한 통계학자인 Harold Hotelling이,\footnote{우연의 일치로, 주성분 분석의 발전과 명명에 대한 그의 기여로도 유명하다 \cite{Hotelling1933}.} George Dantzig이 그의 선형 계획법 이론을 처음 발표한 후 반대했듯이 \cite{Dantzig2002-eh},
+\begin{quote}
+\centering
+    \textit{``...우리 모두는 세계가 비선형이라는 것을 안다.''}
+\end{quote}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.35\linewidth]{\toplevelprefix/chapters/chapter2/figs/motion.png} \hspace{5mm}
+    \includegraphics[height=0.349\linewidth]{\toplevelprefix/chapters/chapter2/figs/segment.png}
+    \caption{\textbf{왼쪽:} 장면에서 독립적으로 움직이는 물체에서 추적된 특징점들. \textbf{오른쪽:} 이미지의 서로 다른 영역과 연관된 이미지 패치들.}
+    \label{fig:multiple-subspaces}
+\end{figure}
+그 우아함과 단순함을 고려하더라도, 저계수 가정은 실제 데이터를 모델링하는 데 광범위하게 적용하기에는 너무 제한적이다.
+핵심적인 한계는 구조화된 관측을 생성하는 \textit{단일} 선형 부분공간의 가정이다.
+많은 실제 응용에서, 서로 다른 저차원 부분공간의 \textit{혼합}에 의해 생성된 구조가 더 현실적인 모델을 제공한다.
+예를 들어, 각각 자신의 독립적인 변위를 가진 여러 개의 서로 다른 물체의 움직임을 포착하는 비디오 시퀀스를 고려해 보자 (\Cref{fig:multiple-subspaces} 왼쪽).
+개별 움직임에 대한 적절한 가정 하에서, 각 물체는 연결된 비디오 프레임 시퀀스에서 독립적인 저차원 부분공간을 담당하게 된다 \cite{VidalR2004-ECCV}.
+또 다른 예로, 이미지 내에서 공간적으로 연속적인 픽셀 집합인 \textit{패치}의 분포에 대한 모델을 학습하여 자연 이미지를 모델링하는 것을 고려해 보자 (\Cref{fig:multiple-subspaces} 오른쪽). 우리가 이전에 본 Eigenface 예제에서, 일치하는 포즈를 가진 얼굴 이미지는 단일 저차원 부분공간으로 잘 근사될 수 있었던 것과 달리, 자연 이미지의 특정 위치에 있는 패치는 매우 다른 속성을 가진 객체에 대응할 수 있다---예를 들어, 가림 경계(occlusion boundaries)로 인한 서로 다른 색상이나 모양. 따라서 단일 부분공간으로 패치의 분포를 모델링하는 것은 무의미하지만, 각 영역에 대한 부분공간의 \textit{혼합}은 예를 들어 분할이나 압축 목적으로 실제로 놀라울 정도로 잘 작동한다 \cite{Mobahi-IJCV2011}.\footnote{우리는 \Cref{ch:representation}에서 이 관찰로 돌아올 것이며, 이것이 대규모 현대 데이터셋에 대한 표현을 학습하도록 상당히 일반화될 수 있음을 보일 것이다.} 우리는 다음 장에서 구체적인 예를 볼 것이다 (\Cref{eg:image-segmentation}).
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[height=0.35\linewidth]{\toplevelprefix/chapters/chapter2/figs/subspaces.png}
+    \caption{저차원 부분공간의 혼합 상의 데이터, 예를 들어 \(\mathcal{S}_j
+    = \mathop{\mathrm{col}}(\vU_j)\).}
+    \label{fig:subspaces}
+\end{figure}
+
+이 섹션에서는, \Cref{fig:subspaces}에 나타난 바와 같이 데이터 분포가 {\em 저차원 부분공간의 혼합}으로 모델링될 수 있을 때 구조화된 표현 학습을 위한 개념적 및 알고리즘적 기초를 논의하는 것으로 시작할 것이다. 이 설정에서, 디코더 매핑은 단일 부분공간의 경우만큼 거의 간단할 것이다: 우리는 단순히 다음과 같이 표현한다
+\begin{equation}\label{eq:mixture-subspaces-decoder-first-cut}
+    \hat{\x} = \cD(\vz) = \left( \sum_{k=1}^K \pi_k(\vz)\vU_k \right) \vz,
+\end{equation}
+여기서 \(\pi_k : \R^d \to \set{0,1}\)는 \textit{희소} 가중치 확률 변수의 집합이며, 합에서 단일 부분공간 \(\mathcal{S}_k = \mathop{\mathrm{col}}(\vU_k)\)만 선택되도록 한다.
+그러나 그러한 데이터 \(\vx\)를 적절한 표현 \(\vz\)로 인코딩하는 작업과 데이터로부터 그러한 인코더-디코더 쌍을 학습하는 것은 더 복잡한 것으로 판명될 것이다.
+
+우리는 \textit{희소 표현}과 \textit{독립 성분 분석}에 대한 풍부한 문헌의 아이디어가 어떻게 희소성의 렌즈를 통해 위의 디코더 아키텍처의 자연스러운 재정식화, 대응하는 인코더 아키텍처 (주성분 분석과 유사한 멱 방법과 같은 알고리즘을 통해 얻어짐), 그리고 데이터로부터 그러한 인코더-디코더 쌍을 학습하기 위한 정확성과 효율성의 강력한 보장으로 이어지는지를 볼 것이다. 이러한 의미에서, 혼합된 선형 저차원 구조의 경우는 이미 이 책에서 훨씬 더 큰 일반성으로 개발할 구조화된 표현 학습의 많은 핵심 개념적 구성 요소로 이어진다.
+
+
+\subsection{부분공간의 혼합과 희소하게 사용되는 사전}\label{sec:mixture-and-dict}
+
+
+\(\vU_1, \dots, \vU_K\)를 각각 크기 \(D \times d\)인, \(\R^D\)에서 차원 \(d\)인 \(K\)개 부분공간에 대한 직교 정규 기저 집합이라고 하자.
+\(\vx\)가 \(\vU_1, \dots, \vU_K\)로 매개변수화된 부분공간의 혼합 분포를 따른다고 말하는 것은, 기하학적으로 말해서, 다음을 의미한다
+\begin{equation}\label{eq:mixture-of-subspaces-geometric}
+    \vx = \vU_k \vz  \quad \text{어떤} \enspace k \in [K],\enspace \vz \in \R^d\text{에 대해}.
+\end{equation}
+이 기하학적 모델의 통계적 유사체는, 우리가 PCA와 선형 구조의 경우에서 본 것처럼, \(\vx\)가 \textit{가우스 혼합} 분포를 따른다는 것이다: 즉,
+\begin{equation}\label{eq:mixture-of-subspaces-statistical}
+    \vx \sim \sum_{k=1}^K \pi_k \cN(\mathbf{0}, \vU_k\vU_k^\top), \quad \text{어떤} \enspace \pi_k \geq 0,\enspace \sum_{k=1}^K \pi_k = 1\text{에 대해}.
+\end{equation}
+다시 말해, 각 \(k \in [K]\)에 대해, \(\vx\)는 확률 \(\pi_k\)로 저차원 부분공간 \(\mathop{\mathrm{col}}(\vU_k)\) 상에서 가우스이다.
+
+\begin{remark}[가우스의 혼합 대 가우스의 중첩]
+위의 모델 \eqref{eq:mixture-of-subspaces-statistical}이 가우스 분포의 \textit{혼합}이며, 중첩에 의한 가우스 변수의 혼합, 예를 들어
+\begin{equation}
+    \vx = \sum_{i=1}^n w_i \vx_i, \quad \vx_i \sim \cN(\mathbf{0}, \vU_i\vU_i^\top),
+\end{equation}
+여기서 \(\vx_i\)는 독립적인 무작위 가우스 벡터이고 \(w_i\)는 고정된 가중치의 집합인 것과 혼동되어서는 안 된다는 점을 인식해야 한다. 가우스 벡터의 속성으로부터 알 수 있듯이, 그러한 중첩 \(\vx\)는 가우스 분포로 남아 있을 것이다.
+\end{remark}
+
+지금은 \eqref{eq:mixture-of-subspaces-geometric}이 제공하는 기하학적 관점에 집중한다.
+이 조건부 표현에 대한 대수적으로 편리한 대안이 있다. \(\vz = [\vz_1^\top, \dots, \vz_K^\top]^\top \in \R^{dK}\)를 \textit{승격된(lifted)} 표현 벡터라고 하자, 여기서 \(\vz\)는 \(dK\)개 중에서 \(K\)개의 연속적이고 겹치지 않는 \(d\)개 좌표 블록 중 하나에 지지를 가진 \textit{\(d\)-희소}이다.
+그러면 \eqref{eq:mixture-of-subspaces-geometric}은 다음과 동등하게 쓰여질 수 있다
+\begin{equation}\label{eq:mixture-of-subspaces-dictionary-pre}
+    \vx =
+    \underbrace{
+    \begin{bmatrix}
+    | & \hdots & |  \\
+    \vU_1 & \hdots & \vU_K  \\
+    | & \hdots & |
+    \end{bmatrix}
+    }_{\vU}
+    \underbrace{
+    \begin{bmatrix} \vz_1 \\ \vdots \\ \vz_K \end{bmatrix}
+    }_{\vz},
+    \quad
+    \norm*{
+    \begin{bmatrix} \norm*{\vz_1}_2 \\ \vdots \\ \norm*{\vz_K}_2 \end{bmatrix}
+    }_0 = 1.
+\end{equation}
+여기서, \(\ell^0\) ``노름'' \(\norm{\,\cdot\,}_0\)는 0이 아닌 항목의 수를 세어 희소성을 측정한다:
+\begin{equation}\label{eq:ell-zero-norm}
+    \norm{\vz}_0 = \abs*{\set{i \given z_i \neq 0}},
+\end{equation}
+그리고 행렬 \(\vU \in \R^{D \times Kd}\)는 모든 \(\{\vU_i\}_{i=1}^K\)를 코드 워드로 하는 \textit{사전(dictionary)}이라고 불린다. 일반적으로, 혼합 내 부분공간의 수 \(K\)가 충분히 크면, 사전 \(\vU\)에 포함된 열의 수에는 제한이 없다. \(Kd < D\)인 경우, \(\vU\)는 \textit{과소완전(undercomplete)}이라고 불리고;
+\(Kd = D\)일 때, 그것은 \textit{완전(complete)}이라고 불리며; \(Kd > D\)일 때, 그것은 \textit{과완전(overcomplete)}이라고 불린다.
+
+이제, \eqref{eq:mixture-of-subspaces-dictionary-pre}는 분석의 다루기 쉬움을 위한 편리한 완화를 제안한다: \(\vx\)를 \(K\)개의 \textit{특정} 부분공간 \(\vU_1, \dots, \vU_K\)의 혼합으로부터 오는 것으로 모델링하는 대신, 우리는 \(m\)이 \(D\)보다 작거나 클 수 있는 사전 \(\vU \in \R^{D \times m}\)로부터 시작하여, 희소성 \(\norm{\vz}_0\)이 충분히 작은 \(\vx = \vU \vz\)로 표현하려고 시도할 수 있다.
+이것은 \(\vx\)에 대한 \textit{희소 사전 모델}로 이어진다:
+\begin{equation}\label{eq:mixture-of-subspaces-dictionary}
+    \vx =  \vU \vz + \veps,
+    \quad
+    \norm{\vz}_0 \ll d,
+\end{equation}
+여기서 \(\veps\)는 알려지지 않은 잡음 벡터를 나타낸다.
+기하학적으로, 이것은 \(\vx\)가 \(\vU\)의 \(\norm{\vz}_0\)개 열의 생성 공간 가까이에 놓여 있음을 의미하며,
+이것은 매우 큰 \(K\) 값과 부분공간 \(\vU_k\) 사이의 특정 상관관계를 가진 부분공간의 혼합 모델 \eqref{eq:mixture-of-subspaces-geometric}의 인스턴스화이다.
+
+
+\paragraph{희소 코딩을 위한 직교 사전.}
+이제 우리가 이 섹션에서 연구할 저차원 부분공간의 혼합에 대한 구조화된 표현 학습 문제를 정식화할 수 있다.
+우리는 알려지지 않은 희소 사전 모델 \eqref{eq:mixture-of-subspaces-dictionary}로부터, 가능하게는 추가된 잡음 \(\veps_i\)와 함께, 샘플 \(\vX = [\vx_1, \dots, \vx_N]\)을 가지고 있다고 가정한다.
+희소 사전 모델 \eqref{eq:mixture-of-subspaces-dictionary}의 사전 \(\vU\)가 완전하고 직교라는 가정으로부터 시작하자,\footnote{완전한 경우, 직교 가정을 함으로써 일반성을 잃지 않는다는 것을 보일 수 있다 (\Cref{exercise:whitening}).} 그리고 각 계수 벡터 \(\vz\)가 \(d \ll D\)인 \(d\)-희소라고 하자.
+이 설정에서, 표현 학습은 최적화를 통해 직교 사전 \(\vU\)를 올바르게 학습하는 것이다: 그러면 우리는 \(\cE(\vx) = \vU^\top \vx\)를 인코더로, \(\cD(\vz) = \vU \vz\)를 디코더로 취할 수 있으며, \(\cD = \cE^{-1}\)이다. 다이어그램 형태로:
+\begin{equation}
+\vx \xrightarrow{\hspace{2mm} \mathcal{E} = \vU^\top \hspace{2mm}}  \vz \xrightarrow{\hspace{2mm} \mathcal{D} = \vU \hspace{2mm}}   \hat{\vx}.
+\label{eqn:autoencoding-DL}
+\end{equation}
+우리는 완전한 사전 학습을 위한 자동 인코딩 쌍 \((\cE, \cD)\)이 단일 선형 부분공간의 경우처럼 대칭적이어서, 인코딩과 디코딩의 계산 작업이 선형 경우보다 더 어렵지 않다는 것을 알 수 있다. 반면에, 사전 \(\vU\)를 학습하는 작업은 PCA로 단일 선형 부분공간을 학습하는 것보다 엄격하게 더 어렵다.
+우리가 직교 사전 \(\vU\)를 올바르게 학습하기 위해 단순히 PCA를 사용할 수 없는 이유를 보기 위해, PCA를 낳은 손실 함수, 즉 \eqref{eq:pca_equals_denoising}가 행렬 \(\vU\)의 행들의 회전에 완전히 불변이라는 점에 주목하라: 즉, \(\vQ\)가 임의의 \(d \times d\) 직교 행렬이면, \(\vU\)와 \(\vU \vQ\) 모두 실행 가능하고 \eqref{eq:pca_equals_denoising}에 대해 동일한 손실을 가진다. 희소 사전 모델은 그러한 변환에 대해 결코 불변이 아니다: 만약 우리가 \(\vU\)를 \(\vU \vQ\)로 대체하고 표현 계수 \(\vz\)의 대응하는 회전 \(\vQ^\top \vz\)를 만든다면, 일반적으로 \(\vz\)의 희소성 구조를 파괴하여 모델링 가정을 위반할 것이다. 따라서, 우리는 직교 사전을 학습하기 위한 새로운 알고리즘이 필요하다.
 
 \end{document}
