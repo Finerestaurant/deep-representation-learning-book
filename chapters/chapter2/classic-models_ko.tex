@@ -743,4 +743,58 @@ FastICA 알고리즘 \eqref{eq:fast-ica}를 PCA 문제에 대해 \Cref{sub:pca}�
 \eqref{eq:ista_update}의 비선형성은 특히 심층 학습에서 일반적으로 사용되는 ReLU 활성화 함수 \(x \mapsto \max\set{x, 0}\)와 유사하다---특히, 소프트-임계화 연산자는 바이어스만큼 이동된 ``부호가 있는'' ReLU 활성화와 같다.
 따라서 ISTA는 원시적 (순환 단일 계층) 신경망의 순방향 통과로 볼 수 있다. 우리는 \Cref{ch:representation}에서 그러한 연산이 심층 표현 학습에 필수적이라고 주장한다.
 
+
+
+\subsection{과완전 사전 학습}
+
+우리는 다음의 데이터 모델을 가지고 있음을 상기하자:
+\begin{equation}\label{eq:overcomplete-dl-section-data-model}
+    \vX = \vA\vZ + \vE,
+\end{equation}
+여기서 \(\vZ\)는 희소하며, 우리의 이전 목표는 데이터 \(\vX\)와 사전 원자 \(\vA\)에 대한 지식이 주어졌을 때 \(\vZ\)를 추정하는 것이었다. 이제 우리는 더 실용적이고 더 어려운 경우로 넘어가는데, 여기서는 \(\vA\)와 \(\vZ\) 모두를 알지 못하며 대규모 데이터셋으로부터 이들을 학습하고자 한다.
+
+\Cref{eq:sparse_dl_lasso}의 직접적인 일반화는 다음 문제를 푸는 것을 제안한다:
+\begin{equation}
+    \min_{\tilde{\vA}, \tilde{\vZ}}\bc{\norm{\vX - \tilde{\vA}\tilde{\vZ}}_{F}^{2} + \lambda \norm{\tilde{\vZ}}_{1}}.
+    \label{eqn:DL-overcomplete-try}
+\end{equation}
+그러나 \Cref{eqn:DL-overcomplete-try}의 쌍선형 항은 수렴을 방해하는 스케일 모호성을 도입한다: 임의의 점 $(\tilde{\vA}, \tilde{\vZ})$와 임의의 상수 $c>0$에 대해, 대체 $(c^{-1}\tilde{\vA}, c\tilde{\vZ})$는 다음의 손실값을 준다:
+\begin{equation}
+    \norm{\vX - \tilde{\vA}\tilde{\vZ}}_{F}^{2} + c\lambda \norm{\tilde{\vZ}}_{1}.
+\end{equation}
+이 손실은 명백히 $c \to 0$으로 취함으로써 $c$에 대해 최소화되며, 이는 재스케일된 사전 $c^{-1} \tilde{\vA}$가 '무한대로 가는' 것에 해당한다. 특히, \eqref{eqn:DL-overcomplete-try}를 푸는 모든 최적화 알고리즘의 반복은 수렴하지 않을 것이다.
+
+\eqref{eqn:DL-overcomplete-try}에 대한 이러한 문제는 사전 $\tilde{\vA}$의 열의 스케일에 제약을 추가함으로써 처리된다. 예를 들어, \eqref{eq:overcomplete-dl-section-data-model}에서 사전 $\vA$의 각 열 $\vA_j$가 경계가 있는 $\ell^2$ 노름을 가진다고—일반성을 잃지 않고 1이라고—가정하는 것이 일반적이다. 그런 다음 우리는 이것을 제약으로 강제하여 다음의 목적 함수를 얻는다:
+\begin{equation}
+    \min_{\tilde{\vZ}, \tilde{\vA} \,:\, \norm{\tilde{\vA}_j}_2 \leq 1}
+    \bc{\norm{\vX - \tilde{\vA}\tilde{\vZ}}_{F}^{2} + \lambda \norm{\tilde{\vZ}}_{1}}.
+    \label{eqn:DL-overcomplete}
+\end{equation}
+\eqref{eqn:DL-overcomplete}과 같은 제약 최적화 문제는 다양한 정교한 알고리즘들로 풀 수 있다 \cite{nocedal2006numerical}. 그러나 간단하고 확장 가능한 알고리즘은 실제로 이전 섹션에서 희소 코딩 문제를 푸는 데 사용한 동일한 근접 경사 하강 알고리즘에 의해 제공된다. 우리는 제약 집합에 대한 특성 함수를 통해 각 제약을 추가 정규화 항으로 인코딩할 수 있다—자세한 내용은 \Cref{example:prox-of-characteristic-function}에 나와 있다. 결과적인 정규화된 문제에 근접 경사 하강을 적용하는 것은 \textit{투영 경사 하강(projected gradient descent)}과 동등하며, 여기서 각 반복에서 경사 하강 단계를 취한 후 반복값들이 제약 집합으로 투영된다.
+
+\begin{remark}[$\ell^4$ 최대화 대 $\ell^1$ 최소화]
+위의 문제 공식화는 희소 코딩을 위한 LASSO 공식화 \eqref{eq:sparse_dl_lasso}로부터 자연스럽게 따른다. 우리는 \(\ell^1\) 노름을 통해 해의 희소성을 촉진한다. 그럼에도 불구하고, 만약 우리가 과완전 사전 \(\vA\)를 복원하는 데만 관심이 있다면, \Cref{sec:complete-dictionary}에서 소개된 \(\ell^4\) 최대화 기법도 큰 수정 없이 과완전한 경우로 일반화된다. 관심 있는 독자는 \cite{Qu2020Geometric}의 연구를 참조할 수 있다.
+\end{remark}
+
+\textit{과완전 사전 학습(overcomplete dictionary learning)}이라고 부르는 위의 문제 \eqref{eqn:DL-overcomplete}는 \(\vA\)와 \(\vZ\) 모두가 미지수이므로 비볼록이다. 이는 표준 볼록 최적화 도구로 쉽게 풀 수 없다. 그럼에도 불구하고, 이 문제가 흥미롭고, 진술하기 간단하며, 실용적으로 중요하기 때문에, 이 문제에 대한 다양한 알고리즘과 이론적 분석에 전념한 많은 중요한 연구들이 있었다. 여기서, 이 원고의 관심을 위해, 우리는 심층 학습의 정신에 더 가까운 관용적 접근법을 제시한다.
+
+위의 LASSO 문제로부터의 우리의 경험에서, 두 미지수 \(\vA\)와 \(\vZ\)에 대해, 만약 우리가 하나를 고정하고 다른 것을 최적화한다면, 각 부분 문제는 실제로 볼록하고 풀기 쉽다는 것을 쉽게 알 수 있다. 이것은 자연스럽게 우리가 위의 프로그램 \eqref{eqn:DL-overcomplete}을 경사 하강을 사용하여 \(\vZ\) 또는 \(\vA\)에 대해 교대로 최소화함으로써 풀 수 있음을 시사한다. 초기화의 자연스러운 선택과 결합하면, 이것은 다음의 반복적 기법으로 이어진다:
+\begin{align}
+    &\vZ^{\ell + 1} = S_{\eta\lambda}\rp{\vZ^{\ell}
+    - 2\eta\vA_{+}^{\top}(\vA_{+}\vZ^{\ell} - \vX)},
+    \quad \vZ^1 = \Zero,
+    \quad \forall \ell \in [L] \label{eqn:ISTA-update}\\
+    &\vZ^+ = \vZ^L,\\
+    &\vA_{t + 1} = \proj_{\norm{(\,\cdot\,)_j}_2 \leq 1,\,\forall j}\left(
+    \vA_{t} - 2\nu (\vA_{t}\vZ^+ - \vX)(\vZ^+)^\top
+    \right),
+    \quad (\vA_{1})_j \simiid \dNorm(\vzero, \tfrac{1}{D}\vI), \enspace \forall
+    j \in [m],
+    \quad\;\; \forall t \in [T],\label{eqn:DL-update}\\
+    &\vA_+ = \vA_T,
+\end{align}
+여기서 $\vA$에 대한 업데이트의 투영 연산은 $\vA_j \mapsto \vA_j / \max \set{\norm{\vA_j}_2, 1}$를 통해 각 열이 최대 단위 $\ell^2$ 노름을 가지도록 보장하며, $\vA_+$는 각 열이 독립적으로 $\cN(\Zero, \tfrac{1}{D} \vI)$로 초기화된다. 위의 것은 교대 최소화의 한 '블록'으로 구성되며, 우리는 수렴할 때까지 독립적인 초기화로 이러한 블록을 반복적으로 수행한다. 위에서, 우리는 두 개의 별도 인덱스 $\{t\}$와 $\{\ell\}$를 사용하여 반복을 나타냈다. 나중에 보겠지만, 이것은 심층 학습의 맥락에서 두 업데이트를 별도로 해석할 수 있게 한다.
+
+사전 학습 문제가 비볼록 문제임에도 불구하고, 교대 최소화 유형 알고리즘이 실제로 적어도 국소적으로 올바른 해로 수렴한다는 것이 보여졌다. 예를 들어, \cite{alekh-2016}를 참조하라. 실용적 시연으로서, 위의 알고리즘($L = T = 1$로)은 \Cref{fig:ReconMNIST}에서 과완전 사전 학습에 대한 결과를 생성하는 데 사용되었다.
+
 \end{document}
