@@ -402,4 +402,115 @@ PCA 문제를 푸는 한 가지 방법은 특이값 분해 (SVD)를 사용하는
 우리는 완전한 사전 학습을 위한 자동 인코딩 쌍 \((\cE, \cD)\)이 단일 선형 부분공간의 경우처럼 대칭적이어서, 인코딩과 디코딩의 계산 작업이 선형 경우보다 더 어렵지 않다는 것을 알 수 있다. 반면에, 사전 \(\vU\)를 학습하는 작업은 PCA로 단일 선형 부분공간을 학습하는 것보다 엄격하게 더 어렵다.
 우리가 직교 사전 \(\vU\)를 올바르게 학습하기 위해 단순히 PCA를 사용할 수 없는 이유를 보기 위해, PCA를 낳은 손실 함수, 즉 \eqref{eq:pca_equals_denoising}가 행렬 \(\vU\)의 행들의 회전에 완전히 불변이라는 점에 주목하라: 즉, \(\vQ\)가 임의의 \(d \times d\) 직교 행렬이면, \(\vU\)와 \(\vU \vQ\) 모두 실행 가능하고 \eqref{eq:pca_equals_denoising}에 대해 동일한 손실을 가진다. 희소 사전 모델은 그러한 변환에 대해 결코 불변이 아니다: 만약 우리가 \(\vU\)를 \(\vU \vQ\)로 대체하고 표현 계수 \(\vz\)의 대응하는 회전 \(\vQ^\top \vz\)를 만든다면, 일반적으로 \(\vz\)의 희소성 구조를 파괴하여 모델링 가정을 위반할 것이다. 따라서, 우리는 직교 사전을 학습하기 위한 새로운 알고리즘이 필요하다.
 
+\subsection{완전 사전 학습}
+\label{sec:complete-dictionary}
+
+이 섹션에서, 우리는 직교 사전 학습 문제를 푸는 알고리즘을 유도할 것이다. 더 정확히 말하면, 우리는 관찰된 벡터 \(\vx \in \R^D\)가 통계 모델을 따른다고 가정한다
+\begin{equation}
+    \vx = \vU \vz + \veps,
+    \label{eq:ica-model-ch2}
+\end{equation}
+여기서 \(\vU \in \R^{D \times D}\)는 알려지지 않은 직교 사전이고, \(\vz\)는 각각 평균이 0인 통계적으로 독립적인 성분 \(z_i\)를 가진 확률 벡터이며, \(\veps \in \R^D\)는 작은 (가우스) 잡음의 독립적인 확률 벡터이다. 목표는 \(\vx\)의 샘플로부터 \(\vU\) (및 따라서 \(\vz\))를 복구하는 것이다.
+
+여기서 우리는 각 독립 성분 \(z_i\)가 \(z_i \sim \mathrm{Bern}(\theta) \cdot \cN(0, 1/\theta)\)로 분포한다고 가정한다. 즉, 이것은 \(1\)일 확률이 \(\theta\)이고 \(0\)일 확률이 \(1-\theta\)인 베르누이 확률 변수와 분산 \(1/\theta\)를 가진 독립적인 가우스 확률 변수의 곱이다. 이 분포는 공식적으로 {\em 베르누이-가우스} 분포로 알려져 있다.
+정규화는 \(\Var(z_i) = 1\)이 되도록, 따라서 \(\bE[\norm{\vz}_2^2]=d\)가 되도록 선택된다.
+이 모델링 가정은 독립 성분의 벡터 \(\vz\)가 일반적으로 매우 희소함을 의미한다:
+우리는 \(\bE\left[\norm{\vz}_0\right] = d\theta\)를 계산하며, 이는 \(\theta\)가 \(d\)에 반비례할 때 작다.
+
+\begin{remark}[직교 가정]
+처음 보기에, 사전 \(\vU\)가 직교라는 가정은 다소 제한적으로 보일 수 있다. 그러나 실제로는 일반성의 손실이 없다. 완전 사전을 임의의 정방 가역 행렬 \(\vU\)로 고려할 수 있다. 이 사전으로부터 생성된 샘플: \(\vX = \vU \vZ \in \mathbb{R}^{D\times N}\)로, 데이터 행렬 \(\vX\)의 일부 사전 조정을 통해 다음을 보이기는 쉽다:
+\begin{equation}
+    \bar{\vX} = \Big(\frac{1}{N\theta} \vX\vX^\top\Big)^{-\frac{1}{2}}\vX,
+\end{equation}
+그러면 직교 행렬 \(\vU_{o} \in \O(D)\)가 존재하여
+\begin{equation}
+    \bar{\vX} = \vU_{o}\vZ.
+\end{equation}
+더 자세한 내용은 \Cref{exercise:whitening} 또는 \cite{sun2017completeI}를 참조하라.
+\end{remark}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{\toplevelprefix/chapters/chapter2/figs/2DL4Sphere.png}\vspace{-0.1in}
+    \caption{\(\ell^4\) 노름을 최대화하거나 \(\ell^1\) 노름을 최소화하는 것은 희소성을 촉진한다 (구 위의 벡터에 대해).}
+    \label{fig:L4-sphere}
+\end{figure}
+
+
+\paragraph{MSP 알고리즘을 통한 사전 학습.}
+
+이제 우리가 관찰 집합을 가지고 있다고 가정하자:
+\begin{equation}
+    \vx_i = \vU \vz_i + \veps_i,\ \forall i \in [N].
+\end{equation}
+\(\vX = [\vx_1, \dots, \vx_N]\)이고 \(\vZ = [\vz_1, \dots, \vz_N]\)이라고 하자. 목표는 데이터 \(\vX\)로부터 \(\vU\)를 복구하는 것이다. 따라서, 임의의 직교 행렬 \(\vA \in \O(D)\)에 대해,
+\begin{equation}
+    \vA\vx_i = \vA\vU \vz_i + \vA\veps_i
+\end{equation}
+는 \(\vA = \vU^T\)이면 거의 희소할 것이다 (가정에 의해 잡음 \(\veps_i\)는 작은 크기를 가지므로).
+
+또한, \(\vU\)가 직교이고 \(\veps\)가 작다는 사실을 감안할 때, 벡터 \(\vx\)는 예측 가능한 기대 노름을 가진다, 즉, \(\bE[\norm{\vx}_2^2] \approx \bE[\norm{\vz}_2^2]=d\). 구 위의 벡터에 대해, \(\ell^4\) 노름을 최대화하는 것이 (희소성을 촉진하기 위해) \(\ell^0\) 노름을 최소화하는 것과 동등하다는 것은 알려진 사실이다,
+\begin{equation}
+    \argmax_{\vz \in \mathbb{S}^n}\|\vz\|_{4}\quad\Leftrightarrow\quad \argmin_{\vz \in \mathbb{S}^n}\|\vz\|_{0}.
+\end{equation}
+이것은 \Cref{fig:L4-sphere}에 나타나 있다.
+
+직교 행렬 \(\vA\)는 유클리드 (\(\ell^{2}\)) 노름을 보존한다: \(\|\vA \vx\|_2^2 = \|\vx\|_2^2\). 따라서, \(\vX\)로부터 올바른 직교 사전 \(\vU\)를 찾기 위해, 우리는 다음 최적화 프로그램을 풀려고 시도할 수 있다:
+\begin{equation}\label{eq0:orthogonal-dictionary-learning-l4}
+    \max_{\tilde{\vA} \in \O(D)}\,
+     \frac{1}{4} \norm*{
+    \tilde{\vA} \vX
+    }_4^4 =  \frac{1}{4} \sum_{i=1}^N \norm*{
+        \tilde{\vA} \vx_i
+    }_4^4
+\end{equation}
+이것은 \(\ell^4\) 최대화 문제로 알려져 있다 \cite{Zhai-2020}. 해 \(\vA^{\star}\)를 찾은 후, 우리는 전치 \(\vU^{\star} = (\vA^{\star})^{\top}\)를 취할 수 있다.
+\begin{remark}
+    구 위의 벡터에 대해, \(\ell^1\) 노름을 최소화하는 것이 (희소성을 촉진하기 위해) \(\ell^0\) 노름을 최소화하는 것과 동등하다는 것도 알려져 있다,
+\begin{equation*}
+            \argmin_{\vz \in \mathbb{S}^n}\|\vz\|_{1}\quad\Leftrightarrow\quad \argmin_{\vz \in \mathbb{S}^n}\|\vz\|_{0},
+\end{equation*}
+이것도 \Cref{fig:L4-sphere}에 나타나 있다. 이 사실은 사전 \(\vA\)를 효과적이고 효율적으로 학습하는 데에도 활용될 수 있다. 이것은 실제로 여기서 사용된 \(\ell^4\) 노름보다 더 일찍 탐구되었다. 관심 있는 독자는 \cite{qu2020findingsparsestvectorssubspace}의 작업을 참조할 수 있다.
+\end{remark}
+
+위의 문제는 다음의 제약 최적화 문제와 동등하다:
+\begin{equation}\label{eq:orthogonal-dictionary-learning-l4}
+    \min\,
+    -   \frac{1}{4} \norm*{
+    \tilde{\vA} \vX
+    }_4^4 \quad \mbox{다음에 종속:} \quad  \tilde{\vA}^\top\tilde{\vA} = \vI.
+\end{equation}
+\cite{Wright-Ma-2022}에서 보인 바와 같이, 라그랑주 승수법을 사용하여, 문제의 최적 해가 다음 ``고정점'' 조건을 만족해야 함을 유도할 수 있다:
+\begin{equation}
+    \vA^{\star} = \mathcal{P}_{\mathrm O(D)}[( {\vA^{\star} \vX})^{\hada 3}\vX^\top],
+\end{equation}
+여기서 \(\mathcal{P}_{\mathrm O(D)}[\,\cdot\,]\)는 직교 행렬 \(\mathrm O(D)\)의 공간으로의 투영이다.\footnote{SVD \(\vM = \vU\bm \Sigma \vV^\top\)를 가진 임의의 행렬 \(\vM\)에 대해, \(\mathcal{P}_{\mathrm O(D)}[\vM] = \vU \vV^\top\)이다. 이것을 독자를 위한 연습 문제로 남긴다.}
+
+위 방정식의 고정점을 계산하기 위해, PCA \eqref{eqn:PCA-fixed-point}에 대한 고유벡터를 계산한 방법과 유사하게, 다음 멱 반복을 취할 수 있다:
+\begin{equation}\label{eq:msp_iteration}
+    \vA_{t+1} = \mathcal{P}_{\mathrm O(D)}[( {\vA_t \vX})^{\hada 3}\vX^\top].
+\end{equation}
+이것은 \cite{Zhai-2020}에서 제안한 {\em 매칭, 스트레칭, 투영} (matching, stretching, and projection, MSP) 알고리즘으로 알려져 있다. 광범위한 조건 하에서 그러한 욕심쟁이 알고리즘이 실제로 초선형 속도로 올바른 해로 수렴한다는 것이 보여졌다.
+
+\begin{remark}[\(\ell^4\) 최대화의 전역 최적성]\label{rem:L4-global}
+제약된 \(\ell^4\) 최대화 문제는 비볼록 프로그램이다. 일반적으로 임의의 욕심쟁이 (예를 들어 경사 하강 유형) 알고리즘이 전역 최적 해로 수렴할 것이라고 기대해서는 \textit{안 된다}. 놀랍게도, 일반 비볼록 프로그램과 달리, 구 위의 \(\ell^4\) 최대화의 경관(landscape)
+\begin{equation}\label{eq:l4-maximization-sphere}
+    \min\,
+    -   \frac{1}{4} \norm*{
+    \vq^\top \vX
+    }_4^4 \quad \mbox{다음에 종속:} \quad  \vq^\top\vq = 1.
+\end{equation}
+은 매우 양호하다는 것을 보일 수 있다: 모든 국소 최소값은 전역 최적값에 가깝고 모든 임계점은 음의 곡률 방향을 가진 안장점이다. 따라서, 엄격한 안장점을 벗어날 수 있는 능력을 가진 임의의 하강 방법은 전역 최적 해를 증명 가능하게 찾는다. 더 정확한 진술에 대해서는, 관심 있는 독자는 \cite{Qu2020Geometric}을 참조할 수 있다.
+\end{remark}
+
+\begin{remark}[안정적인 심층 선형 네트워크]
+사전을 계산하는 위의 반복 프로세스는 자연스러운 점진적 ``심층 학습'' 해석을 가진다. \(\delta \vA_{t+1} = \vA_{t+1}\vA_{t}^\top\)와 \(\vZ_t = \vA_t \vX\)를 정의하면, 다음을 보이기 쉽다
+\[\delta \vA_{t+1} = \mathcal{P}_{\mathrm O(D)}[(\vZ_t)^{\hada 3} \vZ_t^\top].\]
+만약 \(\vA_t\)가 올바른 사전 \(\vD_o\)로 수렴하면, 위의 반복 인코딩 프로세스는 본질적으로 ``심층 선형 네트워크''와 동등하다:
+\[\vZ \; \longleftarrow \; \vZ_{t+1} =  \underbrace{\delta \vA_{t+1} \delta \vA_{t} \ldots \delta \vA_{1}}_{\color{red} \text{순방향 구성된 계층}} \vX.\]
+증분 변환 \(\delta \vA_{t+1}\)의 각 계층에서의 계산은 이전 계층의 특징 출력 \(\vZ_t\)에만 의존한다는 점에 주목하라. 네트워크는 각 계층이 노름 보존 직교 변환이므로 자연스럽게 안정적이다. 선형 심층 네트워크와의 유사성에도 불구하고, 각 계층을 학습하는 데 역전파가 불필요하다. 모든 계층이 하나의 순방향 통과에서 학습된다!
+\end{remark}
+
 \end{document}
