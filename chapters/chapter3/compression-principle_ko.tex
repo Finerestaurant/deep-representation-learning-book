@@ -3,59 +3,1222 @@
 
 \begin{document}
 
-\chapter{압축 원리}
+\chapter{손실 압축을 통한 저차원성 추구}
+\label{ch:compression}\label{ch:general-distribution}
+
+\begin{quote}
+	\hfill    ``{\em 우리는 학습하기 위해 압축하고, 압축하기 위해 학습한다}.''\\
+	$~$ \hfill --- High-dimensional Data Analysis, Wright and Ma, 2022
+\end{quote}
+\vspace{5mm}
+
+\Cref{ch:linear-independent}에서 우리는 지지 집합이 단일 또는 혼합된 저차원 부분 공간이거나 저랭크 가우시안으로 가정되는 간단한 분포 클래스들을 학습하는 방법을 보였다. 추가적인 단순화를 위해, 서로 다른 (숨겨진) 선형 또는 가우시안 모드들은 \Cref{fig:subspaces}에 예시된 것처럼 직교하거나 독립적이라고 가정된다\footnote{또는 이러한 이상적인 경우로 쉽게 축소될 수 있다.}. 우리가 보인 바와 같이, 이러한 특수한 분포들에 대해서는 정확성과 효율성을 보장하는 상당히 간단하고 효과적인 학습 알고리즘을 도출할 수 있다. 관련 알고리즘에서 연산의 기하학적 및 통계적 해석 또한 매우 명확하다.
+
+실제로, 선형성과 독립성은 모두 실세계 고차원 데이터의 분포가 거의 만족하지 않는 다소 이상적인 가정이다. 우리가 가정할 수 있는 유일한 것은 분포의 고유 차원이 데이터가 임베딩된 주변 공간의 차원에 비해 매우 낮다는 것이다. 따라서 이 장에서는 반드시 (구간별) 선형일 필요가 없는 고차원 공간에서 보다 일반적인 저차원 분포 클래스를 학습하는 방법을 보인다.
+
+실제 데이터의 분포는 이미지의 경우 서로 다른 객체 클래스에 해당하는 것과 같이 여러 구성 요소 또는 모드를 포함하는 것이 일반적이다. 이러한 모드들은 통계적으로 독립적이지 않을 수 있으며 서로 다른 고유 차원을 가질 수도 있다. 또한 우리는 분포의 유한한 수의 샘플에만 접근할 수 있는 것이 일반적이다. 따라서 일반적으로 우리의 데이터는 고차원 공간에서 (비선형) 저차원 부분 다양체의 혼합에 분포되어 있다고 가정할 수 있다. \Cref{fig:mixture-manifolds}는 이러한 분포의 예를 보여준다.
+
+이러한 조건 하에서 이러한 분포를 학습하기 위해 우리가 다루어야 할 몇 가지 근본적인 질문이 있다:
+\begin{itemize}
+	\item 고차원 공간에서 일반적인 저차원 분포를 학습하고 학습된 분포를 표현하는 일반적인 접근 방식은 무엇인가?
+	\item 결과 표현의 복잡도를 어떻게 측정하여 학습을 위해 저차원성을 효과적으로 활용할 수 있는가?
+	\item 주변 차원이 일반적으로 높고 샘플 수가 일반적으로 많기 때문에, 학습 과정을 어떻게 계산적으로 다루기 쉽고 심지어 확장 가능하게 만들 수 있는가?
+\end{itemize}
+우리가 보게 될 것처럼, 선형/독립 경우에 매우 효과적인 것으로 입증된 {\em 압축} 또는 {\em 차원 축소}의 근본적인 아이디어는 일반적인 저차원 분포를 학습하기 위한 효과적인 계산 모델과 방법을 개발하는 일반적인 원리로 여전히 작용한다.
+
+이론적 및 실용적 중요성 때문에, 관심 분포가 저차원 부분 공간 또는 저랭크 가우시안의 혼합으로 잘 모델링되거나 근사될 수 있을 때 압축을 통한 저차원 분포 학습의 일반적인 프레임워크가 어떻게 구체화되는지 더 깊이 연구할 것이다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter3/figs/mixed-manifolds.png}
+    \caption{매우 고차원의 주변 공간(예: $\mathbb{R}^D$)에서 저차원 부분 다양체의 혼합 $\cup_j \mathcal{M}_j$에 분포된 데이터.}
+    \label{fig:mixture-manifolds}
+\end{figure}
+
 
 \section{엔트로피 최소화와 압축}
 
 \subsection{엔트로피와 코딩 레이트}
+\Cref{ch:intro}에서 언급했듯이, 학습의 목표는 주어진 데이터 집합을 생성하는 가장 간단한 방법을 찾는 것이다. 개념적으로, 콜모고로프 복잡도(Kolmogorov complexity)는 이러한 복잡도의 측정을 제공하고자 했지만, 이는 계산 불가능하며 실제로 데이터를 재현할 수 있는 구현 가능한 방법과 연관되어 있지 않다. 따라서 우리는 계산 가능하고 실현 가능한 대안적인 복잡도 측정이 필요하다. 이는 Shannon이 1948년에 도입한 {\em 엔트로피(entropy)}의 개념으로 이어진다 \cite{Shannon-1948}.
 
-% TODO: 번역 예정
+엔트로피의 구성적 특성을 설명하기 위해 가장 간단한 경우부터 시작해보자. $N$개의 서로 다른 값, 즉 \textit{토큰} $\{\x_1, \ldots, \x_N\}$을 동일한 확률 $1/N$로 취하는 이산 확률 변수가 있다고 가정하자. 그러면 각 토큰 \(\vx_{i}\)를 \(i\)의 \(\log_2 N\)-비트 이진 표현을 사용하여 인코딩할 수 있다. 이 코딩 방식은 임의의 이산 분포를 인코딩하는 것으로 일반화될 수 있다 \cite{Cover-Thomas}: $\sum_{i=1}^N p(\x_i) = 1$를 만족하는 분포 \(p\)가 주어졌을 때, 확률 $p(\x_i)$를 가진 각 토큰 $\x_i$에 $\log_2 [1/p(\x_i)] = - \log_2 p(\x_i)$ 비트 크기의 이진 코드를 할당할 수 있다. 따라서 분포 $p(\cdot)$에서 추출한 임의의 샘플을 인코딩하는 데 필요한 평균 비트 수, 즉 {\em 코딩 레이트(coding rate)}는 다음 식으로 주어진다:\footnote{정보 이론(Information Theory)의 관례에 따라 \cite{Cover-Thomas}, 여기서 $\log$는 밑이 $2$이다. 따라서 엔트로피는 (이진) 비트로 측정된다.}
+\begin{equation}
+	H(\x) \doteq \mathbb{E}[\log 1/p(\x)]  = - \sum_{i=1}^N p(\x_i) \log  p(\x_i).
+	\label{eqn:entropy-discrete}
+\end{equation}
+이것이 (이산) 분포 $p(\cdot)$의 {\em 엔트로피}로 알려져 있다. 이 엔트로피는 항상 음이 아니며, $i \in [N]$인 어떤 $\x_i$에 대해 $p(\x_i) = 1$일 때만 0이 된다.\footnote{여기서 우리는 $\lim_{p\rightarrow 0} p \log p = 0$이라는 사실을 사용한다는 점에 주목하라.}
 
 \subsection{차분 엔트로피}
 
-% TODO: 번역 예정
+확률 변수 $\x \in \R^{D}$가 연속이고 확률 밀도 $p$를 가질 때, 위의 합 \eqref{eqn:entropy-discrete}의 극한이 적분과 관련이 있다고 볼 수 있다:
+\begin{equation}
+	h(\vx) \doteq \Ex[\log 1/p(\vx)] = - \int_{\R^{D}} p(\vxi) \log p(\vxi) \odif{\vxi}.
+	\label{eqn:entropy-differential}
+\end{equation}
+{더 정확하게는, 연속 변수 $\x$가 주어졌을 때, 양자화 크기 $\epsilon > 0$로 이를 양자화할 수 있다. 결과로 얻은 이산 변수를 $\x^\epsilon$로 표기하자. 그러면 $H(\vx^\epsilon) + \log(\epsilon) \approx h(\vx)$임을 보일 수 있다. 따라서 $\epsilon$이 작을 때, 차분 엔트로피 $h(\x)$는 음수가 될 수 있다. 더 자세한 설명은 \cite{Cover-Thomas}를 참조하라.}
+
+\begin{example}[가우시안 분포의 엔트로피]
+	직접 계산을 통해, 가우시안 분포 $x \sim \mathcal{N}(\mu, \sigma^2)$의 엔트로피가 다음과 같이 주어짐을 보일 수 있다:
+	\begin{equation}
+		h(x) = \frac{1}{2}\log (2\pi \sigma^2) + \frac{1}{2}.
+		\label{eqn:entropy-Gaussian}
+	\end{equation}
+	또한 가우시안 분포는 동일한 분산 $\sigma^2$를 가진 모든 분포 중에서 최대 엔트로피를 달성하는 것으로 알려져 있다. $\mathbb{R}^D$에서 다변량 가우시안 분포 $\x \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$의 엔트로피는 다음과 같이 주어진다:
+	\begin{equation}
+		h(\x) = \frac{D}{2}(1 + \log(2\pi)) + \frac{1}{2}\log\det(\boldsymbol{\Sigma}).
+		\label{eqn:entropy-Gaussian-multi}
+	\end{equation}
+\end{example}
+
+이산 분포의 엔트로피와 유사하게, 우리는 차분 엔트로피가 실현 가능한 어떤 코딩 방식의 코딩 레이트와 연관되기를 원한다. 예를 들어, 위에서와 같이 분포의 정의역을 크기 $\epsilon >0$의 격자로 이산화할 수 있다. 결과로 얻은 이산 분포의 코딩 레이트는 차분 엔트로피에 대한 근사로 볼 수 있다 \cite{Cover-Thomas}.
+
+
+차분 엔트로피의 정의와 관련하여 주의해야 할 몇 가지 사항이 있다. 고차원 공간의 분포에 대해, 그 지지 집합이 퇴화(저차원)될 때, 차분 엔트로피는 \(-\infty\)로 발산한다. 이 사실은 \Cref{thm:max_entropy}에서 증명되지만(우리는 또한 \Cref{thm:max_entropy}에서 위에 언급된 가우시안 분포의 최대 엔트로피 특성을 상기한다), 가우시안 분포 \eqref{eqn:entropy-Gaussian-multi}의 간단하고 명시적인 경우에서도, 공분산 \(\vSigma\)가 특이행렬일 때 \(\log\det(\vSigma) = -\infty\)이므로 $h(\x) = -\infty$임을 알 수 있다. 이러한 상황에서는 이러한 분포를 적절하게 양자화하거나 인코딩하는 방법이 명확하지 않다. 그럼에도 불구하고, 퇴화된 (가우시안) 분포는 정확히 가장 간단하고, 틀림없이 가장 중요한, 고차원 공간에서 저차원 분포의 사례이다. 이 장에서는 퇴화와 관련된 이러한 명백한 어려움에 대한 완전한 해결책을 논의할 것이다.
 
 \subsection{코딩 레이트 최소화}\label{sub:min_entropy}
+학습 문제는 분포에서 추출된 샘플 집합 $\{\x_1, \ldots, \x_N\}$으로부터 (잠재적으로 연속인) 분포 $p(\x)$를 복원하는 것을 수반한다는 점을 기억하라. 설명의 편의를 위해 $\X = [\x_1, \ldots, \x_N] \in \mathbb{R}^{D\times N}$로 표기한다. 여기서 관심 있는 분포들이 (거의) 저차원이라는 점을 고려하면, 그들의 (차분) 엔트로피가 매우 작을 것으로 예상해야 한다. 그러나 이전 장에서 연구한 상황과 달리, 일반적으로 분포 $p(\x)$가 속하는 (해석적인) 저차원 모델의 패밀리를 알지 못한다. 따라서 엔트로피가 작은지 확인하는 것이 분포를 식별하고 모델링하기 위해 의존할 수 있는 유일한 지침인 것으로 보인다.
 
-% TODO: 번역 예정
+이제 $p(\x)$가 무엇인지 모르는 상태에서 샘플만 주어진다면, 이론적으로 이들은 어떤 일반적인 분포의 샘플로 해석될 수 있다. 특히, 다음 경우 중 하나로 해석될 수 있다:
+\begin{enumerate}
+	\item 경험적 분포 $p^{\vX}$ 자체의 샘플로, 이는 $N$개의 샘플 $\x_i, i=1, \ldots, N$ 각각에 $1/N$ 확률을 할당한다.
+	\item 충분히 큰 분산 $\sigma^2$(예: 샘플 노름보다 큰)를 가진 표준 정규 분포 $\x^n \sim p^{n} \doteq \mathcal{N}(\boldsymbol{0}, \sigma^2 \boldsymbol{I})$의 샘플로;
+	\item 공분산 $\hat{\vSigma} = \frac{1}{N} \X \X^T$가 샘플의 경험적 공분산인 정규 분포 $\x^e \sim p^{e} \doteq \mathcal{N}(\boldsymbol{0}, \hat{\vSigma})$의 샘플로;
+	\item 실제 분포 $p$를 밀접하게 근사하는 분포 $\hat \x \sim \hat{q}(\vx)$의 샘플로.
+\end{enumerate}
+이제 질문은: 어느 것이 더 나으며, 어떤 의미에서 그런가? 이 데이터 $\X$가 특정 분포 $q(\x)$(위에서 고려한 분포 중 하나일 수 있음)에서 추출되었다고 믿는다고 가정하자. 그러면 분포 $q(\x)$에 대한 최적 코드북으로 데이터 포인트를 인코딩할 수 있다. 필요한 평균 코딩 길이(또는 코딩 레이트)는 다음과 같이 주어진다:
+\begin{equation}
+	\frac{1}{N}\sum_{i=1}^N -\log q(\x_i) \quad \approx \quad - \int_{\R^{D}} p(\vxi) \log q(\vxi)\odif{\vxi}
+\end{equation}
+샘플 수 $N$이 커질수록. 올바른 분포 $p(\x)$를 식별했다면, 코딩 레이트는 엔트로피 $- \int p(\vxi) \log p(\vxi) \odif{\vxi}$로 주어진다. 위의 코딩 길이 $- \int p(\vxi) \log q(\vxi) \odif{\vxi}$는 $q(\x) = p(\x)$가 아닌 한 항상 엔트로피보다 크거나 같다는 것이 밝혀졌다. 그들의 차이는 다음과 같이 표기되며
+\begin{eqnarray}
+	\KL(p \mmid q) &\doteq& - \int_{\R^{D}} p(\vxi) \log q(\vxi) \odif{\vxi}  - \Big(- \int_{\R^{D}} p(\vxi) \log p(\vxi) \odif{\vxi} \Big)\\
+	&=& \int_{\R^{D}} p(\vxi) \log \frac{p(\vxi)}{q(\vxi)} \odif{\vxi}
+\end{eqnarray}
+{\em 쿨백-라이블러(Kullback-Leibler)} (KL) 발산, 또는 상대 엔트로피로 알려져 있다. 이 양은 항상 음이 아니다.
+\begin{theorem}[정보 부등식]\label{thm:information-inequality}
+	$p(\x), q(\x)$를 (동일한 지지 집합을 가진) 두 확률 밀도 함수라고 하자. 그러면 $\KL(p\mmid q) \ge 0$이며, 이 부등식이 등식이 되는 것은 $p = q$일 때만이다.\footnote{기술적으로, 이 등식은 ``거의 모든 곳에서''를 의미하는 것으로 받아들여져야 한다. 즉, 측도(부피)가 0인 집합을 제외하고는, 이 집합은 어떤 적분의 값에도 영향을 미치지 않기 때문이다.}
+\end{theorem}
+\begin{proof}
+	\begin{eqnarray*}
+		- \KL(p\mmid q)
+		&=& - \int_{\R^{D}} p(\vxi) \log \frac{p(\vxi)}{q(\vxi)} \odif{\vxi}
+		=  \int_{\R^{D}} p(\vxi) \log \frac{q(\vxi)}{p(\vxi)} \odif{\vxi} \\
+		&\le& \log \int_{\R^{D}} p(\vxi)  \frac{q(\vxi)}{p(\vxi)} \odif{\vxi} \label{eqn:jensen-KL}
+		= \log \int_{\R^{D}} q(\vxi) \odif{\vxi} = \log 1 = 0,
+	\end{eqnarray*}
+	여기서 첫 번째 부등식은 {\em 젠센의 부등식(Jensen's inequality)}과 함수 $\log(\cdot)$가 엄격하게 오목하다는 사실로부터 따라온다. 등식은 $p = q$일 때만 성립한다.
+\end{proof}
+
+따라서 샘플링된 데이터 집합 $\X$가 주어졌을 때, $p^{n}$, $p^{e}$, $\hat{q}$ 중 어느 경우가 더 나은지 결정하기 위해 $\X$에 대한 코딩 레이트를 비교하여 어느 것이 가장 낮은 레이트를 제공하는지 볼 수 있다. 위에서 분포에 대한 (이론적으로 달성 가능한) 코딩 레이트는 그 엔트로피와 밀접하게 관련되어 있음을 알고 있다. 일반적으로 다음을 가진다:
+\begin{equation}
+	h(\x^n) > h(\x^e) > h(\hat \x).
+\end{equation}
+따라서 데이터 $\X$가 이러한 각 분포와 관련된 코드북으로 인코딩되었다면, $\X$에 대한 코딩 레이트는 일반적으로 동일한 순서로 감소할 것이다:
+\begin{equation}
+	p(\x^n) \rightarrow p(\x^e) \rightarrow p(\hat \x).
+\end{equation}
+
+이 관찰은 저차원 구조를 가진 분포 $p(\x)$를 추구할 수 있는 방법에 대한 일반적인 지침을 제공한다. 두 가지 가능한 접근 방식을 제안한다:
+\begin{enumerate}
+	\item 높은 엔트로피를 가진 일반적인 분포(예: 정규 분포)에서 시작하여, 엔트로피를 줄임으로써 점진적으로 분포를 데이터의 (경험적) 분포로 변환한다.
+	\item 주어진 데이터를 인코딩하는 명시적 코딩 방식을 가진 (매개변수적 또는 비매개변수적) 분포의 큰 패밀리 중에서, 더 낮은 코딩 레이트를 제공하는 더 나은 코딩 방식을 점진적으로 찾는다.
+\end{enumerate}
+개념적으로 두 접근 방식은 본질적으로 동일한 것을 시도하고 있다. 첫 번째 접근 방식의 경우, 이러한 변환 경로가 존재하고 계산 가능한지 확인해야 한다. 두 번째 접근 방식의 경우, 선택된 패밀리가 충분히 풍부하고 실제 분포를 밀접하게 근사(또는 포함)할 수 있어야 한다. 어느 접근 방식이든, 더 낮은 엔트로피 또는 더 나은 코딩 레이트를 가진 솔루션이 효율적으로 계산될 수 있고 원하는 분포로 빠르게 수렴할 수 있도록 보장해야 한다.\footnote{예를 들어 이미지 및 텍스트와 같은 실세계 데이터의 분포.} 이 장의 나머지 두 섹션에서 두 접근 방식 모두를 탐구할 것이다.  %
 
 \section{잡음 제거를 통한 압축}\label{sub:compression_denoising}
 
-\subsection{확산 및 잡음 제거 과정}\label{sub:intro_diffusion_denoising}
+이 섹션에서는 최소 엔트로피 또는 코딩 레이트를 가진 표현을 갖도록 분포의 매개변수적 인코딩을 학습한 다음, 이 인코딩을 사용하여 표준 가우시안의 높은 엔트로피 샘플을 목표 분포의 낮은 엔트로피 샘플로 변환함으로써 분포 \(p(\vx)\)를 학습하는 \textit{자연스럽고} \textit{계산적으로 다루기 쉬운} 방법을 설명할 것이다. 이는 \Cref{fig:diffusion-chapter3}에 예시된 것처럼, 분포를 학습하고 샘플링하기 위해 위의 두 접근 방식을 모두 활용하는 방법론을 제시한다.
 
-% TODO: 번역 예정
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter3/figs/diffusion_pipeline.png}
+	\caption{등방성 가우시안 분포에서 시작하여 임의의 데이터 분포로 수렴하는 반복적 잡음 제거 과정의 예시.}
+	\label{fig:diffusion-chapter3}
+\end{figure}
+
+\subsection{확산 및 잡음 제거 과정} \label{sub:intro_diffusion_denoising}
+
+먼저 주어진 매우 잡음이 많은 샘플의 엔트로피를 데이터 분포의 낮은 엔트로피 샘플로 줄이는 절차를 찾고자 한다. 여기서는 잠재적인 접근 방식 중 하나를 설명하는데, 여러 방법 중 하나이지만 아마도 이 문제를 공략하는 가장 자연스러운 방법일 것이다. 먼저, 데이터 분포의 기존 샘플의 엔트로피를 \textit{점진적으로 증가시키는} 방법을 찾는다. 그런 다음, 이 과정의 \textit{근사 역}을 찾는다. 그러나 일반적으로 엔트로피를 증가시키는 연산은 원래 분포의 정보가 파괴될 수 있으므로 역이 존재하지 않는다. 따라서 우리는 (1) 엔트로피를 추가하는 연산이 간단하고 계산 가능하며 가역적인 형태를 취하고; (2) 위의 접근 방식 쌍에서 언급한 바와 같이 데이터 분포의 (매개변수적) 인코딩을 얻을 수 있는 특수한 경우를 다룰 것이다. 우리가 보게 될 것처럼, 위의 두 요소가 우리의 접근 방식을 가능하게 할 것이다.
+
+우리는 가장 간단한 방법, 즉 \textit{등방성 가우시안 잡음 추가}를 통해 엔트로피를 증가시킬 것이다. 보다 정확하게, 확률 변수 \(\vx\)가 주어졌을 때, 점진적인 잡음을 추가하는 \textit{확률 과정} \((\vx_{t})_{t \in [0, T]}\)를 고려할 수 있다. 즉,
+\begin{equation}\label{eq:additive_gaussian_noise_model}
+	\vx_{t} \doteq \vx + t\vg, \qquad \forall t \in [0, T],
+\end{equation}
+여기서 \(T \in [0, \infty)\)는 시간 지평이고 \(\vg \sim \dNorm(\vzero, \vI)\)는 \(\vx\)와 독립적으로 추출된다. 이 과정은 \textit{확산 과정(diffusion process)}의 예로, 시간이 지남에 따라 확률 질량을 \(\R^{D}\) 전체에 걸쳐 퍼뜨려 시간이 지남에 따라 엔트로피를 증가시키기 때문에 이렇게 명명되었다. 이 직관은 \Cref{fig:ve_forward_density}에 의해 그래픽으로 확인되며, 다음 정리를 통해 엄밀하게 확인된다.
+\begin{theorem}[\Cref{thm:diffusion_entropy_increases}의 단순화된 버전]
+	\((\vx_{t})_{t \in [0, T]}\)가 모델 \eqref{eq:additive_gaussian_noise_model}을 따른다고 가정하자. 임의의 \(t \in (0, T]\)에 대해, 확률 변수 \(\vx_{t}\)는 차분 엔트로피 \(h(\vx_{t}) > -\infty\)를 가진다. 또한, \(\vx\)에 대한 특정 기술적 조건 하에서,
+	\begin{equation}
+		\odv*{h(\vx_{t})}{t} > 0, \qquad \forall t \in (0, T],
+	\end{equation}
+	이는 잡음이 추가된 \(\vx\)의 엔트로피가 시간 \(t\)에 따라 증가함을 보인다.
+\end{theorem}
+증명은 기초적이지만 다소 길기 때문에 \Cref{sub:diffusion_entropy_increases}로 미룬다. 이 결과의 아직 명시되지 않은 주요 함의는 모든 \(t > 0\)에 대해 \(h(\vx_{t}) > h(\vx)\)라는 것이다. 이를 확인하려면, \(h(\vx) = -\infty\)이면 모든 \(t > 0\)에 대해 \(h(\vx_{t}) > -\infty\)이고, \(h(\vx) > -\infty\)이면 미적분학의 기본 정리에 의해 \(h(\vx_{t}) = h(\vx) + \int_{0}^{t}[\odv*{h(\vx_{s})}{s}]\odif{s} > h(\vx)\)이므로, 두 경우 모두 모든 \(t > 0\)에 대해 \(h(\vx_{t}) > h(\vx)\)임을 주목하라.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/ve_forward_diffusion_density.png}
+	\caption{\small\textbf{가우시안 혼합의 확산.} 왼쪽에서 오른쪽으로, \(t\)가 \(0\)에서 \(10\)까지 증가함에 따라 밀도의 진화를 대표 샘플과 함께 관찰한다. 각 영역은 밀도에 따라 색상이 지정된다(\(0.0\)은 완전히 흰색, \(> 0.01\)은 매우 진한 파란색, 그 사이의 모든 값은 중간 음영의 파란색). \(t\)가 증가함에 따라 확률 질량이 덜 집중되는 것을 관찰하며, 이는 엔트로피가 증가함을 나타낸다.}
+	\label{fig:ve_forward_density}
+\end{figure}
+
+잡음을 추가하는 역연산은 \textit{잡음 제거(denoising)}로 알려져 있다. 이는 위너 필터(Wiener filter) 및 칼만 필터(Kalman filter)와 같은 신호 처리 및 시스템 이론에서 고전적이고 잘 연구된 주제이다. \Cref{ch:classic}에서 논의된 PCA, ICA, 사전 학습과 같은 여러 문제는 잡음 제거 문제의 특정 사례이다. 고정된 \(t\)와 가산 가우시안 잡음 모델 \eqref{eq:additive_gaussian_noise_model}에 대해, 잡음 제거 문제는 \(t\)와 \(\vx_{t}\) 모두가 주어졌을 때 실제 확률 변수 \(\vx\)의 (기댓값에서) 최상의 근사를 형성하는 함수 \(\bar{\vx}^{\ast}(t, \cdot)\)를 학습하려는 시도로 공식화될 수 있다:
+\begin{equation}\label{eq:denoising_loss}
+	\bar{\vx}^{\ast}(t, \cdot) \in \argmin_{\bar{\vx}(t, \cdot)}\Ex_{\vx, \vx_{t}}\norm{\vx - \bar{\vx}(t, \vx_{t})}_{2}^{2}.
+\end{equation}
+가능한 모든 (제곱 적분 가능한) 함수에 대해 \(\bar{\vx}(t, \cdot)\)를 최적화할 때 이 문제의 해는 소위 \textit{베이즈 최적 잡음 제거기(Bayes optimal denoiser)}이다:
+\begin{equation}\label{eq:optimal_denoiser}
+	\bar{\vx}^{\ast}(t, \vxi) \doteq \Ex[\vx \mid \vx_{t} = \vxi].
+\end{equation}
+
+이 표현은 조건부 기댓값(즉, 조건부 평균 또는 조건부 평균)을 계산하기 위한 표기법 \(\bar{\vx}\)를 정당화한다. 간단히 말해, 잡음이 있는 입력에서 잡음을 제거하여 (잡음이 제거된) 원래 확률 변수의 (기댓값에서 그리고 \(\ell^{2}\)-거리에 대한) 최상의 추측을 출력하려고 시도한다.
+
+\begin{example}[가우시안 혼합에서 가우시안 잡음 제거]\label{example:denoising_gaussian_mixture}
+	이 예제에서는 매우 중요한 분포 클래스인 가우시안 혼합 모델에 대한 베이즈 최적 잡음 제거기를 계산한다. 시작하려면, 분포에 대한 매개변수를 고정하자: 혼합 가중치 \(\vpi \in \R^{K}\), 구성 요소 평균 \(\{\vmu_{k}\}_{k = 1}^{K} \subseteq \R^{D}\), 구성 요소 공분산 \(\{\vSigma_{k}\}_{k = 1}^{K} \subseteq \PSD(D)\), 여기서 \(\PSD(D)\)는 \(D \times D\) 대칭 양반정부호 행렬의 집합이다. 이제, \(\vx\)가 다음 2단계 절차로 생성된다고 가정하자:
+	\begin{itemize}
+		\item 먼저, 인덱스(또는 \textit{레이블}) \(y \in [K]\)가 확률 \(\pi_{k}\)로 \(y = k\)가 되도록 샘플링된다.
+		\item 둘째, \(\vx\)가 정규 분포 \(\dNorm(\vmu_{y}, \vSigma_{y})\)에서 샘플링된다.
+	\end{itemize}
+	그러면 \(\vx\)는 분포
+	\begin{equation}
+		\vx \sim \sum_{k = 1}^{K}\pi_{k}\dNorm(\vmu_{k}, \vSigma_{k}),
+	\end{equation}
+	를 가지며, 따라서
+	\begin{equation}
+		\vx_{t} = \vx + t\vg \sim \sum_{k = 1}^{K}\pi_{k}\dNorm(\vmu_{k}, \vSigma_{k} + t^{2}\vI).
+	\end{equation}
+	\(\phi(\vx ; \vmu, \vSigma)\)를 \(\vx\)에서 평가된 \(\dNorm(\vmu, \vSigma)\)의 확률 밀도로 정의하자. 이 표기법에서, \(\vx_{t}\)의 밀도는
+	\begin{equation}
+		p_{t}(\vx_{t}) = \sum_{k = 1}^{K}\pi_{k}\phi(\vx_{t} ; \vmu_{k}, \vSigma_{k} + t^{2}\vI).
+	\end{equation}
+
+	\(y\)에 조건화했을 때, 변수들은 결합 가우시안이다: \(\vx = \vmu_{y} + \vSigma_{y}^{1/2}\vu\)라고 하면, 여기서 \((\cdot)^{1/2}\)는 행렬 제곱근이고 \(\vu \sim \dNorm(\vzero, \vI)\)는 \(y\)(그리고 \(\vg\))와 독립적으로, 다음을 가진다
+	\begin{equation}
+		\mat{\vx \\ \vx_{t}} = \mat{\vmu_{y} \\ \vmu_{y}} + \mat{\vSigma_{y}^{1/2} & \vzero \\ \vSigma_{y}^{1/2} & t\vI}\mat{\vu \\ \vg}.
+	\end{equation}
+	이것은 \(\vx\)와 \(\vx_{t}\)가 (주장한 대로) (\(y\)에 조건화하여) 결합 가우시안임을 보여준다. 따라서 다음과 같이 쓸 수 있다
+	\begin{equation}
+		\mat{\vx \\ \vx_{t}} \sim \dNorm\rp{\mat{\vmu_{y} \\ \vmu_{y}}, \mat{\vSigma_{y} & \vSigma_{y} \\ \vSigma_{y} & \vSigma_{y} + t^{2}\vI}}.
+	\end{equation}
+	따라서 \(\vx_{t}\)가 주어졌을 때 \(\vx\)의 조건부 기댓값(즉, \(y\)에 조건화된 베이즈 최적 잡음 제거기)은 잘 알려진 바와 같이 (\Cref{exercise:conditional_gaussian})
+	\begin{equation}
+		\Ex[\vx \mid \vx_{t}, y] = \vmu_{y} + \vSigma_{y}(\vSigma_{y} + t^{2}\vI)^{-1}(\vx_{t} - \vmu_{y}).
+	\end{equation}
+	전체 베이즈 최적 잡음 제거기를 찾기 위해, 반복 기댓값의 법칙을 사용하여 다음을 얻는다
+	\begin{align}
+		\bar{\vx}^{\ast}(t, \vx_{t})
+		&= \Ex[\vx \mid \vx_{t}] \\
+		&= \Ex[\Ex[\vx \mid \vx_{t}, y] \mid \vx_{t}] \\
+		&= \sum_{k = 1}^{K}\Pr[y = k \mid \vx_{t}]\Ex[\vx \mid \vx_{t}, y = k].
+	\end{align}
+	확률은 다음과 같이 처리할 수 있다. \(p_{t \mid y}\)를 \(y\)의 값에 조건화된 \(\vx_{t}\)의 확률 밀도라고 하자. 그러면
+	\begin{align}
+		\Pr[y = k \mid \vx_{t}]
+		&= \frac{p_{t \mid y}(\vx_{t} \mid k)\pi_{k}}{p_{t}(\vx_{t})} \\
+		&= \frac{\pi_{k}\phi(\vx_{t} ; \vmu_{k}, \vSigma_{k}
+		+ t^{2}\vI)}{\sum_{i = 1}^{K}\pi_{i}\phi(\vx_{t} ; \vmu_{i}, \vSigma_{i} + t^{2}\vI)}.
+	\end{align}
+	한편, 조건부 기댓값은 이전에 설명한 대로이다:
+	\begin{equation}
+		\Ex[\vx \mid \vx_{t}, y = k] = \vmu_{k} + \vSigma_{k}(\vSigma_{k} + t^{2}\vI)^{-1}(\vx_{t} - \vmu_{k}).
+	\end{equation}
+	따라서 이 모든 것을 종합하면, 실제 베이즈 최적 잡음 제거기는
+	\begin{equation}\label{eq:gmm_bayes_optimal_denoiser}
+		\bar{\vx}^{\ast}(t, \vx_{t}) = \sum_{k = 1}^{K}\frac{\pi_{k}\phi(\vx_{t}
+		;\vmu_{k}, \vSigma_{k} + t^{2}\vI)}{\sum_{i = 1}^{K}\pi_{i}\phi(\vx_{t}
+		;\vmu_{i}, \vSigma_{i} + t^{2}\vI)}\cdot\bp{\vmu_{k} + \vSigma_{k}(\vSigma_{k} + t^{2}\vI)^{-1}(\vx_{t} - \vmu_{k})}.
+	\end{equation}
+	이 예제는 특히 중요하며, 몇 가지 특수한 경우는 나중에 훌륭한 개념적 통찰을 제공할 것이다. 지금은 최적 잡음 제거기 \eqref{eq:gmm_bayes_optimal_denoiser}의 함수 형태에서 일부 기하학적 직관을 추출하려고 시도하자.
+
+	\eqref{eq:gmm_bayes_optimal_denoiser}를 직관적으로 이해하기 위해, 먼저 \(K = 1\)(즉, 하나의 가우시안)로 설정하여 \(\vx \sim \dNorm(\vmu, \vSigma)\)가 되도록 하자. 그런 다음 \(\vSigma = \vV\vLambda \vV^{\top}\)로 대각화하자. 그러면 베이즈 최적 잡음 제거기는
+	\begin{equation}
+		\bar{\vx}^{\ast}(t, \vx_{t}) = \vmu + \vSigma(\vSigma + t^{2}\vI)^{-1}(\vx_{t} - \vmu) = \vmu + \vV\mat{\lambda_{1}/(\lambda_{1} + t^{2}) & & \\ & \ddots & \\ & & \lambda_{D}/(\lambda_{D} + t^{2})}\vV^{\top}(\vx_{t} - \vmu),
+	\end{equation}
+	여기서 \(\lambda_{1}, \dots, \lambda_{D}\)는 \(\vSigma\)의 고유값이다. 이 잡음 제거기가 세 단계를 가짐을 관찰할 수 있다:
+	\begin{itemize}
+		\item 입력 \(\vx_{t}\)를 \(\vmu\)만큼 평행이동한다.
+		\item (평행이동된) 입력 \(\vx_{t} - \vmu\)를 각 고유벡터 방향으로 \(\lambda_{i}/(\lambda_{i} + t^{2})\)만큼 축소한다. 평행이동된 입력이 저랭크이고 \(\vSigma\)의 일부 고유값이 0이면, 이러한 방향은 잡음 제거기에 의해 즉시 \(0\)으로 축소되어 축소의 출력이 유사하게 저랭크임을 보장한다.
+		\item 출력을 \(\vmu\)만큼 다시 평행이동한다.
+	\end{itemize}
+	현재 \(\vx_{t}\)를 평균 \(\vmu\)로 축소한다는 것을 보이기는 쉽다:
+	\begin{equation}\label{eq:contraction}
+		\norm{\bar{\vx}^{\ast}(t, \vx_{t}) - \vmu}_{2} \leq \norm{\vx_{t} - \vmu}_{2}.
+	\end{equation}
+
+	이것이 \textit{단일} 가우시안의 잡음 제거기에 대한 기하학적 해석이다. 가우시안 혼합 모델의 전체 잡음 제거기 \eqref{eq:gmm_bayes_optimal_denoiser}는 \(K\)개의 이러한 잡음 제거기를 사용하여 사후 확률 \(\Pr[y = k \mid \vx_{t}]\)로 출력에 가중치를 부여한다. 가우시안의 평균이 잘 분리되어 있으면, 이러한 사후 확률은 각 평균 또는 클러스터 근처에서 \(0\) 또는 \(1\)에 매우 가깝다. 이 체제에서, 전체 잡음 제거기 \eqref{eq:gmm_bayes_optimal_denoiser}는 위의 단일 가우시안 잡음 제거기와 동일한 기하학적 해석을 가진다.
+
+    언뜻 보기에, 이러한 축소 매핑 \eqref{eq:contraction}은 거듭제곱 반복(power iterations)(\Cref{subsec:power iterations} 참조)과 유사해 보일 수 있다. 그러나 둘은 근본적으로 다르다. 거듭제곱 반복은 부분 공간으로의 축소 매핑을 구현하는데, 즉 첫 번째 주성분이 걸쳐 있는 부분 공간이다. 대조적으로, \eqref{eq:contraction}의 반복은 단일 점인 기본 분포의 평균 \(\vmu\)로 수렴한다.
+\end{example}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/ve_forward_diffusion_denoising.png}\vspace{-0.15in}
+	\caption{\small \textbf{가우시안 혼합 모델의 베이즈 최적 잡음 제거기와 스코어.} \Cref{fig:ve_forward_density}와 동일한 설정에서, 일부 선택 \(t\)와 \(\vx_{t}\)에 대해 \(\vx_{t}\)(빨간색)와 \(\bar{\vx}^{\ast}(t, \vx_{t})\)(녹색)를 플로팅하여 베이즈 최적 잡음 제거기 \(\bar{\vx}^{\ast}\)의 효과를 보여준다. Tweedie의 공식 \Cref{thm:tweedie}에 의해, 그들 사이의 잔차는 소위 (Hyv\"arinen) 스코어 \(\nabla_{\vx_{t}}\log p_{t}(\vx_{t})\)에 비례한다. 스코어가 \(\vx_{t}\) 분포의 모드를 가리킴을 볼 수 있다.}
+	\label{fig:ve_forward_denoising}
+\end{figure}
+
+직관적으로, 그리고 \Cref{example:denoising_gaussian_mixture}에서 볼 수 있듯이, 베이즈 최적 잡음 제거기 \(\bar{\vx}^{\ast}(t, \cdot)\)는 입력 \(\vx_{t}\)를 \(\vx\) 분포의 모드로 이동시켜야 한다. 실제로, 베이즈 최적 잡음 제거기가 \(\vx_{t}\)의 (로그) 밀도에 대해 \textit{경사 상승 단계를 취한다}는 것을 보임으로써 이를 정량화할 수 있다는 것이 밝혀졌다. 즉, 잡음 제거기를 따르는 것은 입력 반복에서 이 (섭동된) 분포 내에서 더 높은 확률 영역으로 이동하는 것을 의미한다. 작은 \(t\)의 경우, 섭동이 작으므로 우리의 초기 직관이 (거의) 정확히 맞다. 그림은 \Cref{fig:ve_forward_denoising}에 시각화되어 있으며 Tweedie의 공식 \cite{Robbins1956AnEB}으로 엄밀하게 공식화된다.
+\begin{theorem}[Tweedie의 공식]\label{thm:tweedie}
+	\((\vx_{t})_{t \in [0, T]}\)가 \eqref{eq:additive_gaussian_noise_model}을 따른다고 가정하자. \(p_{t}\)를 (이전에 선언한 대로) \(\vx_{t}\)의 밀도라고 하자. 그러면
+	\begin{equation}\label{eq:tweedie}
+		\Ex[\vx \mid \vx_{t}] = \vx_{t} + t^{2}\nabla_{\vx_{t}} \log p_{t}(\vx_{t}).
+	\end{equation}
+\end{theorem}
+\begin{proof}
+	증명을 위해 \(\vx\)가 밀도를 가진다고 가정하자(비록 정리가 이 가정 없이도 참이지만), 이 밀도를 \(p\)라고 하자. \(p_{0 \mid t}\)와 \(p_{t \mid 0}\)를 각각 \(\vx_{t}\)가 주어졌을 때 \(\vx = \vx_{0}\)의 조건부 밀도와 \(\vx\)가 주어졌을 때 \(\vx_{t}\)의 조건부 밀도라고 하자. \(\phi(\vx ; \vmu, \vSigma)\)를 \(\vx\)에서 평가된 \(\dNorm(\vmu, \vSigma)\)의 밀도라고 하면, \(p_{t \mid 0}(\vx_{t} \mid \vx) = \phi(\vx_{t} ; \vx, t^{2}\vI)\)이다. 그러면 간단한 계산으로 다음을 얻는다
+	\begin{align}
+		\nabla_{\vx_{t}} \log p_{t}(\vx_{t})
+		&= \frac{\nabla_{\vx_{t}}p_{t}(\vx_{t})}{p_{t}(\vx_{t})} \\
+		&= \frac{1}{p_{t}(\vx_{t})}\nabla_{\vx_{t}}\int_{\R^{D}}p(\vx)p_{t \mid 0}(\vx_{t} \mid \vx)\odif{\vx} \\
+		&=
+		\frac{1}{p_{t}(\vx_{t})}\nabla_{\vx_{t}}\int_{\R^{D}}p(\vx)\phi(\vx_{t}
+		;\vx, t^{2}\vI)\odif{\vx} \\
+		&=
+		\frac{1}{p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)[\nabla_{\vx_{t}}\phi(\vx_{t}
+		;\vx, t^{2}\vI)]\odif{\vx} \\
+		&= \frac{1}{p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)\phi(\vx_{t} ; \vx, t^{2}\vI)\bs{-\frac{\vx_{t} - \vx}{t^{2}}}\odif{\vx} \\
+		&= \frac{1}{t^{2}p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)\phi(\vx_{t} ; \vx, t^{2}\vI)[\vx - \vx_{t}]\odif{\vx} \\
+		&= \frac{1}{t^{2}p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)\phi(\vx_{t} ; \vx,
+		t^{2}\vI)\vx \odif{\vx}
+		- \frac{\vx_{t}}{t^{2}p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)\phi(\vx_{t} ; \vx, t^{2}\vI)\odif{\vx} \\
+		&= \frac{1}{t^{2}p_{t}(\vx_{t})}\int_{\R^{D}}p(\vx)p_{t \mid 0}(\vx_{t} \mid \vx)\vx \odif{\vx} - \frac{\vx_{t}}{t^{2}p_{t}(\vx_{t})}p_{t}(\vx_{t}) \\
+		&= \frac{1}{t^{2}p_{t}(\vx_{t})}\int_{\R^{D}}p_{t}(\vx_{t})p_{0 \mid t}(\vx \mid \vx_{t})\vx \odif{\vx} - \frac{\vx_{t}}{t^{2}p_{t}(\vx_{t})}p_{t}(\vx_{t}) \\
+		&= \frac{1}{t^{2}}\int_{\R^{D}}p_{0 \mid t}(\vx \mid \vx_{t})\vx \odif{\vx} - \frac{\vx_{t}}{t^{2}} \\
+		&= \frac{1}{t^{2}}\Ex[\vx \mid \vx_{t}] - \frac{\vx_{t}}{t^{2}} \\
+		&= \frac{\Ex[\vx \mid \vx_{t}] - \vx_{t}}{t^{2}}.
+	\end{align}
+	위 등식의 간단한 재배열은 정리를 증명한다.
+\end{proof}
+이 결과는 잡음 제거와 최적화 사이의 연결을 발전시킨다: 베이즈 최적 잡음 제거기는 섭동된 데이터 밀도 \(p_{t}\)에 대해 경사 상승의 단일 단계를 취하며, 데이터 분포에 대한 섭동이 작아질수록 단계 크기가 적응적으로 더 작아진다(즉, 더 정밀한 단계를 취한다). \(\nabla_{\vx_{t}}\log p_{t}(\vx_{t})\)라는 양은 \textit{(Hyv\"arinen) 스코어}라고 불리며 잡음 제거 등에 대한 논의에서 자주 나타난다; ICA의 맥락에서 Aapo Hyv\"arinen의 논문에 처음 등장했다 \cite{hyvarinen05a}.
+
+최적에서 멀리 초기화할 때 실제로 경사 하강의 한 단계가 목적 함수를 최소화하기에 거의 충분하지 않은 것과 유사하게, 베이즈 최적 잡음 제거기 \(\bar{\vx}^{\ast}(t, \cdot)\)의 출력은 \(t\)가 클 때 데이터 분포의 높은 확률 영역에 거의 포함되지 않으며, \textit{특히} 데이터가 저차원 구조를 가질 때 그렇다. 다음 예제에서 이 점을 명시적으로 설명한다.
+\begin{example}[2점 혼합의 잡음 제거]\label{example:denoising_twopoints}
+	\(x\)가 2점 집합 \(\{-1, +1\}\)에서 균등하게 분포되고 \((\vx_{t})_{t \in [0, T]}\)가 \eqref{eq:additive_gaussian_noise_model}을 따른다고 하자. 이것은 정확히 사전 확률이 \(\frac{1}{2}\)이고, 평균이 \(\{-1, +1\}\)이며, 공분산이 모두 \(0\)인 퇴화된 가우시안 혼합 모델이다. 고정된 \(t > 0\)에 대해 \eqref{eq:gmm_bayes_optimal_denoiser}에서 베이즈 최적 잡음 제거기의 계산을 사용하여 다음을 얻을 수 있다(증명은 연습 문제로)
+	\begin{equation}
+		\bar{x}^{\ast}(t, x_{t}) = \frac{\phi(x_{t} ; +1, t^{2}) - \phi(x_{t}
+		; -1, t^{2})}{\phi(x_{t} ; 1, t^{2}) + \phi(x_{t} ; -1, t^{2})} = \tanh\rp{-\frac{x_{t}}{t^{2}}}.
+	\end{equation}
+	\(0\)에 가까운 \(t\)의 경우, 이 양은 거의 모든 입력 \(\bar{x}^{\ast}(t, x_{t})\)에 대해 \(\{-1, +1\}\)에 가깝다. 그러나 \(t\)가 클 때, 이 양은 \(x\)의 원래 지지 집합인 \(\{-1, +1\}\)에 반드시 근사적으로 있지 않다. 특히, \(x_{t} \approx 0\)에 대해 \(\bar{x}^{\ast}(t, x_{t}) \approx 0\)가 성립하며 이는 두 가능한 점 사이에 완전히 위치한다. 따라서 \(\bar{x}^{\ast}\)는 \textit{``현실적인'' \(x\)를 출력하지 않을 것이다}. 또는 더 수학적으로, \(\bar{x}(t, x_{t})\)의 분포는 \(x\)의 분포와 매우 다르다.
+\end{example}
+
+따라서 매우 잡음이 많은 샘플 \(\vx_{T}\)(여기서—기억하라—\(T\)는 최대 시간)를 잡음 제거하려면, 잡음 제거기를 \textit{한 번만} 사용할 수 없다. 대신, 정상점 \(\hat{\vx}\)로 수렴하기 위해 \textit{감소하는 단계 크기}를 가진 경사 하강과 유사하게 잡음 제거기를 여러 번 사용해야 한다. 즉, 잡음 제거기를 사용하여 \(\vx_{T}\)에서 \(\vx_{T - \delta}\)를 근사하는 \(\hat{\vx}_{T - \delta}\)로, 그런 다음 \(\hat{\vx}_{T - \delta}\)에서 \(\hat{\vx}_{T - 2\delta}\)로, 등등, \(\hat{\vx}_{\delta}\)에서 \(\hat{\vx} = \hat{\vx}_{0}\)까지 진행한다. 잡음 제거 단계를 취할 때마다, 잡음 제거기의 작용은 원래 (로그) 밀도에 대한 경사 단계와 더 유사해진다.
+
+더 형식적으로, \([0, T]\)를 \(L + 1\)개의 시간 단계 \(0 = t_{0} < t_{1} < \cdots < t_{L} = T\)로 균일하게 이산화한다. 즉,
+\begin{equation}
+	t_{\ell} = \frac{\ell}{L}T, \qquad \ell \in \{0, 1, \dots, L\}.
+\end{equation}
+그런 다음 각 \(\ell \in [L] = \{1, 2, \dots, L\}\)에 대해, \(\ell = L\)에서 \(\ell = 1\)까지 진행하면서 다음 반복을 실행할 수 있다
+\begin{align}
+	\hat{\vx}_{t_{\ell - 1}}
+	&= \Ex[\vx_{t_{\ell - 1}} \mid \vx_{t_{\ell}} = \hat{\vx}_{t_{\ell}}] \\
+	&= \Ex[\vx + t_{\ell - 1}\vg \mid \vx_{t_{\ell}} = \hat{\vx}_{t_{\ell}}] \\
+	&= \Ex\rs{\vx + t_{\ell - 1}\cdot\frac{\vx_{t_{\ell}} - \vx}{t_{\ell}} \given \vx_{t_{\ell}} = \hat{\vx}_{t_{\ell}}} \\
+	&= \frac{t_{\ell - 1}}{t_{\ell}}\hat{\vx}_{t_{\ell}} + \bp{1 - \frac{t_{\ell - 1}}{t_{\ell}}}\Ex[\vx \mid \vx_{t_{\ell}} = \hat{\vx}_{t_{\ell}}] \\
+	&= \bp{1 - \frac{1}{\ell}}\cdot\hat{\vx}_{t_{\ell}} + \frac{1}{\ell}\cdot\bar{\vx}^{\ast}(t_{\ell}, \hat{\vx}_{t_{\ell}}).
+\end{align}
+이 반복의 효과는 다음과 같다. 반복의 시작, 즉 \(\ell\)이 클 때, 우리는 잡음 제거기의 출력을 거의 신뢰하지 않고 대부분 현재 반복을 유지한다. 이는 잡음 제거기가 큰 분산을 가질 수 있기 때문에 타당하다(\Cref{example:denoising_twopoints} 참조). \(\ell\)이 작을 때, 잡음 제거기는 데이터 분포의 모드에 ``고정''되는데, 잡음 제거 단계가 기본적으로 실제 분포의 로그 밀도에 대한 경사 단계를 취하고, 비합리적인 샘플을 생성하지 않도록 신뢰할 수 있으므로, 잡음 제거 단계는 주로 잡음 제거기의 출력을 포함한다. \(\ell = 1\)에서 우리는 심지어 현재 반복을 버리고 잡음 제거기의 출력만 유지한다.
+
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/ve_gmm_denoising.png}
+	\caption{\small\textbf{저랭크 가우시안 혼합의 잡음 제거.} 각 그림은 실제 데이터 분포의 샘플(회색, 주황색, 빨간색)과 잡음 제거 과정 \eqref{eq:denoising-iteration-basic}를 거치는 샘플(연한 파란색)을 나타낸다. 왼쪽 상단에서 과정이 막 시작되었고 잡음이 매우 크다. 과정이 계속됨에 따라 잡음이 저랭크 데이터 분포의 지지 집합으로 더 밀려난다. 마지막으로, 오른쪽 하단에서 생성된 샘플은 데이터의 지지 집합과 완벽하게 정렬되며 저랭크 가우시안 혼합 모델에서 추출된 샘플과 매우 유사하다.}
+	\label{fig:ve_gmm_denoising}
+\end{figure}
+
+위는 잡음 제거 과정이 수렴할 것으로 예상하는 이유에 대한 직관이다. \(\R^{3}\)에서 수렴 과정을 \Cref{fig:ve_gmm_denoising}에 시각화한다. 나중에 수렴에 대한 일부 엄밀한 결과를 개발할 것이다. 지금은, 엔트로피를 줄이는 과정을 구축하고자 했음을 기억하라. 엔트로피를 추가하는 과정을 역전시킴으로써 돌아가는 방식으로 이를 수행했지만, 이제 반복적 잡음 제거 과정이 엔트로피를 줄인다는 것을 확인할 때가 되었다.
+
+\begin{theorem}[\Cref{thm:conditioning_reduces_entropy}의 단순화된 버전]
+	\((\vx_{t})_{t \in [0, T]}\)가 \eqref{eq:additive_gaussian_noise_model}을 따른다고 가정하자. 그러면, \(\vx\)에 대한 특정 기술적 조건 하에서, \(s, t \in (0, T]\)인 모든 \(s < t\)에 대해,
+	\begin{equation}
+		h(\Ex[\vx_{s} \mid \vx_{t}]) < h(\vx_{t}).
+	\end{equation}
+\end{theorem}
+정리의 완전한 진술과 증명 자체는 약간의 기술적 내용을 요구하므로 \Cref{sub:denoising_entropy_decreases}로 연기된다.
+
+여기서 논의하는 마지막 사항은 우리가 분포 \(p_{t}\)를 가지고 있지 않기 때문에 많은 경우 임의의 \(t\)에 대해 \(\bar{\vx}^{\ast}(t, \cdot)\)를 \textit{계산할 수 없다}는 것이다. 그러나 \textit{데이터로부터 하나를 학습}하려고 시도할 수 있다. 잡음 제거기 \(\bar{\vx}^{\ast}\)가 평균 제곱 오차 \(\Ex\norm{\bar{\vx}(t, \vx_{t}) - \vx}_{2}^{2}\)를 최소화하는 것으로 \eqref{eq:denoising_loss}에서 정의됨을 상기하라. 이 평균 제곱 오차를 잡음 제거기를 학습하기 위한 손실 또는 목적 함수로 사용할 수 있다. 예를 들어, \(\bar{\vx}(t, \cdot)\)를 신경망으로 매개변수화하여 \(\bar{\vx}_{\theta}(t, \cdot)\)로 쓰고, 매개변수 공간 \(\Theta\)에 대해 손실을 최적화할 수 있다:
+\begin{equation}
+	\min_{\theta \in \Theta}\Ex_{\vx, \vx_{t}}\norm{\bar{\vx}_{\theta}(t, \vx_{t}) - \vx}_{2}^{2}.
+\end{equation}
+경사 하강 또는 유사한 알고리즘을 통해 구현된 이 최적화 문제의 해는 \(\bar{\vx}^{\ast}(t, \cdot)\)에 대한 좋은 근사인 \(\bar{\vx}_{\theta^{\ast}}(t, \cdot)\)를 제공할 것이며(적어도 훈련이 작동한다면), 이를 잡음 제거기로 사용할 것이다.
+
+이 신경망 \(\bar{\vx}_{\theta^{\ast}}(t, \cdot)\)에 대한 좋은 아키텍처는 무엇인가? 이 질문에 답하기 위해, \Cref{example:denoising_gaussian_mixture}에서 잡음 제거기를 계산한 \textit{가우시안 혼합 모델}의 보편적인 경우를 검토할 것이다. 이 모델은 많은 유형의 분포를 근사할 수 있기 때문에 관련이 있다: 특히, \(\vx\)에 대한 분포가 주어지면, 이를 임의로 잘 근사할 수 있는 가우시안 혼합 모델이 존재한다. 따라서 가우시안 혼합 모델에 대한 잡음 제거기 클래스 중에서 최적화하면 실제 데이터 분포에 대한 최적 잡음 제거기에 가까운 것을 얻을 수 있다.
+
+우리의 경우, \(\vx\)가 저차원이라고 가정하는데, 이는 느슨하게 \(\vx\)가 \textit{저랭크 가우시안의 혼합}에 따라 \textit{근사적으로} 분포된다는 요구 사항으로 변환된다. 형식적으로, 다음과 같이 쓴다
+\begin{equation}\label{eq:MoG1}
+	\vx \sim \frac{1}{K}\sum_{k = 1}^{K}\dNorm(\vzero, \vU_{k}\vU_{k}^{\top})
+\end{equation}
+여기서 \(\vU_{k} \in \O(D, P) \subseteq \R^{D \times P}\)는 직교 행렬이다. 그러면 \eqref{eq:additive_gaussian_noise_model} 하의 최적 잡음 제거기는 (\Cref{example:denoising_gaussian_mixture}로부터)
+\begin{equation}
+	\bar{\vx}^{\ast}(t, \vx_{t}) = \sum_{k = 1}^{K}\frac{\phi(\vx_{t} ; \vzero,
+	\vU_{k}\vU_{k}^{\top} + t^{2}\vI)}{\sum_{i = 1}^{K}\phi(\vx_{t} ; \vzero, \vU_{i}\vU_{i}^{\top} + t^{2}\vI)}\cdot\bp{\vU_{k}\vU_{k}^{\top}(\vU_{k}\vU_{k}^{\top} + t^{2}\vI)^{-1}\vx_{t}}.
+\end{equation}
+\(\phi\) 계산 내부와 외부에서 역 \((\vU_{k}\vU_{k}^{\top} + t^{2}\vI)^{-1}\)을 계산한다는 점에 주목하라. 이것은 전체 랭크 행렬 \(t^{2}\vI\)의 저랭크 섭동이므로 \textit{Sherman-Morrison-Woodbury 항등식}을 통한 단순화에 적합하다. 즉, 행렬 \(\vA, \vC, \vU, \vV\)에 대해 \(\vA\)와 \(\vC\)가 가역일 때,
+\begin{equation}\label{eq:sherman_morrison_woodbury}
+	(\vA + \vU\vC\vV)^{-1} = \vA^{-1} - \vA^{-1}\vU(\vC^{-1} + \vV\vA^{-1}\vU)^{-1}\vV\vA^{-1}.
+\end{equation}
+이 항등식은 \Cref{exercise:sherman_morrison_woodbury_identity}에서 증명한다. 지금은 \(\vA = t^{2}\vI\), \(\vU = \vU_{k}\), \(\vV = \vU_{k}^{\top}\), \(\vC = \vI\)로 이 항등식을 적용하여 다음을 얻는다
+\begin{align}
+	(\vU_{k}\vU_{k}^{\top} + t^{2}\vI)^{-1}
+	&= \frac{1}{t^{2}}\vI - \frac{1}{t^{4}}\vU_{k}\bp{\vI + \frac{1}{t^{2}}\vU_{k}^{\top}\vU_{k}}^{-1}\vU_{k}^{\top} \\
+	&= \frac{1}{t^{2}}\vI - \frac{1}{t^{4}\bp{1 + \frac{1}{t^{2}}}}\vU_{k}\vU_{k}^{\top} \\
+	&= \frac{1}{t^{2}}\bp{\vI - \frac{1}{1 + t^{2}}\vU_{k}\vU_{k}^{\top}}.
+\end{align}
+그런 다음 다음과 같이 사후 확률을 계산할 수 있다. \(\vU_{k}\)가 모두 직교하므로, 각 \(k\)에 대해 \(\det(\vU_{k}\vU_{k}^{\top} + t^{2}\vI)\)가 모두 동일하다는 점에 주목하라. 따라서
+\begin{align}
+	\frac{\phi(\vx_{t} ; \vzero, \vU_{k}\vU_{k}^{\top} + t^{2}\vI)}{\sum_{i
+	= 1}^{K}\phi(\vx_{t} ; \vzero, \vU_{i}\vU_{i}^{\top} + t^{2}\vI)}
+	&= \frac{\exp\rp{-\frac{1}{2}\vx_{t}^{\top}(\vU_{k}\vU_{k}^{\top} + t^{2}\vI)^{-1}\vx_{t}}}{\sum_{i = 1}^{K}\exp\rp{-\frac{1}{2}\vx_{t}^{\top}(\vU_{i}\vU_{i}^{\top} + t^{2}\vI)^{-1}\vx_{t}}} \\
+	&= \frac{\exp\rp{-\frac{1}{2t^{2}}\vx_{t}^{\top}\bp{\vI - \frac{1}{1 + t^{2}}\vU_{k}\vU_{k}^{\top}}\vx_{t}}}{\sum_{i = 1}^{K}\exp\rp{-\frac{1}{2t^{2}}\vx_{t}^{\top}\bp{\vI - \frac{1}{1 + t^{2}}\vU_{i}\vU_{i}^{\top}}\vx_{t}}} \\
+	&= \frac{\exp\rp{-\frac{1}{2t^{2}}\norm{\vx_{t}}_{2}^{2} + \frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{k}^{\top}\vx_{t}}_{2}^{2}}}{\sum_{i = 1}^{K}\exp\rp{-\frac{1}{2t^{2}}\norm{\vx_{t}}_{2}^{2} + \frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{i}^{\top}\vx_{t}}_{2}^{2}}} \\
+	&= \frac{\exp\rp{-\frac{1}{2t^{2}}\norm{\vx_{t}}_{2}^{2}}\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{k}^{\top}\vx_{t}}_{2}^{2}}}{\exp\rp{-\frac{1}{2t^{2}}\norm{\vx_{t}}_{2}^{2}}\sum_{i = 1}^{K}\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{i}^{\top}\vx_{t}}_{2}^{2}}} \\
+	&= \frac{\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{k}^{\top}\vx_{t}}_{2}^{2}}}{\sum_{i = 1}^{K}\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{i}^{\top}\vx_{t}}_{2}^{2}}}.
+\end{align}
+이것은 각 부분 공간으로의 \(\vx_{t}\)의 투영에 의해 가중된 소프트맥스 연산이며 \(\norm{\vU_{i}^{\top}\vx_{t}}_{2}\)로 측정된다(온도 \(2t^{2}(1 + t^{2})\)로 조정됨). 한편, 구성 요소 잡음 제거기는 다음과 같이 쓸 수 있다
+\begin{align}
+	\vU_{k}\vU_{k}^{\top}(\vU_{k}\vU_{k}^{\top} + t^{2}\vI)^{-1}\vx_{t}
+	&= \frac{1}{t^{2}}\vU_{k}\vU_{k}^{\top}\bp{\vI - \frac{1}{1 + t^{2}}\vU_{k}\vU_{k}^{\top}}\vx_{t} \\
+	&= \frac{1}{t^{2}}\bp{1 - \frac{1}{1 + t^{2}}}\vU_{k}\vU_{k}^{\top}\vx_{t} \\
+	&= \frac{1}{1 + t^{2}}\vU_{k}\vU_{k}^{\top}\vx_{t}.
+\end{align}
+이들을 종합하면, 다음을 가진다
+\begin{equation}\label{eq:gmm_lowrank_denoiser}
+	\bar{\vx}^{\ast}(t, \vx_{t}) = \frac{1}{1 + t^{2}}\sum_{k = 1}^{K}\frac{\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{k}^{\top}\vx_{t}}_{2}^{2}}}{\sum_{i = 1}^{K}\exp\rp{\frac{1}{2t^{2}(1 + t^{2})}\norm{\vU_{i}^{\top}\vx_{t}}_{2}^{2}}}\vU_{k}\vU_{k}^{\top}\vx_{t},
+\end{equation}
+즉, \(\vx_{t}\)의 이차 함수의 소프트맥스 연산으로 가중된 \(K\)개의 부분 공간 각각으로의 투영이다. 이 함수 형태는 트랜스포머 아키텍처의 \textit{어텐션 메커니즘}과 유사하다! \Cref{ch:representation}에서 보게 될 것처럼, 이것은 전혀 우연이 아니다; 잡음 제거와 손실 압축 사이의 깊은 연결(\Cref{sec:lossy_compression}에서 다룰 예정)은 트랜스포머 잡음 제거기를 실제로 매우 효과적으로 만든다. 따라서 전반적으로, 우리의 가우시안 혼합 모델 이론은 잡음 제거를 위한 트랜스포머와 유사한 신경망의 사용을 동기 부여한다.
+
+\begin{remark}
+{\bf 분포의 잡음 제거와 확률적 PCA 사이의 연결.} 여기서, 우리는 저차원 분포의 잡음 제거를 확률적 PCA에 연결하고자 한다(확률적 PCA에 대한 자세한 내용은 \Cref{subsec:probabilistic PCA} 참조). \eqref{eq:MoG1}에서 $K=1$을 고려한다고 가정하자. 즉, $\vx \sim   \dNorm(\vzero, \vU\vU^{\top})$이고, 여기서 \(\vU \in \O(D, P) \subseteq \R^{D \times P}\)는 직교 행렬이다. \eqref{eq:gmm_lowrank_denoiser}에 따르면, 베이즈 최적 잡음 제거기는
+\begin{align}
+    \bar{\vx}^{\ast}(t, \vx_{t}) = \frac{1}{1 + t^{2}} \vU\vU^\top\vx_t.
+\end{align}
+이 베이즈 최적 잡음 제거기를 학습하기 위해, 잡음 제거 연산자 $\bar{\vx}(t,\vx_t)$를 다음과 같이 매개변수화할 수 있다:
+\begin{align}
+    \bar{\vx}(t,\vx_t) = \frac{1}{1 + t^{2}} \vV\vV^\top\vx_t,
+\end{align}
+여기서 $\vV \in \O(D, P)$는 학습 가능한 매개변수이다. 이것을 훈련 손실 \eqref{eq:denoising_loss}에 대입하면
+\begin{equation}\label{eq:training loss PCA}
+	  \min_{\vV \in \O(D, P)}\Ex_{\vx, \vx_{t}}\left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top\vx_t\right\|_{2}^{2} = \Ex_{\vx, \vg}\left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top(\vx + t\vg)\right\|_{2}^{2},
+\end{equation}
+여기서 등식은 \eqref{eq:additive_gaussian_noise_model} 때문이다. $\vx$에 조건화하여, 다음을 계산한다
+\begin{align}
+    & \Ex_{\vg}\left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top(\vx + t\vg)\right\|_{2}^{2} \\
+    = & \left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top \vx\right\|_{2}^{2} - \frac{t}{1+t^2}\Ex_{\vg} \left\langle \vx - \frac{1}{1 + t^{2}} \vV\vV^\top \vx,  \vV\vV^\top\vg \right\rangle + \frac{t^2}{(1+t^2)^2} \Ex_{\vg}\left\| \vV\vV^\top \vg \right\|_2^2 \\
+    = & \left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top \vx\right\|_{2}^{2} + \frac{t^2P}{(1+t^2)^2}
+\end{align}
+여기서 두 번째 등식은 \(\vg \sim \dNorm(\vzero, \vI)\)와 $\vV \in \O(D, P)$ 때문에 $ \Ex_{\vg}\left\| \vV\vV^\top \vg \right\|_2^2 = \Ex_{\vg}\left\|\vV^\top \vg \right\|_2^2 = P$로부터 따라온다. 따라서, 문제 \eqref{eq:training loss PCA}는 다음과 동등하다
+\begin{align}
+    \min_{\vV \in \O(D, P)}\Ex_{\vx} \left\|\vx - \frac{1}{1 + t^{2}} \vV\vV^\top \vx\right\|_{2}^{2} = \Ex_{\vx} \|\vx\|_2^2 + \left( \frac{1}{(1+t^2)^2} - \frac{2}{1+t^2} \right) \Ex_{\vx}\|\vV^\top \vx\|_2^2.
+\end{align}
+이것은 더 나아가 다음과 동등하다
+\begin{align}
+    \max_{\vV \in \O(D, P)} \Ex_{\vx}\|\vV^\top \vx\|_2^2,
+\end{align}
+이것은 본질적으로 문제 \eqref{eq:PPCA}이다.
+\end{remark}
+
+전반적으로, 학습된 잡음 제거기는 주어진 데이터의 (암시적 매개변수적) 인코딩 방식을 형성하는데, 이는 데이터 분포로 잡음 제거/투영하는 데 사용될 수 있기 때문이다. 잡음 제거기를 훈련하는 것은 더 나은 코딩 방식을 찾는 것과 동등하며, 이는 \Cref{sub:min_entropy} 끝에서 언급한 바람직한 사항 중 하나(\textit{두 번째})를 부분적으로 충족한다. 이후에, 다른 것(\textit{첫 번째})을 충족하는 방법을 논의할 것이다.
 
 \subsection{반복적 잡음 제거를 통한 분포 학습 및 샘플링}\label{sub:sampling_denoising}
 
-% TODO: 번역 예정
+\Cref{sub:min_entropy}의 끝에서 저차원 구조를 가진 분포를 추구하기 위한 한 쌍의 바람직한 사항을 논의했음을 기억하라. 첫 번째 바람직한 사항은 높은 엔트로피를 가진 정규 분포에서 시작하여 데이터 분포에 도달할 때까지 점진적으로 엔트로피를 줄이는 것이다. 우리는 새로운 샘플을 생성하고 있기 때문에 이 절차를 \textit{샘플링}이라고 부를 것이다. 이제 우리가 구축한 도구 키트로 이것을 수행하는 방법에 대해 논의할 때가 되었다.
+
+우리는 매우 잡음이 많은 샘플 \(\vx_{T}\)를 잡음 제거하여 목표 확률 변수 \(\vx\)와 유사한 분포를 가진 근사 \(\hat{\vx}\)를 얻는 방법을 알고 있다. 그러나 바람직한 사항은 샘플링하기 위해 \(\vx\) 분포의 영향이 \textit{전혀 없는} 템플릿 분포에서 시작하여 잡음 제거기를 사용하여 반복을 \(\vx\) 분포로 안내하기를 원한다고 말한다. 어떻게 이것을 할 수 있을까? 한 가지 방법은 다음과 같이 동기 부여된다:
+\begin{equation}\label{eq:ve_converge_to_large_gaussian}
+	\frac{\vx_{T}}{T} = \frac{\vx + T\vg}{T} = \frac{\vx}{T} + \vg \to \vg \sim \dNorm(\vzero, \vI).
+\end{equation}
+따라서 \(\vx_{T} \approx \dNorm(\vzero, T^{2}\vI)\)이다. 이 근사는 거의 모든 실용적인 분포에 대해 상당히 좋으며 \Cref{fig:xT_vs_noise}에 시각화되어 있다.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{\toplevelprefix/chapters/chapter3/figs/xT_vs_noise.png}
+	\caption{\small\textbf{\(\vx_{T}\)와 \(\dNorm(\vzero, T^{2}\vI)\)의 시각화.} \textit{왼쪽:} 가우시안 혼합 모델 데이터 \(\vx\)의 플롯. \textit{오른쪽:} \(T = 10\)에 대한 \(\vx\)와 \(\vx_{T}\) 및 \(\dNorm(\vzero, T^{2}\vI)\)의 독립 샘플의 플롯. 오른쪽 플롯에서 \(\vx\)는 왼쪽과 동일한 색상으로 표시되지만, \(\vx_{T}\)와 \(\dNorm(\vzero, T^{2}\vI)\)의 샘플은 모두 평균적으로 \(\vx\)의 샘플보다 훨씬 크므로 스케일링으로 인해 훨씬 작게 보인다. 이러한 큰 확대에도 불구하고, \(\vx_{T}\)와 \(\dNorm(\vzero, T^{2}\vI)\)의 분포에서 유사성을 명확하게 관찰한다.}
+	\label{fig:xT_vs_noise}
+\end{figure}
+
+따라서 이전 섹션에서처럼 \(t_{\ell} = T\ell / L\)을 사용하여 \([0, T]\)를 \(0 = t_{0} < t_{1} < \cdots < t_{L} = T\)로 균일하게 이산화하면, 순수 잡음에서 샘플링하는 한 가지 가능한 방법은:
+\begin{itemize}
+	\item \(\hat{\vx}_{T} \sim \dNorm(\vzero, T^{2}\vI)\) 샘플링 (다른 모든 것과 독립)
+	\item \Cref{sub:intro_diffusion_denoising}에서와 같이 잡음 제거 반복 실행, 즉,
+		\begin{equation}\label{eq:denoising-iteration-basic}
+		\hat{\vx}_{t_{\ell - 1}} = \bp{1 - \frac{1}{\ell}}\cdot\hat{\vx}_{t_{\ell}} + \frac{1}{\ell}\cdot\bar{\vx}^{\ast}(t_{\ell}, \hat{\vx}_{t_{\ell}}).
+	\end{equation}
+	\item \(\hat{\vx} = \hat{\vx}_{0}\) 출력.
+\end{itemize}
+개념적으로 이것이 첫 번째 바람직한 사항에 따라 잡음을 데이터 샘플로 변환하는 \textit{확산 모델(diffusion models)} 뒤에 있는 전부이다. 그러나 실용적인 자원 제약 하에서 이미지와 같은 실제 데이터 분포에서 실제로 샘플링할 수 있는 모델을 얻기 전에 취해야 할 몇 가지 단계가 남아 있다. 이후에, 이러한 여러 단계를 소개하고 동기를 부여할 것이다.
+
+\paragraph{단계 1: 다른 이산화.} 우리가 수행하는 첫 번째 단계는 다음 점에 의해 동기 부여된다: \textit{큰 \(t\)에서 그렇게 많은 잡음 제거 반복을 소비할 필요가 없다}. \Cref{fig:ve_gmm_denoising}를 보면, 샘플링 과정의 \(500\)번 반복 중 처음 \(200\) 또는 \(300\)번 반복이 나머지 반복이 샘플을 부분 공간으로 밀기 전에 전체적으로 데이터 분포로 잡음을 축소하는 데 소비됨을 관찰한다. 고정된 반복 횟수 \(L\)이 주어지면, 이는 \(t = T\)에 비해 \(t = 0\) 근처에서 더 많은 시간 단계 \(t_{\ell}\)를 소비해야 함을 나타낸다. 샘플링(및 훈련) 중에, 따라서 \([0, T]\)의 다른 이산화를 \(0 \leq t_{0} < t_{1} < \cdots < t_{L} \leq T\)로 사용할 수 있는데, 예를 들어 \textit{지수 이산화}:
+\begin{equation}\label{eq:denoising_exponential_discretization}
+	t_{\ell} = C_{1}(e^{C_{2}\ell} - 1), \qquad \forall \ell \in \{0, 1, \dots, L\}
+\end{equation}
+여기서 \(C_{1}, C_{2} > 0\)는 실제로 최적 성능을 위해 조정할 수 있는 상수이다; 이론적 분석은 종종 이러한 최적 상수를 지정할 것이다. 그러면 잡음 제거/샘플링 반복은 다음이 된다
+\begin{equation}\label{eq:denoising_iteration}
+	\hat{\vx}_{t_{\ell - 1}} \doteq \frac{t_{\ell - 1}}{t_{\ell}}\hat{\vx}_{t_{\ell}} + \bp{1 - \frac{t_{\ell - 1}}{t_{\ell}}}\bar{\vx}^{\ast}(t_{\ell}, \hat{\vx}_{t_{\ell}}),
+\end{equation}
+다시, \(\hat{\vx}_{t_{L}} \sim \dNorm(\vzero, t_{L}^{2}\vI)\)와 함께.
+
+\paragraph{단계 2: 다른 잡음 모델.} 두 번째 단계는 \eqref{eq:additive_gaussian_noise_model}에 비해 약간 다른 모델을 고려하는 것이다. 이에 대한 기본 동기는 다음과 같다. 실제로, 잡음 분포 \(\dNorm(\vzero, t_{L}^{2}\vI)\)는 고차원에서 실제 공분산에 대한 점점 더 나쁜 추정이 되는데, 즉, \eqref{eq:ve_converge_to_large_gaussian}이 특히 비등방성 고차원 데이터에서 점점 더 나쁜 근사가 된다. \(\dNorm(\vzero, t_{L}^{2}\vI)\)와 \(\vx_{t_{L}}\)의 실제 분포 사이의 증가된 거리는 이러한 상황에서 잡음 제거기가 더 나쁘게 수행하게 할 수 있다. 이론적으로, \(\vx_{t_{L}}\)는 \(t_{L}\)이 증가함에 따라 어떤 분포로도 수렴하지 않으므로, 이 설정은 종단 간으로 분석하기 어렵다. 이 경우, 우리의 해결책은 \textit{\(\vx_{T}\)가 \(T \to \infty\)일 때 수렴하도록 잡음을 추가하는 동시에 \(\vx\)의 기여를 축소하는} 것이다. 추가된 잡음의 비율은 \(\sigma \colon [0, T] \to \R_{\geq 0}\)로 표시되고, 축소 비율은 \(\alpha \colon [0, T] \to \R_{\geq 0}\)로 표시되며, \(\sigma\)는 \textit{증가}하고 \(\alpha\)는 (엄격하지 않게) \textit{감소}하며,
+\begin{equation}\label{eq:gen_additive_gaussian_noise_model}
+	\vx_{t} \doteq \alpha_{t}\vx + \sigma_{t}\vg, \qquad \forall t \in [0, T].
+\end{equation}
+이전 설정은 \(\alpha_{t} = 1\)이고 \(\sigma_{t} = t\)이며, 이것을 \textit{분산 폭발(variance-exploding, VE) 과정}이라고 한다. 우리가 원래 설명한 대로 \(\vx\)의 기여를 감소시키는 인기 있는 선택은 \(T = 1\)(따라서 \(t \in [0, 1]\)), \(\alpha_{t} = \sqrt{1 - t^{2}}\) 및 \(\sigma_{t} = t\)를 가진다; 이것이 \textit{분산 보존(variance-preserving, VP) 과정}이다. VP 과정 하에서 \(\vx_{1} \sim \dNorm(\vzero, \vI)\)가 정확히 성립하므로, 이 표준 분포에서 샘플링하고 반복적으로 잡음을 제거할 수 있다는 점에 주목하라. 결과적으로, VP 과정은 이론적으로 분석하기 훨씬 쉽고 경험적으로 더 안정적이다.\footnote{왜 전체 \(\alpha, \sigma\) 설정을 사용하는가? \Cref{exercise:implement_denoising_processes}에서 보게 될 것처럼, 최근 인기 있는 소위 \textit{플로우 매칭(flow matching)} 과정을 포함하여 많은 제안된 과정을 캡슐화하고 통합한다. 그럼에도 불구하고, VE 및 VP 과정은 (지금까지) 경험적으로 그리고 이론적으로 여전히 가장 인기가 있으므로 이 섹션에서 이를 고려할 것이다.}
+
+이 보다 일반적인 설정에서, Tweedie의 공식 \eqref{eq:tweedie}는 다음이 된다
+\begin{equation}\label{eq:gen_tweedie}
+	\Ex[\vx \mid \vx_{t}] = \frac{1}{\alpha_{t}}\bp{\vx_{t} + \sigma_{t}^{2}\nabla \log p_{t}(\vx)}.
+\end{equation}
+잡음 제거 반복 \eqref{eq:denoising_iteration}은 다음이 된다
+\begin{equation}\label{eq:gen_denoising_iteration}
+	\hat{\vx}_{t_{\ell - 1}} = \frac{\sigma_{t_{\ell - 1}}}{\sigma_{t_{\ell}}}\hat{\vx}_{t_{\ell}} + \bp{\alpha_{t_{\ell - 1}} - \frac{\sigma_{t_{\ell - 1}}}{\sigma_{t_{\ell}}}\alpha_{t_{\ell}}}\bar{\vx}^{\ast}(t_{\ell}, \hat{\vx}_{t_{\ell}}).
+\end{equation}
+마지막으로, 가우시안 혼합 모델 잡음 제거기 \eqref{eq:gmm_bayes_optimal_denoiser}는 다음이 된다
+\begin{equation}\label{eq:gen_gmm_bayes_optimal_denoiser}
+	\bar{\vx}^{\ast}(t, \vx_{t}) = \sum_{k = 1}^{K}\frac{\pi_{k}\phi(\vx_{t}
+	; \alpha_{t}\vmu_{k}, \alpha_{t}^{2}\vSigma_{k}
+	+ \sigma_{t}^{2}\vI)}{\sum_{i = 1}^{K}\pi_{i}\phi(\vx_{t} ; \alpha_{t}\vmu_{i}, \alpha_{t}^{2}\vSigma_{i} + \sigma_{t}^{2}\vI)}\cdot\bp{\vmu_{k} + \alpha_{t}\vSigma_{k}(\alpha_{t}^{2}\vSigma_{k} + \sigma_{t}^{2}\vI)^{-1}(\vx_{t} - \alpha_{t}\vmu_{k})}.
+\end{equation}
+\Cref{fig:vp_gmm_denoising}는 샘플링 절차의 반복을 보여준다. 잡음 제거 반복 \eqref{eq:gen_denoising_iteration}이 DDIM(``Denoising Diffusion Implicit Model'') 샘플러 \cite{song2020denoising}라는 샘플링 알고리즘을 제공하며, 오늘날 확산 모델에서 사용되는 가장 인기 있는 샘플링 알고리즘 중 하나라는 점에 주목하라. 여기서 \Cref{alg:iterative_denoising}에 이를 요약한다.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/vp_gmm_denoising.png}
+	\caption{\small\textbf{VP 확산 과정을 사용한 가우시안 혼합의 잡음 제거.} \Cref{fig:ve_gmm_denoising}와 동일한 그림 설정 및 데이터 분포를 사용한다. \Cref{fig:ve_gmm_denoising}에 비해 잡음 분포가 원점 주위에 훨씬 더 집중되어 있음에 주목하라.}
+	\label{fig:vp_gmm_denoising}
+\end{figure}
+
+\begin{algorithm}
+	\caption{잡음 제거기를 사용한 샘플링.}
+	\label{alg:iterative_denoising}
+	\begin{algorithmic}[1]
+		\Require{샘플링에 사용할 시간 단계의 정렬된 목록 \(0 \leq t_{0} < \cdots < t_{L} \leq T\).}
+		\Require{잡음 제거기 \(\bar{\vx} \colon \{t_{\ell}\}_{\ell = 1}^{L} \times \R^{D} \to \R^{D}\).}
+		\Require{스케일 및 잡음 레벨 함수 \(\alpha, \sigma \colon \{t_{\ell}\}_{\ell = 0}^{L} \to \R_{\geq 0}\).}
+		\Ensure{\(\vx\)의 분포로부터의 근사 샘플 \(\hat{\vx}\).}
+		\Function{DDIMSampler}{$\bar{\vx}, (t_{\ell})_{\ell = 0}^{L}$}
+		\State{\(\vx_{t_{L}}\)의 근사 분포로부터 \(\tilde{\vx}_{t_{L}} \sim\) 초기화} \Comment{VP \(\implies \dNorm(\vzero, \vI)\), VE \(\implies \dNorm(\vzero, t_{L}^{2}\vI)\).}
+		\For{\(\ell = L, L - 1, \dots, 1\)}
+		\State{계산
+			\begin{equation*}
+				\hat{\vx}_{t_{\ell - 1}} \doteq \frac{\sigma_{t_{\ell - 1}}}{\sigma_{t_{\ell}}}\hat{\vx}_{t_{\ell}} + \bp{\alpha_{t_{\ell - 1}} - \frac{\sigma_{t_{\ell - 1}}}{\sigma_{t_{\ell}}}\alpha_{t_{\ell}}}\bar{\vx}(t_{\ell}, \hat{\vx}_{t_{\ell}})
+			\end{equation*}
+		}
+		\EndFor
+		\State{\Return{\(\hat{\vx}_{t_{0}}\)}}
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\paragraph{단계 3: 훈련 파이프라인 최적화.} \Cref{sub:intro_diffusion_denoising}에서 지시한 절차를 사용하여 샘플링 알고리즘에서 사용할 각 시간 \(t\)에 대해 별도의 잡음 제거기 \(\bar{\vx}(t, \cdot)\)를 학습한다면, \textit{우리는 \(L\)개의 별도 잡음 제거기를 학습해야 할 것이다!} 이것은 매우 비효율적인데—일반적인 경우는 \(L\)개의 별도 신경망을 훈련해야 하며, \(L\)배의 훈련 시간과 저장 메모리를 차지하고, 그런 다음 영원히 샘플링을 위해 이러한 시간 단계를 사용하도록 고정된다. 대신, 연속 변수 \(\vx_{t}\)와 \(t\)(이전의 \(\vx_{t}\)만이 아닌)를 입력으로 받아 모든 시간 \(t\)에 걸쳐 잡음을 제거하도록 \textit{단일 신경망을 훈련}할 수 있다. 기계적으로, 우리의 훈련 손실은 \(t\)에 대해 평균을 취한다. 즉, 다음 문제를 푼다:
+\begin{equation}
+	\min_{\theta}\Ex_{t, \vx, \vx_{t}}\norm{\bar{\vx}_{\theta}(t, \vx_{t}) - \vx}_{2}^{2}.
+\end{equation}
+단계 1과 유사하게, 더 나은 샘플링 과정을 보장하기 위해 \(t = 0\)에 가까운 더 많은 시간 단계를 사용한 곳에서, 잡음 제거기가 \(t = 0\)에 가까울수록 더 높은 품질이 되도록 보장하고 싶을 수 있으며, 따라서 \(0\)에 가까운 \(t\)가 더 높은 가중치를 갖도록 \textit{손실에 가중치를 부여}한다. \(w_{t}\)를 시간 \(t\)에서의 가중치라고 하면, 가중치가 부여된 손실은 다음과 같을 것이다
+\begin{equation}\label{eq:parametric_denoising_loss}
+	\min_{\theta}\Ex_{t}w_{t}\Ex_{\vx, \vx_{t}}\norm{\bar{\vx}_{\theta}(t, \vx_{t}) - \vx}_{2}^{2}.
+\end{equation}
+실제로 합리적인 가중치 선택 중 하나는 \(w_{t} = \alpha_{t}/\sigma_{t}\)이다. 정확한 이유는 다음 단락에서 다룰 것이지만, 일반적으로 이는 \(0\)에 가까운 \(t\)에 해당하는 손실을 상향 가중하는 동시에 합리적으로 수치적으로 안정적으로 유지하는 역할을 한다. 또한 물론 실제로는 기댓값을 계산할 수 없으므로 이를 추정하기 위해 가장 간단한 몬테카를로 평균을 사용한다. 여기서 수행된 일련의 변경 사항에는 여러 개념적 및 계산적 이점이 있다: 여러 잡음 제거기를 훈련할 필요가 없고, 하나의 시간 단계 집합에서 훈련하고 하위 집합(또는 완전히 다른 것)을 사용하여 샘플링할 수 있는 등이다. 전체 파이프라인은 \Cref{alg:learning_denoiser}에서 논의된다.
+
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\Require{데이터셋 \(\cD \subseteq \R^{D}\).}
+		\Require{샘플링에 사용할 시간 단계의 정렬된 목록 \(0 \leq t_{0} < \cdots < t_{L} \leq T\).}
+		\Require{가중치 함수 \(w \colon \{t_{\ell}\}_{\ell = 1}^{L} \to \R_{\geq 0}\).}
+		\Require{스케일 및 잡음 레벨 함수 \(\alpha, \sigma \colon \{t_{\ell}\}_{\ell = 0}^{L} \to \R_{\geq 0}\).}
+		\Require{매개변수 공간 \(\Theta\) 및 잡음 제거기 아키텍처 \(\bar{\vx}_{\theta}\).}
+		\Require{매개변수에 대한 최적화 알고리즘.}
+		\Require{최적화 반복 횟수 \(M\).}
+		\Require{반복당 몬테카를로 추출 횟수 \(N\) (\eqref{eq:parametric_denoising_loss}에서 기댓값을 근사하기 위해)}
+		\Ensure{훈련된 잡음 제거기 \(\bar{\vx}_{\theta^{\ast}}\).}
+
+		\Function{TrainDenoiser}{$\cD, \Theta$}
+		\State{\(\theta^{(1)} \in \Theta\) 초기화}
+		\For{\(i \in [M]\)}
+		\For{\(n \in [N]\)}
+		\State{\(\vx_{n}^{(i)} \sim \cD\)} \Comment{데이터셋에서 샘플 추출.}
+		\State{\(t_{n}^{(i)} \simiid \dUnif(\{t_{\ell}\}_{\ell = 1}^{L})\)} \Comment{시간 단계 샘플링.}
+		\State{\(\vg_{n}^{(i)} \simiid \dNorm(\vzero, \vI)\)} \Comment{잡음 벡터 샘플링.}
+		\State{\(\vx_{t, n}^{(i)} \doteq \alpha_{t_{n}^{(i)}}\vx_{n}^{(i)} + \sigma_{t_{n}^{(i)}}\vg_{n}^{(i)}\)} \Comment{잡음이 추가된 샘플 계산.}
+		\State{\(w_{n}^{(i)} \doteq w_{t_{n}^{(i)}}\)} \Comment{손실 가중치 계산.}
+		\EndFor
+		\State{\(\hat{\cL}^{(i)} \doteq \displaystyle \frac{1}{N}\sum_{n = 1}^{N}w_{n}^{(i)}\norm{\vx_{n}^{(i)} - \bar{\vx}_{\theta^{(i)}}(t_{n}^{(i)}, \vx_{t, n}^{(i)})}_{2}^{2}\)} \Comment{손실 추정 계산.}
+		\State{\(\theta^{(i + 1)} \doteq \texttt{OptimizationUpdate}^{(i)}(\theta^{(i)}, \nabla_{\theta^{(i)}}\hat{\cL}^{(i)})\)} \Comment{매개변수 업데이트.}
+		\EndFor
+		\State{\Return{\(\bar{\vx}_{\theta^{(K + 1)}}\)}}
+		\EndFunction
+	\end{algorithmic}
+	\caption{데이터로부터 잡음 제거기 학습.}
+	\label{alg:learning_denoiser}
+\end{algorithm}
+
+\paragraph{(선택적) 단계 4: 추정 목표 변경.} 대신 전체 잡음 제거 파이프라인을 \textit{잡음 예측기}, 즉 \(\Ex[\vg \mid \vx_{t}]\)의 추정으로 재구성하는 것이 일반적임에 주목하라. 실제로, 잡음 예측기는 출력이 (거의) 항상 가우시안 확률 변수와 비교 가능한 크기이므로 훈련이 약간 더 쉬워서 훈련이 더 수치적으로 안정적이다. \eqref{eq:gen_additive_gaussian_noise_model}에 의해 다음을 가진다는 점에 주목하라
+\begin{equation}
+	\vx_{t} = \alpha_{t}\Ex[\vx \mid \vx_{t}] + \sigma_{t}\Ex[\vg \mid \vx_{t}] \implies \Ex[\vg \mid \vx_{t}] = \frac{1}{\sigma_{t}}\bp{\vx_{t} - \alpha_{t}\Ex[\vx \mid \vx_{t}]},
+\end{equation}
+따라서 \(\vx\)에 대한 모든 예측기는 위의 관계를 사용하여 \(\vg\)에 대한 예측기로 전환될 수 있다. 즉,
+\begin{equation}
+	\bar{\vg}(t, \vx_{t}) = \frac{1}{\sigma_{t}}\vx_{t} - \frac{\alpha_{t}}{\sigma_{t}}\bar{\vx}(t, \vx_{t}),
+\end{equation}
+그 역도 마찬가지이다. 따라서 \(\bar{\vg}\)를 추정하기 위한 좋은 네트워크는 \(\bar{\vx}\)를 추정하기 위한 좋은 네트워크 \textit{더하기 잔차 연결}(예를 들어 트랜스포머에서 볼 수 있듯이)과 동일하다. 그들의 손실도 \(\alpha_{t}/\sigma_{t}\)의 인수까지 잡음 제거기와 동일하다. 즉,
+\begin{equation}
+	\Ex_{t}w_{t}\Ex_{\vg, \vx_{t}}\norm{\vg - \bar{\vg}(t, \vx_{t})}_{2}^{2} = \Ex_{t}w_{t}\frac{\alpha_{t}^{2}}{\sigma_{t}^{2}}\Ex_{\vx, \vx_{t}}\norm{\vx - \bar{\vx}(t, \vx_{t})}_{2}^{2}.
+\end{equation}
+완전성을 위해 다른 작업에 대해 다른 목표가 제안되었음을 언급할 것이다. 예를 들어, \(\Ex[\odv*{\vx_{t}}{t} \mid \vx_{t}]\)(\(v\)-예측 또는 속도 예측이라고 함) 등이 있지만, 잡음 제거와 잡음 예측은 일반적으로 사용되는 것으로 남아 있다. 이 책의 나머지 부분에서는 잡음 제거만 고려할 것이다.
+
+
+우리는 원래의 플라토닉 잡음 추가/제거 과정에 많은 변경을 가했다. 새로운 과정이 실제로 여전히 작동함을 확인하기 위해, 수치적 예제(예: \Cref{fig:vp_gmm_denoising})를 계산할 수 있다. 이론적으로 건전함을 확인하기 위해, 샘플링 알고리즘에 대한 \textit{오차율의 한계}를 증명할 수 있는데, 이는 오차율이 작다는 것을 보여준다. 이제 문헌에서 그러한 비율을 제공할 것인데, 이는 샘플러의 출력 분포가 소위 \textit{전변동(total variation, TV) 거리}에서 실제 분포로 수렴함을 보여준다. TV 거리는 두 확률 변수 \(\vx\)와 \(\vy\) 사이에 다음과 같이 정의된다:
+\begin{equation}
+	\TV(\vx, \vy) \doteq \sup_{A \subseteq \R^{d}}\abs*{\Pr[\vx \in A] - \Pr[\vy \in A]}.
+\end{equation}
+\(\vx\)와 \(\vy\)가 (균일하게) 매우 가까우면, 상한이 작을 것이다. 따라서 TV 거리는 확률 변수의 근접성을 측정한다. (이름이 제안하는 것처럼 실제로 거리 함수이다; 증명은 연습 문제이다.)
+
+\begin{theorem}[\citep{li2024d} 정리 1, 단순화됨]\label{thm:diffusion_sampler_convergence}
+	\(\Ex\norm{\vx}_{2} < \infty\)라고 가정하자. \(\vx\)가 \eqref{eq:denoising_exponential_discretization}에서와 같이 지수 이산화\footnote{정확한 정의는 우리의 표기법에서 다소 길고 다양한 절대 상수까지만 정의되므로, 간결성을 위해 여기서는 생략한다. 물론 원본 논문 \citep{li2024d}에 있다.}를 가진 VP 과정에 따라 잡음이 제거된다면, \Cref{alg:iterative_denoising}의 출력 \(\hat{\vx}\)는 전변동 한계를 만족한다
+	\begin{equation}\label{eq:diffusion_sampling_error}
+		\TV(\vx, \hat{\vx}) = \tilde{\cO}\rp{\underbrace{\frac{D}{L}}_{\text{이산화 오차}} + \underbrace{\sqrt{\frac{1}{L}\sum_{\ell = 1}^{L}\frac{\alpha_{t_{\ell}}}{\sigma_{t_{\ell}}^{2}}\Ex_{\vx, \vx_{t_{\ell}}}\norm{\bar{\vx}^{\ast}(t_{\ell}, \vx_{t_{\ell}}) - \bar{\vx}(t_{\ell}, \vx_{t_{\ell}})}_{2}^{2}}}_{\text{잡음 제거기의 평균 초과 오차}}}
+	\end{equation}
+	여기서 \(\bar{\vx}^{\ast}\)는 \(\vx\)에 대한 베이즈 최적 잡음 제거기이고, \(\tilde{\cO}\)는 \(L\)에서 로그 인수를 무시하는 큰-\(\cO\) 표기법의 버전이다.
+\end{theorem}
+매우 높은 수준의 증명 기법은 앞서 논의한 바와 같이 각 단계에서 오차를 제한하고, 오차 소스(이산화와 잡음 제거기 오차 사이)를 구별하고, 오차가 너무 많이 누적되지 않도록(또는 심지어 상쇄되도록) 신중하게 보장하는 것이다.
+
+\(L \to \infty\)이고 베이즈 최적 잡음 제거기 \(\bar{\vx} = \bar{\vx}^{\ast}\)를 올바르게 학습한다면(초과 오차가 \(0\)이 되도록), \Cref{thm:diffusion_sampler_convergence}의 오차율이 \(0\)으로 가므로,\footnote{VE 과정에 대한 유사한 결과가 있지만, 우리가 아는 한 이만큼 예리한 것은 없다.} 이전에 휴리스틱하게 논의한 것처럼 \Cref{alg:iterative_denoising}의 샘플링 과정이 잡음 추가 과정의 \textit{완벽한 (분포에서) 역}을 산출한다는 점에 주목하라.
+
+\begin{remark}
+	데이터가 저차원이라면, 고차원 공간 \(\R^{D}\)의 \textit{저랭크 부분 공간}에 지지되어 있다고 말하면 어떻게 될까? 데이터 분포가 조밀하게 지지되어 있다면—이미지와 같은 실제 데이터에 대해 전처리 단계로 종종 보장되는 단위 초입방체로 정규화되어 있다면—더 잘 할 수 있다. 즉, \cite{li2024d}의 저자들은 또한 소위 커버링 수의 점근적 성질을 사용하여 \textit{근사 고유 차원}의 측정을 정의하는데, 이는 다음 섹션에서 제시될 레이트 왜곡 함수와 직관적으로(구현은 아니더라도) 매우 유사하다. 그런 다음 그들은 \Cref{alg:iterative_denoising}에서 DDIM 샘플러의 특정 작은 수정(즉, 업데이트 계수를 약간 섭동)을 사용하여 이산화 오차가
+	\begin{equation}
+		\tilde{\cO}\rp{\frac{\text{근사 고유 차원}}{L}}
+	\end{equation}
+	이 됨을 보여주는데, \Cref{thm:diffusion_sampler_convergence}에서처럼 \(\frac{D}{L}\)이 아니다. 따라서 이 수정된 알고리즘을 사용하면, 실제 데이터가 저차원 구조를 가지므로 \(D\)가 수천 또는 수백만에 도달하더라도 \(L\)이 너무 클 필요가 없다. 그러나 실제로는 DDIM 샘플러를 대신 사용하므로, 일관된 오차율을 달성하려면 \(L\)이 \(D\)에 약간 의존해야 한다. \(L\)의 정확한 선택은 샘플링의 계산 복잡도(예: 런타임 또는 메모리 소비)와 저차원 구조에 대한 잡음 제거기를 학습하는 통계적 복잡도 사이의 절충이다. \(L\)의 값은 종종 훈련 시간(더 큰 \(L\)이 구간 \([0, T]\)의 더 나은 커버리지를 허용하여 네트워크가 \(t\)에 대해 일반화하는 관계를 학습하는 데 도움이 됨)과 샘플링 시간(더 작은 \(L\)이 더 효율적인 샘플링을 의미함)에서 다르다. 심지어 이러한 절충을 최적화하기 위해 샘플링 시간에 시간 단계를 적응적으로 선택할 수도 있다 \cite{bao2022analytic}.
+\end{remark}
+
+\begin{remark}
+	다양한 다른 작업들은 역 과정을 명시적 차분 방정식을 사용하거나 극한 \(L \to \infty\)에서 미분 방정식을 사용하여 시간 인덱스 \(t\)에서 뒤로 이동하는 것으로 정의하거나, 변환 \(\vy_{t} = \vx_{T - t}\)를 사용하여 시간에서 앞으로 이동하여 \(t\)가 증가하면 \(\vy_{t}\)가 \(\vx_{0}\)에 더 가까워지도록 한다. 이 작업에서는 일관성을 유지하기 위해 노력한다: 잡음을 추가하기 위해 시간에서 앞으로 이동하고, 잡음을 제거하기 위해 시간에서 뒤로 이동한다. 시간 인덱스에 대해 명확하지 않은 다른 작업을 읽거나 유사하게 불명확한 알고리즘을 구현하려고 시도하는 경우, 매번 올바르게 수행하는 한 가지 방법이 있다: 샘플링 과정은 단계에서 단계로 이동할 때 항상 잡음 제거기 항과 현재 반복 모두에 대해 \textit{양의} 계수를 가져야 한다. 그러나 일반적으로 많은 논문이 자체 표기법을 정의하며 사용자 친화적이지 않다.
+\end{remark}
+
+\begin{remark}
+	지난 \Cref{sub:intro_diffusion_denoising}의 끝에 제시된 이론은 (느슨하게 말하면) 실제로 트랜스포머와 유사한 네트워크를 사용하는 것이 잡음 제거기를 학습하거나 근사하는 데 좋은 선택임을 시사하는 것처럼 보인다. 이것은 합리적이지만, 임의의 오래된 신경망(예: 다층 퍼셉트론(MLP))을 사용하고 단순히 무한대로 확장하려고 시도하는 것의 문제점은 무엇인가? 이 문제를 관찰하기 위해, \Cref{example:denoising_gaussian_mixture}에서 연구한 가우시안 혼합 모델의 또 다른 특수한 경우를 살펴보자. 즉, \textit{경험적 분포}는 동일한 확률 \(\pi_{i} = \frac{1}{N}\)로 샘플링된 \(K = N\)개의 구성 요소 \(\dNorm(\vx_{i}, \vzero)\)를 가진 퇴화된 가우시안 혼합 모델의 사례이다. 이 경우 베이즈 최적 잡음 제거기는
+	\begin{equation}\label{eq:memorizing_denoiser}
+		\bar{\vx}^{\star}(t, \vx_{t}) = \sum_{i = 1}^{N}\frac{e^{-\|\vx_{t} - \alpha_{t}\vx_{i}\|_{2}^{2}/(2\sigma_{t}^{2})}}{\sum_{j = 1}^{N}e^{-\|\vx_{t} - \alpha_{t}\vx_{j}\|_{2}^{2}/(2\sigma_{t}^{2})}}\vx_{i}.
+	\end{equation}
+	이것은 데이터 \(\vx_{i}\)의 볼록 결합이며, 계수는 \(t \to 0\)일 때 ``더 날카로워진다''(즉, \(0\) 또는 \(1\)에 더 가까워진다). 이 잡음 제거기가 고정된 유한 데이터셋 \(\vX = \{\vx_{i}\}_{i = 1}^{N}\)에서 균일하게 무작위로 \(\vx\)를 추출하는 것을 기반으로 손실을 계산할 때 잡음 제거 최적화 문제 \eqref{eq:parametric_denoising_loss}를 \textit{최적으로 해결}한다는 점에 주목하라. 이것은 매우 현실적인 설정이다. 따라서 우리의 네트워크 아키텍처 \(\bar{\vx}_{\theta}\)가 위의 형태 \eqref{eq:memorizing_denoiser}의 최적 잡음 제거기가 잘 근사될 수 있을 만큼 충분히 표현력이 있다면, 학습된 잡음 제거기가 바로 그렇게 할 수 있다. 그러면, 우리의 반복적 잡음 제거 \Cref{alg:iterative_denoising}은 \Cref{thm:diffusion_sampler_convergence}에 의해 인증된 대로 훈련 데이터의 샘플을 재생성하여 경험적 분포에서 정확히 샘플링할 것이다. 이것은 모든 샘플의 데이터베이스보다 더 흥미롭지 않은 나쁜 샘플러이므로, 실제로 이를 피하는 방법을 이해하는 것이 중요하다. 핵심은 실제 잡음 제거기(\eqref{eq:gmm_lowrank_denoiser}에서처럼 저랭크 분포에 해당하는)를 잘 근사할 수 있지만 \eqref{eq:memorizing_denoiser}에서처럼 경험적 베이지안 잡음 제거기는 그렇지 않은 네트워크 아키텍처를 고안하는 것이다. 일부 작업은 이 미세한 경계와 트랜스포머 및 합성곱 기반 네트워크 아키텍처를 사용하는 현대 확산 모델이 다른 체제에서 암기하고 일반화할 수 있는 이유를 탐구했다 \citep{kamb2024analytic,niedoba2024towards}.
+
+	높은 수준에서, \eqref{eq:memorizing_denoiser}에서처럼 모든 훈련 포인트를 암기하는 잡음 제거기는 최소 코딩 레이트를 가진 분포의 매개변수적 모델에 해당하며, 모든 샘플을 별도로 코딩함으로써 이를 달성한다. 우리는 다음 섹션에서 정보 이론의 관점에서 이 문제(및 \Cref{sub:min_entropy}의 끝에서 우리의 초기 바람직한 사항과의 명백한 역설)를 논의할 것이다.
+\end{remark}
 
 \section{손실 코딩을 통한 압축}\label{sec:lossy_compression}
 
+지금까지 우리가 다룬 내용을 요약해보자. 우리는 유한한 샘플을 사용하여 \textit{잡음 제거기} \(\bar{\vx}_{\theta}\)를 학습하는 방법을 논의했다. 우리는 이 잡음 제거기가 Tweedie의 공식 \eqref{eq:tweedie}를 통해 로그 밀도와 직접 연결되어 있다는 점에서 분포를 인코딩한다는 것을 보였다. 그런 다음, 우리는 이를 사용하여 순수한 잡음 (높은 엔트로피) 분포를 \textit{반복적 잡음 제거}를 통해 학습된 분포로 점진적으로 변환했다. 따라서 우리는 \Cref{sub:min_entropy}의 끝에서 제시한 분포를 학습하거나 추구하는 첫 번째 방법을 개발했다.
+
+그럼에도 불구하고, 이 방법론에서 분포의 인코딩은 잡음 제거기의 함수 형태와 매개변수(있는 경우)에 암묵적으로 포함되어 있다. 사실, 예리한 독자라면 일반적인 분포의 경우 잡음 제거기의 함수 형태를 명시적으로 지정한 적이 없다는 것을 눈치챘을 것이다. 실제로 사람들은 일반적으로 경험적으로 설계된 아키텍처를 가진 심층 신경망으로 이를 모델링한다. 또한, 위의 잡음 제거 과정이 엔트로피를 감소시킨다는 것을 알고 있지만, 얼마나 감소시키는지, 중간 분포와 결과 분포의 엔트로피가 얼마인지 알지 못한다.
+
+데이터가 저차원 지지집합을 가진 (연속) 분포에서 나온다는 것을 모델링하는 것이 일반적인 목표임을 상기하라. 데이터를 생성하는 ``가장 단순한'' 모델을 식별하는 것이 목표라면, 간결성의 세 가지 전형적인 척도를 고려할 수 있다: 차원, 부피, 또는 (미분) 엔트로피. 차원을 사용한다면, 주어진 데이터셋에 대한 최선의 모델은 명백히 0차원인 경험적 분포 자체이다. 저차원 지지집합을 가진 모든 분포에 대해, 미분 엔트로피는 항상 음의 무한대이다; 그들의 지지집합의 부피는 항상 0이다. 그렇다면, 동일한 데이터 샘플을 생성할 수 있었던 저차원 지지집합의 모든 분포 중에서, 저차원 모델을 전혀 구별할 수 없는 이러한 간결성 척도를 기반으로 어떤 것이 더 나은지 어떻게 결정할 수 있을까? 이 섹션은 이 당혹스러운 상황을 해결하는 것을 목표로 한다.
+
+이 장의 나머지 부분에서 우리는 학습된 분포를 명시적으로 계산 가능한 인코딩 및 디코딩 체계와 연관시킴으로써 위의 기술적 어려움을 완화할 수 있는 프레임워크를 논의한다. \Cref{sub:min_entropy}의 끝에서 제안한 두 번째 접근법을 따른다. 보게 되겠지만, 이러한 접근법은 본질적으로 학습된 분포의 엔트로피를 코딩 체계와 관련된 (손실) 코딩 길이 또는 코딩 레이트의 관점에서 정확하게 근사할 수 있게 해준다. 이러한 척도를 사용하면, 엔트로피가 얼마나 감소하는지, 따라서 분포의 어떤 처리(잡음 제거 포함)를 통해 얻은 정보가 얼마나 되는지 정확하게 측정할 수 있을 뿐만 아니라, 그러한 연산을 가장 효율적인 방식으로 수행할 수 있는 최적 연산자의 명시적 형태를 도출할 수도 있다. 다음 \Cref{ch:representation}에서 보게 되겠지만, 이것은 심층 네트워크의 아키텍처에 대한 원리적 설명과 더 효율적인 심층 아키텍처 설계로 이어질 것이다.
+
 \subsection{손실 코딩의 필요성}
 
-% TODO: 번역 예정
+우리는 이전에 여러 번 다음과 같은 어려움을 논의했다: 결국 유한한 샘플로부터 분포를 학습하고, 우리의 잡음 제거기 함수 클래스가 충분한 함수를 포함하는 경우, 그러한 유한한 샘플을 높은 확률로 생성할 수 있는 다른 분포가 아니라 \textit{진정한} 분포(저차원 지지집합을 가진)로부터 샘플링하고 있음을 어떻게 보장할 수 있는가? 몇 가지 구체적인 예제를 통해 개념적, 기술적 어려움을 밝혀보자.
+
+\begin{example}[부피, 차원, 그리고 엔트로피]\label{eg:measures-of-complexity}
+\Cref{fig:1d-line}의 상단에 표시된 예제를 보면, (2차원 평면의) 직선 상의 균일 분포에서 몇 개의 샘플을 추출했다고 가정하자. 직선 또는 샘플 집합의 부피는 0이다.
+기하학적으로, 생성된 유한 샘플 집합에 대한 경험적 분포는 유한 샘플 집합을 생성할 수 있는 {\em 최소 차원}의 분포이다.\footnote{이산 샘플의 집합은 모두 0차원인 반면 지지하는 직선은 1차원이다.} 그러나 이것은 또 다른 복잡도 척도인 엔트로피와 대조적으로 보인다. 직선의 (미분) 엔트로피는 음의 무한대이지만 이 샘플 집합의 (이산) 엔트로피는 유한하고 양수이다. 따라서 이러한 일반적인 간결성 또는 복잡도 척도에 따르면 역설적인 상황에 처한 것처럼 보인다: 이들은 저차원 지지집합을 가진 분포의 (모델)을 제대로 구별할 수 없으며, 일부는 정반대 방식으로 구별하는 것처럼 보인다.\footnote{물론, 엄밀히 말하면 미분 엔트로피와 이산 엔트로피는 직접 비교할 수 없다.}
+\end{example}
+
+\begin{example}[밀도]\label{eg:density} \Cref{fig:1d-line}에 표시된 두 세트의 샘플링된 데이터 포인트를 고려하자. 기하학적으로, 이들은 본질적으로 동일하다: 각 집합은 8개의 점으로 구성되며 각 점은 동일한 빈도 $1/8$로 발생했다. 유일한 차이점은 두 번째 데이터 집합의 경우 일부 점이 각각의 ``클러스터'' 주변에 더 높은 밀도를 가진 것으로 볼 수 있을 만큼 ``충분히 가깝다''는 것이다. 샘플을 생성했을 수 있는 진정한 분포와 더 관련이 있는 것은 무엇인가? 이러한 종류의 (경험적) 분포를 해석하는 데 있어 이러한 모호성을 어떻게 조화시킬 수 있을까?
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter3/figs/one-dim-distribution.png}
+	\caption{직선 상에서 관찰된 8개의 점.}
+	\label{fig:1d-line}
+\end{figure}
+\end{example}
+
+데이터 집합에 대한 명시적 인코딩 및 디코딩 체계를 구성하는 것과 관련된 또 다른 기술적 어려움이 있다. $\X = [\vx_1, \ldots, \vx_N]$에서 샘플링된 데이터 집합이 주어졌을 때, 유한한 메모리와 컴퓨팅 자원을 가진 기계에서 구현 가능한 코딩 체계를 어떻게 설계할 것인가? 일반적인 실수를 표현하는 것조차 무한한 수의 숫자 또는 비트가 필요하다는 점에 주목하라. 따라서 분포의 엔트로피가 그것의 (최적) 코딩 체계의 복잡도를 직접적으로 측정하는지 의문을 가질 수 있다. 다른 간단한 예제로 이 문제를 살펴보자.
+
+\begin{example}[정밀도] \label{eg:two-inrational}
+	오일러 수 $e \approx 2.71828$ 또는 수 $\pi \approx 3.14159$의 값을 동일한 확률 $1/2$로 취하는 이산 분포 $\X = [e, \pi]$를 고려하자. 이 분포의 엔트로피는 $H =1$이며, 이는 두 수를 각각 1비트 숫자 $0$ 또는 $1$로 인코딩할 수 있음을 시사한다. 그러나 유한 상태 기계에서 이 코드에 대한 디코딩 체계를 실현할 수 있는가? 실제로 답은 아니오인데, 두 수 중 어느 하나를 정확하게 설명하는 데 무한히 많은 비트가 필요하기 때문이다.
+\end{example}
+
+따라서 일반적으로 임의의 실수값 분포로부터의 샘플을 정확하게 재생성할 수 있는 인코딩 및 디코딩 체계를 갖는 것은 불가능하다.\footnote{즉, 그러한 샘플을 정확하게 인코딩하려면 유일한 방법은 모든 단일 샘플을 암기하는 것이다.} 그러나 동일한 분포로부터 추출된 샘플을 디코딩할 수 없다면 분포를 인코딩하는 것에는 실질적인 가치가 거의 없을 것이다.
+
+따라서 임의의 인코딩/디코딩 체계가 계산 가능하고 유한한 메모리와 컴퓨팅 자원으로 구현 가능하도록 보장하기 위해, 샘플 $\x$를 양자화하고 특정 정밀도, 예를 들어 $\epsilon > 0$까지만 인코딩해야 한다. {\em 그렇게 함으로써, 본질적으로 두 데이터 포인트 간의 거리가 $\epsilon$보다 작으면 동등한 것으로 취급한다.} 더 정확하게는, 다음과 같은 코딩 체계를 고려하고자 한다
+\begin{equation}
+	\x \mapsto \hat \x
+\end{equation}
+양자화로 인한 예상 오차가 $\epsilon$으로 제한되도록. 수학적으로 더 편리하고, 개념적으로 거의 동일하게, 예상 \textit{제곱} 오차를 \(\epsilon^{2}\)로 제한하는 것이다, 즉,
+\begin{equation}
+	\Ex[d(\vx, \hat \vx)^{2}] \le \epsilon^{2}.
+\end{equation}
+일반적으로 거리 \(d\)는 유클리드 거리 또는 2-노름으로 선택된다.\footnote{더 일반적으로, \(d^{2}\)를 소위 \textit{발산(divergence)}으로 대체할 수 있다.} 이후에는 이 선택을 채택할 것이다.
 
 \subsection{레이트 왜곡과 데이터 기하학}
 
-% TODO: 번역 예정
+물론, 위의 제약 조건을 만족하는 모든 인코딩 체계 중에서 결과적인 코딩 레이트를 최소화하는 것을 선택하고자 한다. 주어진 확률 변수 $\x$와 정밀도 $\epsilon$에 대해, 이 레이트는 {\em 레이트 왜곡(rate distortion)}으로 알려져 있으며, $\cR_{\epsilon}(\x)$로 표기된다.
+\textcite{shannon1959coding}이 원래 증명한 정보 이론의 심오한 정리는 이 레이트가 순수하게 확률적 관점에서 다음과 같이 동등하게 표현될 수 있음을 확립한다:
+\begin{equation}
+	\cR_{\epsilon}(\x)
+	= \min_{p(\hat \x \mid \x): \Ex[\norm{\x -\hat \x}_2^{2}] \le \epsilon^{2}}
+	I(\vx; \hat{\vx}),
+    \label{eqn:rate-distortion-general}
+\end{equation}
+여기서 양 $I(\vx; \hat{\vx})$는 \textit{상호 정보량(mutual information)}으로 알려져 있으며, 다음과 같이 정의된다:
+\begin{equation}\label{eq:mutual-information}
+	I(\vx; \hat{\vx})
+	= \KL(p(\vx, \hat{\vx}) \mmid p(\vx) p(\hat{\vx})).
+\end{equation}
+\eqref{eqn:rate-distortion-general}의 최소화는 왜곡 제약 조건 $\Ex_{\x, \hat \x}[\norm{\x- \hat \x}_2^{2}] \le \epsilon^{2}$를 만족하는 모든 조건부 분포 $p(\hat \x \mid \x)$에 대한 것임에 주목하라.
+각각의 이러한 조건부 분포는 결합 분포 $p(\vx, \hat{\vx}) = p(\hat\x \mid \x) p(\x)$를 유도하며, 이는 상호 정보량 \eqref{eq:mutual-information}을 결정한다.
+상호 정보량(따라서 레이트 왜곡)의 많은 편리한 속성은 KL 발산의 대응하는 속성에 의해 암시된다(\Cref{thm:information-inequality} 참조).
+정의로부터, $\cR_{\epsilon}(\x)$는 $\epsilon$에 대해 {\em 비증가} 함수임을 알 수 있다.
+
+\begin{remark}
+	알고 보니, 레이트 왜곡은 다음과 같은 의미에서 $\x$의 엔트로피에 대한 구현 가능한 근사이다.
+	$\vx$와 $\hat{\vx}$가 연속 확률 벡터라고 가정하자.
+	그러면 상호 정보량은 다음과 같이 쓸 수 있다:
+	\begin{equation}\label{eq:information-entropy}
+		I(\x; \hat\x) = h(\x) - h(\x \mid \hat \x),
+	\end{equation}
+	여기서 $h(\x \mid \hat \x) = \bE[\log_2 p(\x \mid \hat\x)]$는 $\hat \x$가 주어졌을 때 $\x$의 \textit{조건부 엔트로피}이다.
+	따라서, 최소 코딩 레이트는 제약 조건 $\mathbb{E} [\norm{\x- \hat \x}_2^2] \le \epsilon^2$를 만족하는 모든 분포 중에서 $\x$의 엔트로피와 $\hat \x$가 주어졌을 때 $\x$의 조건부 엔트로피 간의 차이가 최소화될 때 달성된다.
+
+	사실, 위와 같은 유형의 결론을 얻기 위해 $\x$와 $\hat \x$가 연속적이라고 가정할 필요는 없다. 예를 들어, 두 확률 벡터가 모두 이산적인 경우, 이산값 확률 벡터에 대한 KL 발산의 적절한 해석 후에 다음을 얻는다:
+	\begin{equation}
+		I(\x; \hat\x) = H(\x) - H(\x \mid \hat \x).
+	\end{equation}
+	더 일반적으로, 측도론의 고급 수학적 개념을 사용하여 상당히 이국적인 저차원 분포를 포함하여 임의의 확률 변수 $\x$와 $\hat \x$에 대한 상호 정보량(따라서 레이트 왜곡)을 정의할 수 있다; \textcite[\S 8.5]{Cover-Thomas}를 참조하라.
+\end{remark}
+
+\begin{remark}
+    $\X = [\x_1,\ldots, \x_N]$의 데이터 포인트 집합이 주어지면, 이들을 항상 이러한 $N$개의 벡터에 대해 동일한 확률 $1/N$을 가진 균일 이산 분포로부터의 샘플로 해석할 수 있다. 이러한 분포의 엔트로피는 $H(\X) = \frac{1}{N}\log_2 N$이다.\footnote{다시 말하지만, 이 코딩 레이트로 이러한 벡터를 인코딩할 수 있더라도, 임의의 정밀도로 디코딩할 수는 없다.} 그러나 $\X$가 샘플에 대한 균일 분포인 경우에도, 손실 코딩 체계로 달성 가능한 코딩 레이트 $\cR_{\epsilon}(\X)$는 이러한 샘플이 고르게 분포되어 있지 않고 많은 샘플이 서로 가깝게 클러스터링되어 있는 경우 $H(\X)$보다 상당히 낮을 수 있다. 따라서 Figure \ref{fig:1d-line}에 표시된 두 번째 분포의 경우, 적절하게 선택된 양자화 오차 $\epsilon$에 대해, 달성 가능한 손실 코딩 레이트는 균일 분포로 코딩하는 것보다 상당히 낮을 수 있다.\footnote{그럼에도 불구하고, 이 이산 균일 분포의 경우, $\epsilon$이 충분히 작으면 항상 $H(\X) \approx \cR_{\epsilon}(\X)$를 가진다.} 또한, 레이트 왜곡의 개념을 사용하면 Example \ref{eg:two-inrational}에서 논의된 어려움도 사라진다는 점에 주목하라: 두 무리수 각각에 충분히 가까운 두 유리수를 선택할 수 있다. 결과적인 코딩 체계는 유한한 복잡도를 가질 것이다.
+\end{remark}
+
+\begin{example}\label{example:sphere-covering-rate-distortion}
+	때때로 코딩 레이트를 먼저 고정하고 왜곡을 최소화하는 코딩 체계를 찾고자 하는 반대 상황에 직면할 수 있다.
+	예를 들어, 분포에서 샘플링된 포인트에 대해 고정된 수의 코드만 사용하고자 하고, 인코딩/디코딩 체계 동안 평균 또는 최대 왜곡이 최소화되도록 코드를 설계하는 방법을 알고 싶다고 가정하자. 예를 들어, 단위 정사각형에 대한 균일 분포가 주어졌을 때, 이 분포에서 추출된 포인트를 $n$ 비트로 얼마나 정확하게 인코딩할 수 있는지 궁금하다. 이 문제는 단위 정사각형을 이 반지름의 $2^n$개 디스크로 커버할 수 있도록 하는 최소 반지름(즉, 왜곡)이 무엇인지 묻는 것과 동일하다. Figure \ref{fig:seven-circles-packing}은 \(n = 4, 6, 8\)에 대한 정사각형의 거의 최적 커버링을 보여주며, 따라서 각각 \(2^{n} = 16, 64, 256\)개의 디스크가 있다. 디스크의 수 \(2^{n}\)가 증가함에 따라 디스크의 최적 반지름이 감소한다는 점에 주목하라.
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.3\textwidth]{\toplevelprefix/chapters/chapter3/figs/16.png}
+		\hfill
+		\includegraphics[width=0.3\textwidth]{\toplevelprefix/chapters/chapter3/figs/64.png}
+		\hfill
+		\includegraphics[width=0.3\textwidth]{\toplevelprefix/chapters/chapter3/figs/256.png}
+
+		\caption{휴리스틱 최적화 알고리즘을 사용하여 계산된 해당 반지름과 함께 정사각형을 커버하는 \(2^{4}\), \(2^{6}\), \(2^{8}\)개 디스크에 대한 거의 최적 솔루션의 근사.}
+		\label{fig:seven-circles-packing}
+	\end{figure}
+\end{example}
+
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=0.6\textwidth]{\toplevelprefix/chapters/chapter3/figs/continuation.png}
+	\caption{\small\textbf{\(\epsilon\) 볼에 의한 저차원 분포의 근사.} \(\epsilon\) 매개변수가 줄어들면, \(\epsilon\)-볼의 합집합이 진정한 분포(검은색)의 지지집합을 점점 더 잘 근사함을 볼 수 있다. 또한, 각각 공분산 \((\epsilon^{2}/D)\vI\)를 가진 가우시안 혼합으로 진정한 분포를 근사하여 얻은 관련 잡음 제거기(제공된 화살표로 입력-출력 매핑이 주어짐)는 진정한 잡음 제거기를 점점 더 잘 근사한다. 큰 \(\epsilon\)에서, 이러한 잡음 제거기는 진정한 분포 근처를 전혀 가리키지 않지만, 작은 \(\epsilon\)에서는 진정한 잡음 제거기를 밀접하게 근사한다. \Cref{thm:covering-number-rate-distortion}은 이 근사가 작은 왜곡 $\epsilon$에서 레이트 왜곡 함수를 특징짓고, 병리 현상 없는 저차원 분포 학습을 위한 코딩 레이트 최소화와 잡음 제거의 병렬 접근법을 통합함을 확립한다.}
+	\label{fig:continuation}
+\end{figure}
+
+일반적인 분포 $p(\vx)$에 대한 레이트 왜곡 함수 \eqref{eqn:rate-distortion-general}의 닫힌 형식 표현을 얻는 것은 악명높게 어려운 문제인 것으로 밝혀졌다. 그러나 \Cref{example:sphere-covering-rate-distortion}이 시사하는 바와 같이, 분포 $p(\vx)$의 지지집합의 \textit{기하학}이 레이트 왜곡 함수와 연결될 수 있고 따라서 왜곡 수준 $\epsilon$에서 최적 코딩 레이트와 연결될 수 있는 중요한 특수 경우가 있다.
+사실, 이 예제는 $p(\x)$의 지지집합이 저차원 분포를 포함하여 충분히 정칙적인 컴팩트 집합이고 $p(\x)$가 그 지지집합 위에 균일하게 분포되어 있는 모든 설정으로 일반화될 수 있다.
+이것은 실용적으로 관심 있는 방대한 수의 경우를 다룬다.
+우리는 다음 결과에서 이 개념을 형식화하며, 이는 특수한 경우에 대해 이 속성을 확립한다.
+
+\begin{theorem}\label{thm:covering-number-rate-distortion}
+	\(\vx\)가 그 지지집합 \(K \doteq \Supp(\vx)\)가 컴팩트 집합인 확률 변수라고 가정하자. \textit{커버링 수(covering number)} \(\cN_{\epsilon}(K)\)를 $K$를 커버할 수 있는 반지름 \(\epsilon\)인 볼의 최소 개수로 정의한다, 즉,
+	\begin{equation}
+		\cN_{\epsilon}(K) \doteq \min\left\{n \in \bN \colon \exists \vp_{1}, \dots, \vp_{n} \in K\ \text{s.t.}\ K \subseteq \bigcup_{i = 1}^{n}B_{\epsilon}(\vp_{i})\right\},
+	\end{equation}
+	여기서 \(B_{\epsilon}(\vp) = \set{\vxi\in \R^D \given \norm{\vxi - \vp}_2 \leq \epsilon}\)는 \(\vp\)를 중심으로 하는 반지름 \(\epsilon\)의 유클리드 볼이다.
+	그러면 다음이 성립한다:
+	\begin{equation}
+		\cR_{\epsilon}(\vx)
+		\leq \log_{2} \cN_{\epsilon}(K).
+	\end{equation}
+	추가로, $\vx$가 $K$ 위에 균일하게 분포되어 있고 $K$가 상호 직교하는 저랭크 부분공간의 혼합인 경우,\footnote{사실, 프랙탈과 같이 매우 불규칙한 $K$를 병렬 결과로 다루는 것이 가능하지만, 그 진술은 훨씬 더 기술적이 된다: Riegler et al.\ \cite{Riegler2018-jh,Riegler2023-rr}를 참조하라. 우리는 \Cref{app:rate-distortion-covering}에서 부분공간의 혼합에 대한 결과를 보여주는 간단한 증명을 제공한다.}
+	다음의 매칭 하한이 성립한다:
+	\begin{equation}
+		\cR_{\epsilon}(\vx)
+		\geq
+		\log_{2} \cN_{\epsilon}(K) - O(D).
+	\end{equation}
+\end{theorem}
+\begin{proof}
+이 정리의 증명은 이 책의 범위를 벗어나며 \Cref{app:rate-distortion-covering}로 연기한다.
+\end{proof}
+
+\Cref{thm:covering-number-rate-distortion}의 함의는 다음과 같이 요약할 수 있다: $\x$의 분포를 충분히 정확하게 코딩하기 위해, 최소 레이트 왜곡 코딩 프레임워크는 $\x$의 지지집합에 대한 구 패킹 문제에 의해 완전히 특징지어진다.
+\Cref{thm:covering-number-rate-distortion}의 증명의 핵심은 실제로 충분히 비간섭적인 다양체의 혼합과 같은 더 복잡한 분포로 일반화될 수 있지만, 이를 향후 연구로 남긴다.
+따라서 레이트 왜곡은 많은 작은 볼의 혼합으로 \(\vx\)의 분포의 지지집합을 근사하는 ``확률 인식'' 방법으로 생각할 수 있다.
+
+이제 이것과 이 장의 앞부분에서 논의한 잡음 제거-확산-엔트로피 복잡도 계층 구조 사이의 또 다른 연결을 논의한다.
+
+\begin{remark}\label{rem:slb}
+	\Cref{thm:covering-number-rate-distortion}의 하한 증명의 핵심 요소는 레이트 왜곡에 대한 \textit{Shannon 하한(Shannon lower bound)}으로 알려진 정보 이론의 중요한 결과이다. 이는 Claude Shannon의 이름을 따서 명명되었으며, 그는 특수한 경우에서 이를 처음 유도했다 \cite{shannon1959coding}. 이는 밀도 $p(\x)$와 유한한 예상 제곱 노름을 가진 임의의 확률 변수 $\x$에 대해 레이트 왜곡 함수에 대한 다음 추정을 주장한다 \cite{Linder1994-ej}:
+	\begin{equation}\label{eq:slb}
+		\cR_{\epsilon}(\x)
+		\geq
+		h(\x)
+		- \log_2 \volume(B_{\epsilon})
+		-
+		C_D,
+	\end{equation}
+	여기서 $C_D > 0$는 $D$에만 의존하는 상수이다. 더욱이, 이 하한은 실제로 $\epsilon \to 0$일 때 sharp하다: 즉,
+	\begin{equation}
+		\lim_{\epsilon \to 0} \cR_{\epsilon}(\x) - \left[ h(\x) - \log_2
+		\volume(B_{\epsilon}) - C_D\right] = 0.
+	\end{equation}
+	따라서 왜곡 $\epsilon$이 작을 때, 레이트 왜곡을 정의하는 (일반적으로 다루기 어려운) 최적화 문제 \eqref{eqn:rate-distortion-general}보다는 Shannon 하한만 고려하면 된다.
+
+	Shannon 하한은 저차원 분포 학습을 위한 코딩 레이트, 엔트로피 최소화/잡음 제거, 그리고 기하학적 구 패킹 접근법 사이의 다리이다. 균일 밀도 $p(\x)$의 특수한 경우, \eqref{eq:slb}는 다음과 같이 된다:
+	\begin{align}
+		\cR_{\epsilon}(\x) &\geq -\int_K \frac{1}{\volume(K)} \log_2
+		\frac{1}{\volume(K)} \odif \vxi
+		- \log_2 \volume(B_{\epsilon}) - C_d
+		\\
+		&=
+		\log_2 \volume(K) / \volume(B_{\epsilon})
+		- C_d. \label{eq:shannon-lower-bound-uniform}
+	\end{align}
+	비율 $\volume(K) / \volume(B_{\epsilon})$는 최악의 경우 논증으로 $K$를 커버하는 데 필요한 $\epsilon$-볼의 수를 근사하며, 이는 $\epsilon$이 작을 때 충분히 정칙적인 집합 $K$에 대해 정확하다(자세한 내용은 \Cref{app:rate-distortion-covering} 참조).
+	한편, 이 장의 앞부분에서 가우시안 잡음 제거 모델 $\x_{\epsilon} = \x + \epsilon \vg$를 상기하라, 여기서 $\vg \sim \cN(\Zero, \vI)$는 $\x$와 독립이다.
+	흥미롭게도, 결합 분포 $(\vx, \vg)$의 미분 엔트로피는 다음과 같이 계산될 수 있다:
+	\begin{align}
+		h(\vx, \vg)
+		&=
+		-\int
+		p(\vxi) p(\vgamma) \log_2 p(\vxi) p(\vgamma) \odif \vxi \odif \vgamma
+		\\
+		&=
+		h(\x) + h(\epsilon \vg).
+	\end{align}
+	우리는 \Cref{eqn:entropy-Gaussian-multi}에서 가우시안 엔트로피를 계산한 것을 보았다: $\epsilon$이 작을 때, 이는 Shannon 하한에서 본 부피 양 $-\log_2 \volume(B_{\epsilon})$와 덧셈 상수까지 동일하다.
+	특정 특수한 경우(예: 비간섭 저랭크 부분공간에 지지되는 데이터)에서, $\epsilon$이 작고 $\x$의 지지집합이 충분히 정칙적일 때, $\x_{\epsilon}$의 분포는 분포 $p(\x)$와 $p(\vg)$의 곱으로 국소적으로 잘 근사될 수 있으며, 위의 계산을 정당화한다.
+	따라서 가우시안 잡음 제거 과정은 왜곡 수준 $\epsilon$에 비례하는 잡음 수준을 가진 $\x$의 잡음이 있는 버전의 엔트로피에서 발생하는 Shannon 하한의 또 다른 해석을 제공한다.
+
+	따라서, 구 커버링을 통한 이 유한 레이트 왜곡 접근법은 분포의 복잡도에 대한 이전의 모든 척도를 다시 활성화하거나 일반화하여, 통일된 방식으로 서로 다른 분포를 구별하고 순위를 매길 수 있게 한다.
+	이러한 상호 관련된 관점은 \Cref{fig:continuation}에서 시각화된다.
+\end{remark}
 
 \subsection{저차원 가우시안에 대한 손실 코딩 레이트}\label{subsec:lossy DR}
 
-% TODO: 번역 예정
+이제 임의의 분포로부터의 데이터 샘플 집합 $\X = [\x_1, \ldots, \x_N]$이 주어졌다고 가정하자.\footnote{또는 이러한 데이터 포인트 자체를 (경험적) 분포로 볼 수 있다.} 우리는 특정 정밀도까지 데이터를 인코딩할 수 있는 구성적 체계를 고안하고자 한다, 예를 들어
+\begin{equation}
+	\x_i \mapsto \hat \x_i, \quad \mbox{subject to} \quad \|\x_i - \hat \x_i\|_2 \le \epsilon.
+\end{equation}
+이것은 데이터가 \(\frac{1}{N}\sum_{i = 1}^{N} \norm{\x_i- \hat \x_i}_2^{2} \le \epsilon^{2}\)와 같이 인코딩되도록 보장하는 충분하고 명시적이며 해석 가능한 조건임에 주목하라. 이 후자의 부등식은 제공된 경험적 분포와 그 인코딩에 대한 레이트 왜곡 제약 조건과 정확히 일치한다. 예를 들어, \Cref{example:sphere-covering-rate-distortion}에서 우리는 이 단순화된 기준을 사용하여 주어진 코딩 레이트에 대한 최소 왜곡과 명시적 코딩 체계를 명시적으로 찾았다.
+
+일반성을 잃지 않고, $\X$의 평균이 0이라고 가정하자, 즉, $\frac{1}{N} \sum_{i = 1}^{N} \x_i = \boldsymbol{0}$. $\X$ 뒤에 있는 분포의 본질에 대한 사전 지식 없이, $\X$를 공분산\footnote{고정된 분산이 주어졌을 때, 가우시안이 최대 엔트로피를 달성하는 것으로 알려져 있다. 즉, 가능한 코딩 레이트의 관점에서 최악의 경우가 될 수 있는 상한을 제공한다.}을 가진 가우시안 분포 $\mathcal{N}(\boldsymbol{0}, {\boldsymbol{\Sigma}})$로부터 샘플링된 것으로 볼 수 있다:
+\begin{equation}
+	{\boldsymbol{\Sigma}} = \frac{1}{N} \X\X^\top.
+\end{equation}
+기하학적으로 ${\boldsymbol{\Sigma}}$는 대부분의 샘플 $\x_i$가 위치하는 타원체 영역을 특징짓는다는 점에 주목하라.
+
+$\hat \X = [\hat \x_1,\ldots, \hat \x_N]$을 $\X = [\x_1, \ldots, \x_N]$의 잡음이 있는 버전으로 볼 수 있다:
+\begin{equation}
+	\hat \x_i = \x_i + \vw_i,
+\end{equation}
+여기서 $\vw_i$는 $\vx_i$와 독립인 가우시안 잡음 $\vw_i  \sim \mathcal{N}(\boldsymbol{0} , {\epsilon^2}  \boldsymbol{I}/{D})$이다. 그러면 $\hat \x_i$의 공분산은 다음과 같이 주어진다:
+\begin{equation}
+	\hat{\boldsymbol{\Sigma}} = \mathbb{E}\left[\hat \x_i \hat \x_i^\top\right] = \frac{\epsilon^2}{D} \boldsymbol{I} + \frac{1}{N} \X\X^\top.
+\end{equation}
+벡터 $\x_i$에 의해 span되는 영역의 부피는 공분산 행렬의 행렬식의 제곱근에 비례한다는 점에 주목하라:
+\begin{equation}
+	\mbox{volume}(\hat \x_i) \propto \sqrt{\det \big(\hat{\boldsymbol{\Sigma}}\big)} = \sqrt{\det\left(\frac{\epsilon^2}{D} \boldsymbol{I} + \frac{1}{N} \X\X^\top \right)}.
+\end{equation}
+각 확률 벡터 $\boldsymbol{w}_i$에 의해 span되는 부피는 다음에 비례한다:
+\begin{equation}
+	\mbox{volume}(\boldsymbol{w}_i) \propto   \sqrt{\det\left(\frac{\epsilon^2}{D} \boldsymbol{I} \right)}.
+\end{equation}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter3/figs/Gaussian-compression.png}
+	\caption{$\epsilon$-볼을 사용하여 데이터 벡터에 의해 span되는 영역을 커버. 공간의 부피가 클수록 더 많은 볼이 필요하며, 따라서 볼을 인코딩하고 열거하는 데 더 많은 비트가 필요하다. 각 실수값 벡터 $\vx$는 그것이 속하는 볼의 번호로 인코딩될 수 있다.}
+	\label{fig:ball-packing}
+\end{figure}
+
+$\hat \x_i$에 의해 span되는 영역에 속하는 벡터를 인코딩하기 위해, \Cref{fig:ball-packing}에 설명된 대로 반지름 $\epsilon$의 겹치지 않는 볼로 영역을 커버할 수 있다. $\hat \x_i$에 의해 span되는 영역의 부피가 $\epsilon$-볼의 부피보다 상당히 클 때, 영역을 커버하는 데 필요한 총 볼의 수는 두 부피의 비율과 거의 같다:
+\begin{equation}
+	\# \,\epsilon\mbox{-볼} \approx \frac{\mbox{volume}(\hat \vx_i)}{\mbox{volume}(\vw_i)} = \sqrt{\det\left(\boldsymbol{I} + \frac{D}{N\epsilon^2} \X\X^\top  \right)}.
+\end{equation}
+관심 영역의 모든 $\epsilon$-볼에 레이블을 지정하기 위해 이진수를 사용하는 경우, 필요한 총 이진 비트 수는 다음과 같다:
+\begin{equation}
+	\cR_{\epsilon}(\X) \approx
+	\log_2 (\# \,\epsilon\mbox{-볼}) \approx R_{\epsilon}(\X) \doteq \frac{1}{2} \log \det \left(\boldsymbol{I} + \frac{D}{N\epsilon^2} \X\X^\top \right).
+	\label{eqn:rate-Gaussian}
+\end{equation}
+
+\begin{example}
+	Figure \ref{fig:ball-packing}은 타원체 지지집합을 가진 2차원 분포의 예를 보여준다 -- 2차원 가우시안 분포의 지지집합을 근사한다. 영역은 크기 $\epsilon$의 작은 볼로 커버되어 있다. 모든 볼은 $1$부터 $n$까지 번호가 매겨져 있다. 그러면 이 영역의 임의의 벡터 $\x$가 주어졌을 때, $\operatorname{ball}_{\epsilon}(\x)$로 표기되는, 어떤 $\epsilon$-볼 중심에 가장 가까운지만 결정하면 된다. $\x$를 기억하기 위해, 이 볼의 번호만 기억하면 되며, 이는 저장하는 데 $\log(n)$ 비트가 필요하다. 이 번호에서 $\x$를 디코딩해야 하는 경우, 단순히 $\hat \x$를 볼의 중심으로 취한다. 이것은 명시적 인코딩 및 디코딩 체계로 이어진다:
+	\begin{equation}
+		\x \longrightarrow \operatorname{ball}_{\epsilon}(\x) \longrightarrow \hat \x = \mbox{center of} \operatorname{ball}_{\epsilon}(\x).
+	\end{equation}
+	이러한 볼 중심을 인코딩 체계를 위한 코드북 또는 사전의 ``코드''라고 부를 수 있다. 이 (손실) 인코딩-디코딩 체계의 정확도가 볼 $\epsilon$의 반지름 정도라는 것을 쉽게 알 수 있다.
+	명확하게 $\cR_{\epsilon}(\Z)$는 이 코딩 체계로 각 벡터 $\z$의 볼 번호를 인코딩하는 데 필요한 평균 비트 수이며, 따라서 이 체계와 관련된 {\em 코딩 레이트}라고 부를 수 있다.
+\end{example}
+
+위의 유도로부터, 코딩 레이트 $\cR_{\epsilon}(\X)$가 명시적 인코딩 (및 디코딩) 체계로 (근사적으로) 달성 가능함을 알 수 있다. 이것은 두 가지 흥미로운 속성을 가진다:
+\begin{itemize}
+	\item 첫째, $R_{\epsilon}(\X)$가 가우시안 소스의 레이트 왜곡 함수와 매우 유사하다는 것을 알 수 있다 \cite{Cover-Thomas}. 실제로, $\epsilon$이 작을 때, 위의 표현은 \cite{MaY2007-PAMI}에서 지적한 바와 같이 가우시안 소스의 레이트 왜곡에 대한 근접한 근사이다.
+	\item 둘째, 데이터 $\X$가 선형 부분공간으로부터 온 것으로 가정되는 경우 동일한 닫힌 형식 코딩 레이트 $R_{\epsilon}(\X)$를 \(\cR_{\epsilon}(\vX)\)의 근사로 유도할 수 있다. 이것은 $\X = \boldsymbol{U} \boldsymbol{\Sigma}\boldsymbol{V}^\top$의 특이값 분해(SVD)를 적절히 양자화하고 $\boldsymbol{U}$에 의해 span되는 부분공간의 벡터에 대한 손실 코딩 체계를 구성함으로써 보일 수 있다 \cite{MaY2007-PAMI}.
+\end{itemize}
+우리의 맥락에서, 닫힌 형식 표현 $R_{\epsilon}(\X)$는 상당히 근본적이다: 이것은 가우시안 분포 또는 선형 부분공간에서 추출된 데이터에 대한 명시적이고 자연스러운 손실 코딩 체계와 관련된 코딩 레이트이다. 다음 장에서 보게 되듯이, 이 공식은 심층 신경망의 아키텍처를 이해하는 데 중요한 역할을 한다.
 
 \subsection{저차원 가우시안 혼합의 클러스터링}
+\label{sec:clustering-Gaussians}
 
-% TODO: 번역 예정
+앞서 논의한 바와 같이, 주어진 데이터셋 $\X$는 종종 저차원 고유 구조를 가지고 있다. 따라서 이를 일반적인 가우시안으로 인코딩하는 것은 매우 중복적일 것이다. $\X$에서 이러한 고유 구조를 식별할 수 있다면, 훨씬 낮은 코딩 레이트를 제공하는 훨씬 더 나은 코딩 체계를 설계할 수 있다. 또는 동등하게, 그러한 $\X$를 인코딩하는 데 사용되는 코드를 압축할 수 있다. 압축이 그러한 구조를 식별하는 통합된 계산 가능한 방법을 제공한다는 것을 보게 될 것이다. 이 섹션에서는 가장 기본적인 저차원 구조 계열인 (저차원) 가우시안 또는 부분공간의 혼합으로 이 중요한 아이디어를 시연한다.
+
+\begin{example}
+	\Cref{fig:two-subspaces}는 데이터 $\X$가 두 부분공간(또는 저차원 가우시안) 주위에 분포되어 있는 예를 보여준다. 그들이 하나의 단일 가우시안으로 함께 보이고 코딩되는 경우, 모든 파란색 볼로 표현되는 관련 이산 (손실) 코드북은 명백히 매우 중복적이다. 우리는 $S_1$과 $S_2$로 표시된 두 부분공간의 위치를 식별하고, 두 부분공간만 커버하는 코드북, 즉 녹색 볼을 설계하려고 시도할 수 있다. 데이터 $\X$의 샘플을 두 부분공간으로 올바르게 분할할 수 있다면: $\X = [\X_1, \X_2]\bm \Pi$이고 $\X_1 \in S_1$이고 $\X_2 \in S_2$이며, 여기서 $\bm \Pi$는 순열 행렬을 나타내면, 데이터에 대한 결과 코딩 레이트가 훨씬 낮을 것이다. 이것은 더 간결하고, 따라서 더 바람직한 데이터의 표현을 제공한다.
+\end{example}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter3/figs/Two-subspaces.png}
+	\caption{두 부분공간 주위에 분포된 데이터에 대한 두 가지 손실 코딩 체계의 비교. 하나는 두 부분공간에 의해 span되는 전체 공간에 대해 (파란색) $\epsilon$-볼을 패킹하는 것이고; 다른 하나는 두 부분공간 주위의 표 형태 이웃에만 볼을 패킹하는 것이다. 후자는 명백히 훨씬 작은 코드북을 가지며 부분공간의 샘플에 대해 훨씬 낮은 코딩 레이트를 제공한다.}
+	\label{fig:two-subspaces}
+\end{figure}
+
+따라서, 더 일반적으로 말하면, 데이터가 임의의 부분공간 또는 저차원 가우시안의 혼합에서 추출된 경우, 그러한 구성 요소를 식별하고 그러한 구성 요소의 고유 차원을 기반으로 데이터를 인코딩하는 것이 바람직할 것이다. 데이터가 저차원 가우시안의 혼합에서 추출된다고 가정함으로써 많은 일반성을 잃지 않는 것으로 밝혀졌다. 이는 가우시안의 혼합이 대부분의 일반적인 분포를 밀접하게 근사할 수 있기 때문이다 \cite{borkar2016gaussian}.
+
+\paragraph{클러스터링 문제.}
+이제 이 특정 분포 계열에 대해, 어떻게 효과적이고 효율적으로 다음으로부터 추출된 샘플 집합에서 그러한 저차원 구성 요소를 식별할 수 있을까
+\begin{equation}
+	\X = \left[\x_1, \x_2, \ldots, \x_N\right],
+\end{equation}
+다시 말해, 전체 데이터 집합 $\X$가 주어졌을 때, 우리는 이를 여러 개, 예를 들어 $K$개의 부분 집합으로 분할하거나 클러스터링하고자 한다:
+\begin{equation}
+	\X\bm \Pi = [\X_1, \X_2, \dots, \X_K],
+\end{equation}
+여기서 각 부분 집합은 하나의 저차원 가우시안 또는 부분공간에서만 추출된 샘플로 구성되며 $\bm \Pi$는 분할의 멤버십을 나타내는 순열 행렬이다. 상황에 따라 분할은 결정론적이거나 확률적일 수 있다는 점에 주목하라. \cite{ma2007segmentation}에서 보여진 바와 같이, 가우시안의 혼합의 경우, 확률적 분할은 더 낮은 코딩 레이트로 이어지지 않는다. 따라서 단순화를 위해, 여기서는 결정론적 분할만 고려한다.
+
+\paragraph{손실 압축을 통한 클러스터링.}
+위의 클러스터링 문제를 해결하는 데 있어 주요 어려움은 일반적으로 클러스터 수 $K$를 알지 못하며, 각 구성 요소의 차원도 알지 못한다는 것이다. 이 클러스터링 문제의 연구에는 오랜 역사가 있다. 교과서 \cite{GPCA}는 이 문제에 대한 다양한 접근법을 체계적이고 포괄적으로 다룬다. 이 문제에 대한 효과적인 접근법을 찾기 위해, 우리는 먼저 왜 클러스터링을 하고자 하는지 이해하고 명확히 해야 한다. 다시 말해, 데이터를 클러스터링하지 않는 것과 비교하여 클러스터링으로부터 정확히 무엇을 얻는가? 이득을 어떻게 측정할 것인가? 데이터 압축의 관점에서, 올바른 클러스터링은 더 효율적인 인코딩 (및 디코딩) 체계로 이어져야 한다.
+
+임의의 주어진 데이터 집합 $\X$에 대해, 이미 기준선으로 두 가지 명백한 인코딩 체계가 있다. 이들은 데이터를 인코딩하는 두 가지 극단적인 방법을 나타낸다:
+\begin{itemize}
+	\item 단순히 모든 샘플을 함께 하나의 단일 가우시안에서 추출된 것으로 본다. 관련 코딩 레이트는 앞서 유도한 대로 다음과 같이 주어진다:
+	      \begin{equation}
+		      \cR_{\epsilon}(\vX) \approx R_{\epsilon}(\X) = \frac{1}{2} \log \det \left(\boldsymbol{I} + \frac{D}{N\epsilon^2} \X\X^\top \right).
+	      \end{equation}
+	\item 단순히 각 샘플에 다른 번호를 할당하여 모든 샘플을 별도로 암기한다. 코딩 레이트는 다음과 같을 것이다:
+	      \begin{equation}
+		      \cR_0(\X) = \log(N).
+	      \end{equation}
+\end{itemize}
+
+양자화 오차 $\epsilon$의 특정 (극단적인) 선택에 대해 어느 코딩 체계든 ``최적'' 솔루션이 될 수 있다는 점에 주목하라:
+\begin{enumerate}
+	\item {\em 게으른 레짐(Lazy Regime)}: $\epsilon$을 극도로 크게 선택하면, $\X$의 모든 샘플이 단일 볼로 커버될 수 있다. 레이트는  $\lim_{\epsilon \rightarrow \infty} \cR_\epsilon \rightarrow \frac{1}{2}\log\det (\boldsymbol{I}) = 0$이다.
+	\item {\em 암기 레짐(Memorization Regime)}: $\epsilon$이 극도로 작으면, $\X$의 모든 샘플이 다른 $\epsilon$-볼로 커버되므로, 총 개수는 $N$이다. 레이트는 $\lim_{\epsilon \rightarrow 0} \cR_\epsilon \rightarrow \log(N)$이다.
+\end{enumerate}
+첫 번째 체계는 분포에 대해 흥미로운 어떤 것도 전혀 신경 쓰지 않는 시나리오에 해당한다는 점에 주목하라. 정보가 있는 어떤 것에 대해서도 비트를 할애하고 싶지 않다. 우리는 이것을 ``게으른 레짐''이라고 부른다. 두 번째 체계는 극도로 높은 정밀도로 모든 샘플을 디코딩하고자 하는 시나리오에 해당한다. 따라서 모든 샘플을 ``암기''하는 것이 낫다. 우리는 이것을 ``암기 레짐''이라고 부른다.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{\toplevelprefix/chapters/chapter3/figs/circle-packing.png}
+	\caption{2차원 평면에 있는 다수의 무작위 샘플. 각 샘플을 중심으로 하는 $\epsilon$-원반이 할당되어 있다고 고려하자. 샘플의 밀도는 왼쪽에서 오른쪽으로 증가한다.}
+	\label{fig:circle-packing}
+\end{figure}
+
+\begin{example}
+	암기 레짐이 선호되는 경우와 그렇지 않은 경우를 보기 위해, 2차원 평면의 단위 영역에 무작위로 분포된 $N$개의 샘플을 고려하자.\footnote{점들이 단위 영역당 $N$개 점의 밀도를 가진 포아송 과정에 의해 추출된다고 하자.} 고정된 양자화 오차 $\epsilon$을 가진 손실 코딩 체계를 설계하려고 한다고 상상하자. 이는 \Cref{fig:circle-packing}에 표시된 대로 각 샘플 주위에 $\epsilon$-원반을 두는 것과 동등하다. $N$이 작을 때, 모든 원반이 서로 겹칠 확률은 0이다. 이 경우 크기 $N$의 코드북이 필요하고 최적이다. $N$ 또는 밀도가 특정 임계값 $N_c$에 도달하면, 높은 확률로 모든 원반이 겹치기 시작하고 전체 평면을 커버하는 하나의 클러스터로 연결된다---이 현상은 연속체 ``침투(percolation)''로 알려져 있다 \cite{Gilbert-1961,Mertens-Moore-2012}. $N$이 이 값보다 커지면, 원반이 심하게 겹친다. 주어진 정밀도 $\epsilon$까지 평면의 점을 인코딩하기만 원하기 때문에 원반의 수 $N$은 매우 중복적이 된다. 모든 샘플을 커버하는 데 필요한 원반의 수는 $N$보다 훨씬 적다.\footnote{사실, 그러한 커버링을 찾는 효율적인 알고리즘이 있다 \cite{Booth-2001}.}
+\end{example}
+
+게으른 레짐과 암기 레짐은 모두 다소 자명하며 아마도 이론적 또는 실용적 관심이 거의 없을 것이다. {\em 컴팩트하고 저차원 지지집합}을 가진 분포에서 추출된 많은 수의 샘플을 인코딩하는 데 사용될 때 어느 체계도 최적에서 멀 것이다. 흥미로운 레짐은 이 두 가지 사이에 존재한다.
+
+\begin{example}
+	\begin{figure}[t]
+		\centering
+		\includegraphics[width=0.4\linewidth]{\toplevelprefix/chapters/chapter3/figs/Two-lines-and-plane.png}
+		\includegraphics[width=0.9\linewidth]{\toplevelprefix/chapters/chapter3/figs/Coding-Rate.jpg}
+		\caption{상단: $\mathbb{R}^3$의 두 직선과 하나의 평면에서 추출된 358개의 잡음이 있는 샘플. 하단: 클러스터링 결과와 코딩 레이트에 대한 $\epsilon$ 변화의 효과. 빨간색 선은 샘플에 추가된 가우시안 잡음의 분산 $\epsilon_0$를 표시한다.}
+		\label{fig:two-lines-and-plane}
+		\label{fig:two-lines-and-plane-epsilon}
+	\end{figure}
+	\Cref{fig:two-lines-and-plane}은 $\mathbb{R}^3$의 두 직선과 하나의 평면에서 추출된 잡음이 있는 샘플의 예를 보여준다. 오른쪽의 플롯 (c)에서 알 수 있듯이, $\epsilon$을 증가시킴에 따라 최적 코딩 레이트가 단조롭게 감소하며, 이는 레이트 왜곡 함수의 속성에서 예상되는 바이다. 플롯 (a)와 (b)는 $\epsilon$을 매우 작은 값(0에 가까운)에서 매우 큰 값(무한대 방향)으로 변화시킬 때, 코딩 레이트가 최소일 때의 최적 클러스터 수를 보여준다. 플롯의 양쪽 끝에서 게으른 레짐과 암기 레짐을 명확히 볼 수 있다. 그러나 플롯 (b)에서도 알 수 있듯이, 양자화 오차 $\epsilon$이 진정한 잡음 분산 $\epsilon_0$의 수준 정도로 선택될 때, 최적 클러스터 수는 두 개의 평면과 하나의 부분공간을 나타내는 ``올바른'' 수인 3이다. 우리는 이 중간 레짐을 비공식적으로 ``일반화 레짐''이라고 부른다. 이러한 레짐 사이에 급격한 상전이가 발생한다는 점에 주목하라.\footnote{지금까지 우리가 아는 한, 이러한 상전이 행동에 대한 엄격한 이론적 정당화는 없다.}
+\end{example}
+
+위의 논의와 예제로부터, 샘플 밀도에 대한 양자화 오차\footnote{또는 양자화 오차에 대한 샘플 밀도}가 적절한 범위에 있을 때, 손실 코딩 레이트를 최소화하면 샘플링된 데이터의 기본 (저차원) 분포를 밝힐 수 있음을 알 수 있다. {\em 따라서, 실용성의 선택으로 시작된 양자화는 유한한 샘플을 가진 경험적 분포로부터 연속 분포를 학습하는 데 필요하게 되는 것처럼 보인다.} 이 현상을 설명하는 엄격한 이론은 여전히 불분명하지만, 여기서 학습 목적으로 우리는 올바른 분포를 찾을 수 있는 알고리즘을 설계하기 위해 이 현상을 활용하는 방법에 관심이 있다.
+
+\Cref{fig:two-subspaces}에 표시된 간단한 예를 사용하여 기본 아이디어를 설명하자. $\X$의 모든 샘플을 각각 $N_1$과 $N_2$개의 샘플을 가진 $\X_1$과 $\X_2$의 두 클러스터로 분할할 수 있다면, 관련 코딩 레이트는 다음과 같을 것이다\footnote{여기서는 Huffman 코딩을 통해 각 샘플의 멤버십을 인코딩하는 데 필요한 일부 오버헤드 비트를 무시한다.}:
+\begin{equation}
+	R_{\epsilon}^c(\X\mid \boldsymbol{\Pi}) = \frac{N_1}{N}R_{\epsilon}(\X_1) + \frac{N_2}{N}R_{\epsilon}(\X_2),
+\end{equation}
+여기서 $\boldsymbol{\Pi}$를 사용하여 분할의 멤버십을 나타낸다. 분할이 분포의 저차원 구조를 존중하는 경우, 이 경우 $\X_1$과 $\X_2$가 각각 두 부분공간에 속하는 경우, 결과 코딩 레이트는 위의 두 기본 체계보다 상당히 작아야 한다:
+\begin{equation}
+	R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_{\epsilon}(\X), \quad     R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_0(\X).
+\end{equation}
+일반적으로, 클러스터링 문제를 코딩 레이트를 최소화하는 최적화 문제로 캐스팅할 수 있다:
+\begin{equation}
+	\min_{\boldsymbol{\Pi}}  \bc{ R_{\epsilon}^c(\X \mid \boldsymbol{\Pi})
+	\doteq \sum_{k=1}^K \frac{N_k}{N}R_{\epsilon}(\X_k)}.
+\end{equation}
+
+\paragraph{클러스터링을 위한 최적화 전략.}
+남은 질문은 최적 클러스터를 찾기 위해 위의 코딩 레이트 목적 함수를 어떻게 최적화하는가이다. 이 목적 함수에 대한 세 가지 자연스러운 접근법이 있다:
+\begin{enumerate}
+	\item 전체 집합 $\X$를 단일 클러스터(즉, 게으른 레짐)로 시작한 다음 (예를 들어 무작위로) 검색하여 더 작은 코딩 레이트로 이어지도록 분할할 수 있다.
+	\item 역으로, 각 샘플 $\x_i$를 자체 클러스터(즉, 암기 레짐)로 시작하고 더 작은 코딩 레이트로 이어질 클러스터를 병합하도록 검색할 수 있다.
+	\item 또는, 멤버십 $\boldsymbol{\Pi}$를 일부 연속 매개변수로 표현(또는 근사)할 수 있다면, 경사 하강(GD)과 같은 최적화 방법을 사용할 수 있다.
+\end{enumerate}
+첫 번째 접근법은 시도해야 하는 가능한 분할의 수가 샘플 수에서 지수적이기 때문에 계산적으로 그다지 매력적이지 않다. 예를 들어, $\X$를 동일한 크기의 두 부분 집합으로 분할하는 수는 $N \choose N/2$이며, 이는 $N$이 커짐에 따라 폭발적으로 증가한다. 우리는 다음 \Cref{ch:representation}에서 세 번째 접근법을 탐구할 것이다. 거기서 우리는 심층 신경망, 특히 트랜스포머의 역할이 코딩 레이트 목적 함수와 어떻게 연결되는지 볼 것이다.
+
+두 번째 접근법은 원래 \cite{ma2007segmentation}의 작업에서 제안되었다. 이는 코딩 레이트를 효율적으로 (예를 들어 분석적 형태로) 평가할 수 있는 이점을 입증한다. 이를 통해, 데이터의 (저차원) 클러스터를 최소 코딩 길이(MCL) 원리를 통해 상당히 효율적이고 효과적으로 찾을 수 있다. $N_k$개의 샘플을 가진 클러스터 $\X_k$에 대해, $\X_k$의 모든 샘플을 인코딩하는 데 필요한 이진 비트의 길이는 다음과 같이 주어진다는 점에 주목하라:\footnote{사실, 코딩 길이의 더 정확한 추정은 $L(\X_k) = (N_k+D) R_\epsilon(\X_k)$이며, 여기서 추가 비트는 부분공간의 기저를 인코딩하는 데 사용된다 \cite{ma2007segmentation}. 여기서는 단순화를 위해 이 오버헤드를 생략한다.}
+\begin{equation}
+	L(\X_k) = N_k R_\epsilon(\X_k).
+\end{equation}
+두 클러스터 $\X_k$와 $\X_l$이 있고, 샘플을 두 개의 별도 클러스터로 코딩하고자 하는 경우, 필요한 이진 비트의 길이는 다음과 같다:
+\begin{equation*}
+	L^c(\X_k, \X_l) = N_k R_\epsilon(\X_k) + N_l R_\epsilon(\X_l) - N_k \log\frac{N_k}{N_k + N_l} - N_l \log\frac{N_l}{N_k + N_l}.
+\end{equation*}
+마지막 두 항은 Huffman 코드에 따라 샘플의 멤버십을 인코딩하는 데 필요한 비트 수이다.
+
+그러면, 임의의 두 개별 클러스터 $\X_1$과 $\X_2$가 주어졌을 때, 두 코딩 길이 간의 차이를 기반으로 병합 여부를 결정할 수 있다:
+\begin{equation}
+	L(\X_k \cup \X_l) - L^c(\X_k, \X_l)
+\end{equation}
+이 양수인지 음수인지에 따라, 여기서 $\X_k \cup \X_l$은 $\bm X_k$와 $\bm X_l$의 샘플 집합의 합집합을 나타낸다. 음수인 경우, 두 클러스터를 하나로 병합하면 코딩 길이가 더 작아진다는 것을 의미한다. 이 간단한 사실은 \cite{ma2007segmentation}에서 제안한 다음의 클러스터링 알고리즘으로 이어진다:
+
+\begin{algorithm}[!htbp]
+	\caption{코딩 길이의 쌍별 최급 하강}\label{alg:steepest_descent_coding_length}
+	\begin{algorithmic}[1]
+		\Require{\(N\)개의 데이터 포인트 \(\{\vx_{i}\}_{i = 1}^{N}\)}
+		\Ensure{클러스터 집합 \(\cC\)}
+
+		\Procedure{PairwiseSteepestDescentOfCodingLength}{$\{\vx_{i}\}_{i = 1}^{N}$}
+		\State{\(\cC \gets \{\{\bm x_{i}\}\}_{i = 1}^{N}\)} \Comment{각각 하나의 원소를 가진 \(N\)개의 클러스터 \(\vX_{k}\) 초기화}
+		\While{\(\abs{\cC} > 1\)}
+		\If{\(\displaystyle \min_{\vX_{k}, \vX_{l} \in \cC}[L(\vX_{k} \cup \vX_{l}) -L^{c}(\vX_{k}, \vX_{l})] \geq 0\)} \Comment{병합으로 절약되는 비트가 없는 경우}
+		\State{\Return{\(\cC\)}} \Comment{\(\cC\)를 조기 반환하고 종료}
+		\Else
+		\State{\(\displaystyle \vX_{k^{\ast}}, \vX_{l^{\ast}} \gets \argmin_{\vX_{k}, \vX_{l} \in \cC}[L(\vX_{k} \cup \vX_{l}) - L^{c}(\vX_{k}, \vX_{l})]\)} \Comment{가장 많은 비트를 절약하는 클러스터 병합}
+		\State{\(\displaystyle \cC \gets [\cC \setminus \{\vX_{k^{\ast}}, \vX_{l^{\ast}}\}] \cup \{\vX_{k^{\ast}} \cup \vX_{l^{\ast}}\}\)} \Comment{병합되지 않은 클러스터 제거 및 병합된 클러스터 추가}
+		\EndIf
+		\EndWhile
+		\State{\Return{\(\cC\)}}  \Comment{모든 병합이 절약을 제공하는 경우, 하나의 클러스터 반환}
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+이 알고리즘은 (쌍별) 비교 및 병합의 총 수가 약 $O(N^2\log N)$이기 때문에 다루기 쉽다는 점에 주목하라. 그러나 탐욕적 성격으로 인해, 프로세스가 전역적으로 최적인 클러스터링 솔루션으로 수렴한다는 이론적 보장은 없다. 그럼에도 불구하고, \cite{ma2007segmentation}에서 보고된 바와 같이, 실제로 이 겉보기에 간단한 알고리즘은 매우 잘 작동한다. \Cref{fig:two-lines-and-plane}에 플롯된 클러스터링 결과는 실제로 이 알고리즘에 의해 계산되었다.
+
+\begin{example}[이미지 분할]\label{eg:image-segmentation} 위의 코딩 길이 측정과 관련 클러스터링 알고리즘은 데이터 분포가 (저차원) 가우시안의 혼합이라고 가정한다. 이것이 다소 이상적으로 보일 수 있지만, 모델이 (근사적으로) 유효한 시나리오에서 측정과 알고리즘은 이미 매우 유용하고 심지어 강력할 수 있다.
+
+	예를 들어, 자연 이미지는 일반적으로 거의 균질한 텍스처를 가진 여러 영역으로 구성된다. 각 영역에서 많은 작은 윈도우를 가져오면, \Cref{fig:image-patch}에 설명된 대로 (저차원) 가우시안에서 추출된 샘플과 유사해야 한다. \Cref{fig:image-segmentation}은 이미지 패치에 위의 클러스터링 알고리즘을 직접 적용한 이미지 분할 결과를 보여준다. 이미지 분할 문제에 알고리즘을 맞춤화하는 것에 관한 더 많은 기술적 세부 사항은 \cite{Mobahi-IJCV2011}에서 찾을 수 있다.
+\end{example}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.4\linewidth]{\toplevelprefix/chapters/chapter3/figs/image-segmentation-tiles.png}
+	\caption{$w\times w$ 픽셀 크기의 이미지 패치.}
+	\label{fig:image-patch}
+\end{figure}
+
+\begin{figure}[th]
+	\centering
+	\includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/image-segmentation.png}
+	\caption{이미지 패치에 적용된 클러스터링 알고리즘을 기반으로 한 분할 결과.}
+	\label{fig:image-segmentation}
+\end{figure}
 
 \section{정보 이득 최대화}
+\label{sec:chap4-representation-learning-problem}
+
+지금까지 이 장에서 우리는 압축 원리를 통해 저차원 구조를 가진 분포를 식별하는 방법을 논의했다. 이전 두 섹션에서 본 바와 같이, 계산적 압축은 잡음 제거 연산 또는 클러스터링을 통해 실현될 수 있다. \Cref{fig:Gaussian-Subspaces}는 우리가 선호하는 예제로 이 개념을 설명한다.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/Gaussian-Subspaces.png}
+    \caption{일반적인 무작위 가우시안 분포(오른쪽)에서 시작하여 잡음 제거 또는 클러스터링을 통해 두 부분공간을 가진 저차원 분포(왼쪽) 식별.}
+    \label{fig:Gaussian-Subspaces}
+\end{figure}
+
+물론, 데이터 분포를 식별하는 궁극적인 목표는 이를 사용하여 분할, 분류 또는 생성(이미지의)과 같은 특정 후속 작업을 용이하게 하는 것이다. 따라서 결과 분포가 ``표현''되는 방식은 이러한 후속 작업과 관련된 정보를 얼마나 효율적이고 효과적으로 검색하고 활용할 수 있는지에 대해 엄청나게 중요하다. 이것은 자연스럽게 근본적인 질문을 제기한다: {\em 하류 사용을 위해 표현을 진정으로 ``좋게'' 만드는 것은 무엇인가?} 다음에서, 우리는 의미 있고 유용한 표현이 가져야 하는 필수 속성을 탐구하고, 이러한 속성이 정보 이득 최대화를 통해 어떻게 명시적으로 특징지어지고 추구될 수 있는지 살펴볼 것이다.
+
+\paragraph{표현의 좋은 정도를 측정하는 방법.}
+주어진 데이터셋을 고차원 공간, 예를 들어 $\mathbb{R}^D$에서 특정 분포를 가진 확률 벡터 $\x$의 샘플로 볼 수 있다. 일반적으로, $\x$의 분포는 주변 공간보다 훨씬 낮은 고유 차원을 가진다. 일반적으로 말해서, {\em 표현 학습}은 $\x$를 다른 (일반적으로 더 낮은 차원의) 공간, 예를 들어 $\mathbb{R}^d$에서 소위 {\em 특징 벡터} $\z$로 변환하는 연속 매핑, 예를 들어 $f(\cdot)$를 학습하는 것을 의미하며, 여기서 $d < D$이다. 이러한 매핑을 통해
+\begin{equation}
+	\x \in \mathbb{R}^D \xrightarrow{\hspace{2mm} f(\x)\hspace{2mm}} \z  \in \mathbb{R}^d,
+	\label{eqn:chap4-1-encoding}
+\end{equation}
+$\x$의 저차원 고유 구조가 분류 또는 생성과 같은 후속 작업을 용이하게 하기 위해 $\z$에 의해 더 컴팩트하고 구조화된 방식으로 식별되고 표현되기를 희망한다. 특징 $\z$는 원본 데이터 $\x$에 대한 (학습된) 컴팩트 코드로 볼 수 있으므로, 매핑 $f$는 \textit{인코더}라고도 불린다.
+표현 학습의 근본적인 질문은 다음과 같다:
+\begin{center}
+	\noindent{\em 표현의 좋은 정도에 대한 원리적이고 효과적인 척도는 무엇인가?}
+\end{center}
+
+개념적으로, 표현 $\z$의 품질은 후속 작업에 대한 $\x$의 가장 관련성 있고 충분한 정보를 얼마나 잘 식별하는지와 이 정보를 얼마나 효율적으로 표현하는지에 달려 있다.
+오랫동안, 학습된 특징 표현의 ``충분성'' 또는 ``좋은 정도''는 특정 작업의 관점에서 정의되어야 한다고 믿어지고 주장되어 왔다. 예를 들어, $\z$는 분류 문제에서 클래스 레이블 $\y$를 예측하는 데 충분하기만 하면 된다. 아래에서, 이미지 분류의 고전적인 문제로 시작하여 왜 그러한 작업별 ``표현''의 개념이 제한적이며 일반화가 필요한지 논증하자.
 
 \subsection{선형 판별 표현}\label{subsec:LDR}
 
-% TODO: 번역 예정
+$\bm{x} \in \mathbb{R}^D$가 $K$개의 (구성 요소) 분포 $\mathcal{D} = \{\mathcal{D}_k\}_{k=1}^K$의 혼합에서 추출된 확률 벡터라고 가정하자. 확률 벡터 $\bm x$의 유한한 i.i.d. 샘플 집합 $\X = [\x_1, \x_2, \ldots, \x_N] \in \Re^{D\times N}$이 주어졌을 때, 우리는 $\x$의 고유 구조를 포착하고 후속 분류 작업을 가장 잘 용이하게 하는 연속 매핑 $f(\x): \mathbb{R}^D \rightarrow \mathbb{R}^d$를 통해 {\em 좋은 표현을 추구한다}.\footnote{분류는 심층 학습이 초기 성공을 보여준 영역으로, 심층 네트워크에 대한 폭발적인 관심을 촉발했다. 우리의 연구는 분류에 초점을 맞추고 있지만, 아이디어와 원리는 회귀와 같은 다른 설정으로 자연스럽게 일반화될 수 있다고 믿는다.} 분포 $\mathcal{D}$ 학습 작업을 용이하게 하기 위해, 인기 있는 지도 분류 설정에서 일반적으로 원-핫 벡터 $\y_i \in \mathbb{R}^K$로 표현되는 진정한 클래스 레이블(또는 각 클래스에 대한 코드 워드)이 각 샘플 $\x_i$에 대해 주어진다.
+
+\paragraph{교차 엔트로피를 통한 클래스 정보 인코딩.}  광범위한 연구는 많은 실용적인 데이터셋(예: 이미지, 오디오 및 자연어)에 대해, 데이터 $\bm{x}$로부터 클래스 레이블 $\bm{y}$로의 (인코딩) 매핑이 심층 네트워크를 훈련함으로써 효과적으로 모델링될 수 있음을 보여주었다,\footnote{여기서는 어떤 네트워크를 사용해야 하는지와 그 이유에 대해 아직 걱정하지 말자. 여기서의 목적은 경험적으로 테스트된 임의의 심층 네트워크를 고려하는 것이다. 네트워크 아키텍처의 정당화는 다음 장으로 미룬다.} 여기서는 네트워크 매개변수 $\theta \in \Theta$를 가진 $$f(\x, \theta):\x \mapsto \y$$로 표기하며, 여기서 $\Theta$는 매개변수 공간을 나타낸다. 출력 $f(\x, \theta)$가 레이블 $\y$와 잘 일치하도록 하기 위해, 훈련 집합 $\{(\x_i, \y_i)\}_{i=1}^N$에 대한 {\em 교차 엔트로피 손실}을 최소화하고자 한다:
+\begin{equation}
+   \min_{\theta \in \Theta} \; - \mathbb{E}[\langle \y, \log(f(\x, \theta)) \rangle] \, \approx - \frac{1}{N}\sum_{i=1}^N \langle \y_i, \log\left(f(\x_i, \theta)\right) \rangle.
+   \label{chap4-eqn:cross-entropy}
+\end{equation}
+최적 네트워크 매개변수 $\theta$는 일반적으로 \Cref{app:optimization}의 \Cref{app:BP-section}에 설명된 대로 역전파(BP)를 통해 계산된 기울기를 사용하여 효율적인 경사 하강 체계를 통해 위의 목적 함수를 최적화함으로써 찾아진다.
+
+효과성과 엄청난 인기에도 불구하고, 이 접근법에는 두 가지 심각한 한계가 있다: 1) 레이블이 잘못 지정되었을 수 있더라도 레이블 $\y$를 예측하는 것만을 목표로 한다. 경험적 연구는 ``블랙 박스''로 사용되는 심층 네트워크가 무작위 레이블도 맞출 수 있음을 보여준다~\cite{zhang2017understanding}.
+2) 그러한 종단 간 데이터 피팅으로,
+학습된 특징을 해석하려는 많은 경험적 노력에도 불구하고, %
+네트워크에 의해 학습된 중간 특징이 애초에 의미 있는 분류를 가능하게 하는 데이터의 고유 구조를 어느 정도까지 포착하는지 명확하지 않다. 학습된 특징의 정확한 기하학적 및 통계적 속성도 종종 불분명하며, 이는 심층 학습에서 해석 가능성과 후속 성능 보장(예: 일반화 가능성, 전이 가능성 및 견고성 등)의 부족으로 이어진다.
+따라서, {\em 이 섹션의 목표 중 하나는 분류에만 국한되지 않고 데이터 $\x$에 대해 명시적으로 의미 있고 유용한 표현을 학습하는 방향으로 목적 함수를 재구성함으로써 이러한 한계를 해결하는 것이다.}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.95\linewidth]{\toplevelprefix/chapters/chapter3/figs/neural_collapse.pdf}
+	\caption{무작위로 선택된 3개의 클래스로 CIFAR10 데이터셋에서 훈련된 VGG13 신경망의 끝에서 두 번째 레이어 출력의 진화. \cite{papyan2020prevalence}의 그림.}
+	\label{chap4-fig:neural-collapse}
+\end{figure}
+
+\paragraph{정보 병목을 통한 최소 판별 특징.}
+심층 네트워크의 역할을 해석하는 한 가지 인기 있는 접근법은 네트워크의 중간 레이어의 출력을 여러 클래스 사이에서 판별적인 데이터의 특정 잠재 특징 $\z = f(\x, \theta) \in \Re^d$를 선택하는 것으로 보는 것이다. 학습된 표현 $\z$는 분류기 $g(\z)$를 최적화하여 클래스 레이블 $\y$를 예측하는 후속 분류 작업을 용이하게 한다:
+\begin{equation}
+	\x   \xrightarrow{\hspace{2mm} f(\x, \theta)\hspace{2mm}} \z  \xrightarrow{\hspace{2mm} g(\z) \hspace{2mm}} \y.
+\end{equation}
+정보 이론~\cite{Cover-Thomas}으로부터, 두 확률 변수, 예를 들어 $\x,\z$ 사이의 {\em 상호 정보량}은 다음과 같이 정의된다는 것을 알고 있다:
+\begin{equation}
+	I(\x; \z) = H(\x) - H(\x\mid \z),
+\end{equation}
+여기서 $H(\x \vert \z)$는 $\z$가 주어졌을 때 $\x$의 조건부 엔트로피이다. 상호 정보량은 {\em 정보 이득}으로도 알려져 있다: 이는 $\z$가 주어졌을 때 확률 변수 $\x$의 엔트로피가 얼마나 감소할 수 있는지 측정한다. 또는 동등하게, $\z$가 $\x$에 대해 얼마나 많은 정보를 포함하는지 측정한다. {\em 정보 병목(information bottleneck)} (IB) 공식 \cite{Tishby-ITW2015}은 네트워크의 역할이 $\y$를 예측하기 위한 최소 충분 통계량으로 $\z$를 학습하는 것이라고 추가로 가정한다. 공식적으로, $\z$와 $\y$ 사이의 상호 정보량 $I(\z, \y)$를 최대화하면서 $\x$와 $\z$ 사이의 상호 정보량 $I(\x, \z)$를 최소화하려고 한다:
+\begin{equation}
+	\max_{\theta\in \Theta}\; \mbox{IB}(\x, \y, \z) \doteq I(\z; \y) - \beta I(\x; \z) \quad\ \mathrm{s.t.}\ \z = f(\x, \theta),
+	\label{chap4-eqn:information-bottleneck}
+\end{equation}
+여기서 $\beta >0$이다.
+
+퇴화 분포의 유한한 샘플로 상호 정보량을 정확하게 평가하는 방법과 같은 이 프레임워크와 관련된 일부 주의 사항을 극복할 수 있다면 \cite{kolchinsky2018caveats-ICLR2018}, 이 프레임워크는 심층 네트워크의 특정 행동을 설명하는 데 도움이 될 수 있다.
+예를 들어, 최근 연구 \cite{papyan2020prevalence}는 실제로 교차 엔트로피 손실 \eqref{chap4-eqn:cross-entropy}을 통해 학습된 표현이 \emph{신경 붕괴(neural collapse)} 현상을 나타낸다는 것을 보여준다.
+즉, \Cref{chap4-fig:neural-collapse}에 설명된 대로 각 클래스의 특징은 1차원 벡터에 매핑되는 반면 클래스의 다른 모든 정보는 억제된다.
+
+\begin{remark}
+    신경 붕괴는 분류를 위해 훈련된 심층 신경망에서 관찰되는 현상을 의미하며, 여기서 학습된 특징 표현과 분류기 가중치는 훈련의 최종 단계에서 매우 대칭적이고 구조화된 행동을 나타낸다 \cite{papyan2020prevalence,zhu2021geometric}. 구체적으로, 각 클래스 내에서 특징은 클래스 평균으로 붕괴하고, 클래스 전체에서 이러한 평균은 최대한 분리되어 단체 등각 구성을 형성한다. 선형 분류기는 재스케일링까지 클래스 평균과 정렬된다. 또한, 마지막 레이어 분류기는 가장 가까운 훈련 클래스 평균을 가진 클래스를 선택하도록 수렴한다. 신경 붕괴는 최적화 동역학, 일반화 및 지도 학습에서 발생하는 기하학적 구조 사이의 깊은 연결을 드러낸다.
+\end{remark}
+
+위의 분류 예제로부터, 학습된 표현이 본질적으로 각 클래스의 데이터를 하나의 코드 워드에만 매핑하는 매우 간단한 인코더를 제공한다는 것을 알 수 있다: 각 클래스를 나타내는 원-핫 벡터. 손실 압축 관점에서, 그러한 인코더는 데이터 분포의 정보를 보존하기에는 너무 손실적이다. 이미지 생성과 같은 작업에 유용한 다른 정보는 그러한 지도 학습 과정에서 심각하게 손실된다. 이 상황을 개선하기 위해, 결과 특징 표현이 분류에만 유용한 정보에 국한되지 않고 데이터 분포에 대한 훨씬 더 풍부한 정보를 포착할 수 있도록 다른 인코딩 체계를 학습하고자 한다.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.99\linewidth]{\toplevelprefix/chapters/chapter3/figs/Expansion2.png}
+	\caption{저차원 데이터 분포를 식별한 후, 데이터 분포를 더 정보가 풍부한 구조 표현으로 추가로 변환하고자 한다: $R$은 전체 공간을 커버하는 $\epsilon$-볼의 수이고 $R^c$는 모든 부분공간에 대한 수의 합이다(녹색 볼). $\Delta R$은 그들의 차이이다(파란색 볼의 수).}\label{fig:sphere-packing}
+	\label{fig:informative-representation}
+\end{figure}
+
+\paragraph{선형 판별 표현.}
+혼합 분포 $\mathcal{D}$의 주어진 데이터 $\X$를 효과적으로 분류하거나 클러스터링할 수 있는지 여부는 구성 요소 분포 $\mathcal{D}_k$가 얼마나 분리 가능한지(또는 판별적인지)(또는 만들 수 있는지)에 달려 있다. 한 가지 인기 있는 작업 가정은 각 클래스의 분포가 상대적으로 {\em 저차원} 고유 구조를 가진다는 것이다. 따라서 각 클래스의 분포 $\mathcal{D}_k$가 차원 $d_k \ll D$를 가진 저차원 부분다양체, 예를 들어 $\mathcal{M}_k$에 지지집합을 가지며, $\x$의 분포 $\mathcal D$는 고차원 주변 공간 $\Re^D$에서 그러한 부분다양체의 혼합, $\mathcal M = \cup_{k=1}^K \mathcal{M}_k$에 지지된다고 가정할 수 있다.
+
+저차원 분포를 식별해야 할 뿐만 아니라, 분류, 클러스터링 및 조건부 생성(향후 볼 것처럼)과 같은 후속 작업을 가장 잘 용이하게 하는 형태로 분포를 표현하고자 한다. 그렇게 하기 위해, 우리는 학습된 특징 표현이 다음 속성을 가질 것을 요구한다:
+\begin{enumerate}
+	\item {\em 클래스 내 압축 가능:} 동일한 클래스의 샘플의 특징은 저차원 선형 부분공간에 속한다는 의미에서 강하게 {\em 상관되어야} 한다.
+	\item {\em 클래스 간 판별적:} 다른 클래스의 샘플의 특징은 매우 {\em 비상관}되어야 하고 다른 저차원 선형 부분공간에 속해야 한다.
+	\item {\em 최대한 다양한 표현:} 각 클래스의 특징의 차원(또는 분산)은 다른 클래스와 비간섭적인 한 {\em 가능한 한 커야} 한다.
+\end{enumerate}
+우리는 그러한 표현을 {\em 선형 판별 표현}(LDR)이라고 부른다. 첫 번째 속성은 \Cref{sub:pca}에서 논의한 고전적인 {\em 주성분 분석}(PCA)의 목적과 잘 일치한다는 점에 주목하라. 두 번째 속성은 고전적인 {\em 선형 판별 분석}(LDA)~\cite{HastieTiFr09}의 속성과 유사하다. Figure \ref{fig:informative-representation}는 데이터 분포가 실제로 두 부분공간의 혼합일 때 간단한 예제로 이러한 속성을 설명한다. 압축(잡음 제거 또는 클러스터링)을 통해, 우리는 먼저 진정한 데이터 분포가 일반적인 가우시안 분포(왼쪽) 대신 두 저차원 부분공간의 혼합(중간)임을 식별한다. 그런 다음 두 부분공간이 결국 상호 비간섭/독립이 되도록 분포를 변환하고자 한다(오른쪽).
+
+\begin{remark}
+    선형 판별 분석(LDA)~\cite{HastieTiFr09}은 클래스 분리 가능성을 최대화하는 데이터의 선형 투영을 찾는 것을 목표로 하는 지도 차원 축소 기법이다. 구체적으로, 레이블이 지정된 데이터가 주어지면, LDA는 클래스가 최대한 분리되는 저차원 공간으로 고차원 입력을 투영하는 선형 변환을 찾는다. PCA는 클래스 레이블을 고려하지 않고 최대 분산의 방향으로 데이터를 투영하는 비지도 방법임에 주목하라. PCA는 순수하게 전역 분산 구조를 보존하는 데 초점을 맞추는 반면, LDA는 판별력을 향상시키기 위해 레이블 정보를 명시적으로 활용한다; \Cref{fig:LDA}에서 비교를 참조하라.
+\end{remark}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter3/figs/LDA.png}\vspace{-0.1in}
+	\caption{PCA와 LDA의 비교. \url{https://sebastianraschka.com/Articles/2014_python_lda.html}에서 채택된 그림.}
+	\label{fig:LDA}
+\end{figure}
+
+세 번째 속성도 중요한데, 학습된 특징이 한 클래스가 다른 모든 클래스와 다른 이유의 모든 가능한 원인을 드러내기를 원하기 때문이다. 예를 들어, ``사과''를 ``오렌지''와 구별하기 위해, 색상뿐만 아니라 모양과 잎도 신경 쓴다. 이상적으로, 각 부분공간 $\{\mathcal{S}_k\}$의 차원은 해당 부분다양체 $\mathcal{M}_k$의 차원과 같아야 한다. 이 속성은 이미지 생성과 같은 작업을 위해 매핑 $f(\x,\theta)$가 {\em 가역적}이기를 원하는 경우 중요할 것이다. 예를 들어, ``사과''에 대한 특징 부분공간에서 다른 샘플 포인트를 추출하는 경우, 다양한 사과 이미지를 생성하도록 디코딩할 수 있어야 한다. 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}를 최소화하여 학습된 특징은 명백히 이 속성을 가지지 않는다.
+
+일반적으로, 각 클래스/클러스터의 고유 구조가 저차원일 수 있지만, 원래 표현 $\x$에서 단순히 선형(또는 가우시안)은 아니며 먼저 일부 비선형 변환을 통해 선형으로 만들어야 한다.\footnote{이것이 어떻게 명시적으로 수행될 수 있는지는 \Cref{ch:autoencoding}에서 논의할 것이다.} 따라서 전반적으로, 우리는 비선형 변환 $f(\x,\theta)$를 사용하여 모든 클래스를 나타내는 부분공간이 최대한 비간섭적인 선형 부분공간이 되도록 데이터의 표현을 찾는다. 더 정확하게 말하면, 각 부분다양체 $\mathcal{M}_k \subset \Re^D$(\Cref{chap4-fig:mcr-diagram} 왼쪽)를 {\em 선형} 부분공간 $\mathcal{S}_k \subset \Re^d$(\Cref{chap4-fig:mcr-diagram} 오른쪽)로 매핑하는 매핑 {$\z = f(\x,\theta)$}를 학습하고자 한다. 어느 정도까지, 결과적인 다중 부분공간 $\{\mathcal{S}_k\}$는 원본 데이터 $\bm x$에 대한 결과 특징 $\z$의 판별적 {\em 일반화된 주성분} \cite{GPCA} 또는, 직교하는 경우, {\em 독립 성분} \cite{hyvarinen2000independent}으로 볼 수 있다.
+다음 \Cref{ch:representation}에서 보게 되듯이, 심층 네트워크는 정확히 데이터 분포로부터 선형 판별 표현으로의 이 비선형 변환을 모델링하고 실현하는 역할을 한다.
 
 \subsection{최대 코딩 레이트 감소 원리}\label{subsec:MCR2}
 
-% TODO: 번역 예정
+선형 판별 표현(LDR)을 위한 세 가지 속성---{\em 클래스 간 판별적}, {\em 클래스 내 압축 가능}, 그리고 {\em 최대한 다양한 표현}---은 모두 학습된 표현 $\z$의 매우 바람직한 속성이지만, 결코 얻기 쉽지 않다: 이러한 속성들은 호환 가능하여 한 번에 모두 달성할 수 있을까? 그렇다면, 이러한 모든 속성 측면에서 결과 표현의 우수성을 측정할 수 있는 {\em 간단하지만 원칙적인} 목적 함수가 있을까? 이러한 질문의 핵심은 확률 변수 $\z$의 분포 또는 그것의 유한 샘플 $\{\bm z_i\}_{i=1}^N$에 대한 원칙적인 ``압축성의 척도'' 또는 ``정보 이득''을 {찾는 것이다}. 그러한 척도는 고유 차원 또는 {부피} 측면에서 분포의 고유한 기하학적 또는 통계적 속성을 직접적이고 정확하게 특징지어야 한다. 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}나 정보 병목 \eqref{chap4-eqn:information-bottleneck}과 달리, 그러한 척도는 클래스 레이블에만 배타적으로 의존해서는 안 되며, 지도, 자기 지도, 반지도, 비지도 설정과 같은 더 일반적인 설정에서 작동할 수 있어야 한다.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/mcr_diagram.png}
+	\caption{고차원 데이터 $\x\in \Re^D$의 분포 $\mathcal D$는 다양체 $\mathcal{M}$에 지지되고 그 클래스들은 저차원 부분다양체 $\mathcal{M}_k$에 지지된다. 우리는 $\theta$로 매개변수화된 매핑 $f(\x, \theta)$를 학습하여 $\z_i = f(\x_i, \theta)$가 최대한 비상관된 부분공간 $\{\mathcal{S}_k\}$의 합집합 위에 놓이도록 하는 것을 목표로 한다.}
+	\label{chap4-fig:mcr-diagram}
+\end{figure}
+
+일반성을 잃지 않고, 확률 벡터 $\x$의 분포 $\mathcal D$가 분포의 혼합에 지지된다고 가정하자, 즉, $\mathcal D = \cup_{k=1}^K \mathcal{D}_k$이며, 여기서 각 $\mathcal{D}_k \subset \Re^D$는 고차원 주변 공간 $\Re^D$에서 낮은 고유 차원을 가진다. $\bm X_k \in \Re^{D\times N_k}$를 열이 분포 $\mathcal{D}_k$에서 추출된 샘플인 데이터 행렬로 표시하자. 여기서 $N_k$는 각 $k=1,\dots,K$에 대한 샘플 수를 나타낸다. 그러면, 우리는 $\bm X=[\bm X_1,\dots,\bm X_K] \in \Re^{D\times N}$를 모든 샘플을 나타내는 데 사용한다. 여기서 $N=\sum_{k=1}^K N_k$이다.
+또한 우리는 $\vx_i$를 $\X$의 $i$-번째 샘플을 나타내는 데 사용한다는 것을 상기하라, 즉, $\X=[\vx_1,\dots,\vx_N]$이다. 인코딩 매핑 하에서:
+\begin{equation}
+	\x   \xrightarrow{\hspace{2mm} f(\x)\hspace{2mm}} \z,
+\end{equation}
+입력 샘플은 각 $i=1,\dots,N$에 대해 $\vz_i = f(\vx_i)$로 매핑된다. 표기법의 남용으로, 우리는 또한 $\Z_k = f(\X_k)$와 $\Z = f(\X)$로 쓴다. 따라서, 우리는 $\Z = [\bm Z_1,\dots,\bm Z_K]$와 $\Z = [\vz_1,\dots\vz_N]$를 가진다.
+
+한편으로, 학습된 특징이 판별적이기 위해, 다른 클래스/클러스터의 특징은 서로 {\em 최대한 비간섭적}이기를 선호한다. 따라서, 그들은 함께 가능한 최대 부피(또는 차원)의 공간을 스팬해야 하며 전체 집합 $\Z$의 코딩 레이트는 가능한 한 커야 한다. 다른 한편으로, 동일한 클래스/클러스터의 학습된 특징은 매우 상관되고 간섭적이어야 한다. 따라서, 각 클래스/클러스터는 매우 작은 부피의 공간(또는 부분공간)만을 스팬해야 하며 코딩 레이트는 가능한 한 작아야 한다. 이제, 학습된 특징의 코딩 레이트를 측정하는 방법을 소개할 것이다.
+
+\paragraph{특징의 코딩 레이트.} 특히, 코딩 레이트를 평가하는 데 있어 실질적인 과제는 특징 표현 $\Z$의 기본 분포가 일반적으로 알려져 있지 않다는 것이다. 이를 해결하기 위해, 우리는 특징 $\Z = [\z_1, \ldots, \z_N]$을 다변량 가우시안 분포에서 추출된 샘플로 근사할 수 있다. 이 가정 하에서, \Cref{subsec:lossy DR}에서 논의한 바와 같이, {\em 전체로서의} 특징 $\Z$의 압축성은 정밀도 수준 $\epsilon > 0$에 따른 샘플당 평균 코딩 길이, 즉 {\em 코딩 레이트}로 측정될 수 있다(\eqref{eqn:rate-Gaussian} 참조):
+\begin{equation}
+	R_{\epsilon}(\Z) = \frac{1}{2}\log\det\left(\I + \frac{d}{N\epsilon^{2}}\Z\Z^{\top}\right).
+	\label{chap4-eqn:coding-length-eval}
+\end{equation}
+
+다른 한편으로, 우리는 비선형 변환 $f(\x)$가 각 클래스별 부분다양체 $\mathcal{M}_k \subset \mathbb{R}^D$를 최대한 비간섭적인 선형 부분공간 $\mathcal{S}_k \subset \mathbb{R}^d$로 매핑하여 학습된 특징 $\Z$가 저차원 부분공간의 합집합에 놓이기를 희망한다. 이 구조는 각 부분공간을 개별적으로 분석하여 코딩 레이트를 더 정확하게 평가할 수 있게 한다. %
+$\Z_k$의 열이 각 $k=1,\dots,K$에 대해 $\X_k$의 샘플의 특징을 나타낸다는 것을 상기하라. $\bm Z_k$의 특징에 대한 코딩 레이트는 다음과 같이 계산될 수 있다:
+\begin{align}
+    R_{\epsilon}(\Z_k) = \frac{N_k}{2N}\log\det\left(\I + \frac{d}{N_k\epsilon^{2}}\Z_k\Z_k^{\top}\right)
+\end{align}
+그러면, 각 클래스의 특징의 평균 코딩 레이트의 합은
+\begin{equation}
+	 R_{\epsilon}^c(\Z) \doteq \sum_{k=1}^K R_{\epsilon}(\Z_k),
+	\label{chap4-eqn:compress-loss-eval}
+\end{equation}
+
+따라서, $\X$의 좋은 표현 $\Z$는 전체에 대한 코딩 레이트와 모든 클래스에 대한 코딩 레이트 사이의 큰 차이를 달성하는 것이다:
+\begin{equation}
+	\Delta R_{\epsilon}(\Z) \doteq R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z).
+	\label{chap4-eqn:coding-length-reduction}
+\end{equation}
+이 장의 앞부분 논의에 따르면, 이 차이는 전체 집합 $\Z$ 내에서 올바른 저차원 클러스터 $\Z_k$를 식별하여 ``얻은 정보''의 양으로 해석될 수 있다는 점에 주목하라.
+
+특징 매핑 $f(\cdot)$를 네트워크 매개변수 $\theta$를 가진 심층 신경망 $f(\cdot,\theta)$로 선택하면, 특징 표현과 결과적인 레이트 감소의 전체 과정은 다음 다이어그램으로 설명될 수 있다:
+\begin{equation}
+	\X
+	\xrightarrow{\hspace{2mm} f(\x, \theta)\hspace{2mm}} \Z  \xrightarrow{\hspace{2mm} \epsilon \hspace{2mm}} \Delta R_{\epsilon}(\Z).
+	\label{chap4-eqn:flow}
+\end{equation}
+$\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점에 주목하라. 다른 표현 간의 공정한 비교를 보장하기 위해, 학습된 특징의 {\em 스케일을 정규화}하는 것이 필수적이다. 이것은 각 클래스 $\Z_k$의 프로베니우스 노름을 $\Z_k \in \mathbb R^{d \times N_k}$의 특징 수에 맞게 스케일하도록, 즉, $\|\Z_k\|_F^2 = N_k$로, 또는 각 특징을 단위 구에 있도록 정규화하여, 즉, $\z_i \in \mathbb{S}^{d-1}$로 달성될 수 있다. 여기서 $N_k=\mathrm{tr}(\bm \Pi_k)$는 $k$-번째 클래스의 샘플 수를 나타낸다. 이 공식은 심층 신경망을 훈련하는 실무에서 ``배치 정규화''의 필요성에 대한 자연스러운 정당화를 제공한다 \cite{ioffe2015batch}. %
+
+표현이 비교 가능하게 되면, 목표는 모든 특징의 코딩 레이트와 그들의 클래스에 대한 특징의 합 사이의 감소를 최대화하는 특징 집합 $\Z  = f(\X, \theta)$를 학습하는 것이 된다:
+\begin{equation}
+	\begin{aligned}
+		\max_{\theta } & \;  \Delta R_{\epsilon}\big(\Z \big) \doteq R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z ), \\
+		\mbox{s.t.} & \ \ \, \Z = f(\bm X, \theta),\  \|\Z_k\|_F^2                                          = N_k,\ k=1,\dots,K.
+	\end{aligned}
+	\label{eqn:maximal-rate-reduction}
+\end{equation}
+우리는 이것을 {\em 최대 코딩 레이트 감소}(MCR$^2$)의 원리라고 부른다,
+이는 아리스토텔레스의 유명한 인용구를 진정으로 구현한다:
+\begin{quote}
+	\centering
+	``{\em 전체는 부분의 합보다 크다.}''
+\end{quote}
+최상의 표현을 학습하기 위해, 우리는 {\em 전체가 부분의 합보다 최대한 크기를} 요구한다. \Cref{fig:informative-representation}에 표시된 예를 다시 살펴보자. 압축 관점에서, 오른쪽의 표현은 모든 특징이 단일 가우시안(파란색)으로 인코딩될 때의 코딩 레이트와 특징이 적절하게 클러스터링되고 두 개의 별도 부분공간(녹색)으로 인코딩될 때의 코딩 레이트 사이의 차이가 최대라는 의미에서 {\em 가장 압축적인 것}이다.\footnote{직관적으로, 모든 특징이 스팬하는 전체 공간의 ``부피''와 특징이 실제로 차지하는 부피의 비율이 최대이다.}
+
+
+    위의 MCR$^2$ 원리는 그룹 멤버십(또는 클래스 레이블)이 알려진 지도 학습 문제를 위해 설계되었다는 점에 주목하라. 그러나, 이 원리는 각 데이터 포인트의 잠재 그룹 또는 클러스터에 대한 (잠재적으로 소프트) 할당을 인코딩하는 멤버십 행렬을 도입하여 비지도 학습 문제로 자연스럽게 확장될 수 있다. 구체적으로, $\bm \Pi = \{\bm \Pi_k\}_{k=1}^K \subset \R^{N\times N}$를 대각 항목이 $N$개의 샘플의 $K$개의 클래스로의 멤버십을 인코딩하는 대각 행렬의 집합으로 하자. 즉, $\bm \Pi$는 심플렉스 $\Omega \doteq \{\bm \Pi: \bm \Pi_k \ge \bm 0: \sum_{k=1}^K \bm \Pi_k = \bm I_N\}$에 놓인다. 그러면, 우리는 파티션 $\bm \Pi$에 대한 평균 코딩 레이트를 다음과 같이 정의할 수 있다:
+    \begin{align}\label{eq:MCRc}
+        R_{\epsilon}^c(\Z \mid \bm \Pi) \doteq \sum_{k=1}^K \frac{\mathrm{tr}(\bm \Pi_k)}{2N}\log\det\left(\bm I + \frac{d}{\mathrm{tr}(\bm \Pi_k)\epsilon^2}\bm Z\bm \Pi_k \bm Z^\top \right).
+    \end{align}
+    $\bm Z$가 주어졌을 때, $R_{\epsilon}^c(\Z \vert \bm \Pi)$는 $\bm \Pi$의 오목 함수이다. 그러면 비지도 학습 문제를 위한 MCR$^2$ 원리는 다음과 같이 된다:
+    \begin{align}\label{eq:MCR pi}
+        \max_{\bm \Pi, \theta} & \  \Delta R_{\epsilon}\big(\Z  \mid \bm \Pi) \doteq R_{\epsilon}(\bm Z) - R_{\epsilon}^c(\Z \mid \bm \Pi) \notag \\
+       \mathrm{s.t.}  & \ \ \ \bm Z = f(\bm X, \theta),\ \|\bm Z \bm \Pi_k\|_F^2 = N_k,\ k = 1,\dots,K,\ \bm\Pi \in \Omega.
+    \end{align}
+    \eqref{eqn:maximal-rate-reduction}와 비교하여, 여기의 공식은 그룹 멤버십과 네트워크 매개변수의 공동 최적화를 허용한다. 특히, $\bm \Pi$가 $N$개의 데이터 포인트를 $K$개의 그룹으로 할당하는 그룹 멤버십 행렬로 고정되면, 문제 \eqref{eq:MCR pi}는 문제 \eqref{eqn:maximal-rate-reduction}을 복구할 수 있다.
+
+
+
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/mcr2-global.png}
+	\caption{{\bf 국소 최적화 경관:} 정리 \ref{thm:MCR2-properties}에 따르면, 레이트 감소 목적 함수의 전역 최댓값은 상호 비간섭 부분공간을 가진 솔루션에 해당한다.}
+	\label{fig:mcr-global}
+\end{figure}
+
+
+\vspace{-0.1in}
 
 \subsection{코딩 레이트 감소의 최적화 특성}
 
