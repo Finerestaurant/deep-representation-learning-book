@@ -4,127 +4,1151 @@
 \begin{document}
 
 \chapter{실세계 데이터를 위한 표현 학습}
+\label{ch:applications}
+
+\begin{quote}
+\hfill    ``{\em 최고의 이론은 실무에서 영감을 받고, 최고의 실무는 이론에서 영감을 받는다}.''
+
+$~$ \hfill --- 도널드 커누스
+\end{quote}
+\vspace{5mm}
+
+이전 장들에서는 고차원 데이터로부터 저차원 분포를 학습하는 것과 관련된 수학적 문제, 계산 프레임워크, 그리고 실제적인 알고리즘에 대한 체계적인 소개를 제공했다. 이러한 방법들의 대부분의 이론적 정당성은 (혼합) 부분 공간 및/또는 가우시안과 같은 데이터의 이상적인 모델에 대해 확립되었지만, 이러한 계산 방법 뒤에 있는 원리와 아이디어는 그럼에도 불구하고 강력하고 일반적이며, 실제로는 실세계 데이터셋과 작업에 적용되도록 의도되었다.
+
+이 책의 내용을 독자들이 더 잘 이해하고 지금까지 배운 것을 실세계 데이터에 적용하는 방법을 배우도록 돕기 위해, 책의 끝 부분에서 몇 가지 대표적인 응용 프로그램의 시연과 간단한 설명을 제공한다. 각 응용 프로그램은 이 책에서 소개한 방법을 사용하여 시각 데이터 및 텍스트 데이터와 같은 실세계 데이터셋으로 실세계 작업을 해결하는 솔루션을 제안한다. 이 장에 제시된 결과는 다음 두 가지 목적을 제공하기 위한 것이다:
+\begin{itemize}
+    \item 첫째, 책의 앞부분에서 제시된 방법들을 검증하고 실세계 맥락에서 그들의 상당한 잠재력을 입증하는 추가적인 실험적 세부 사항과 경험적 증거를 제공하기 위해;
+    \item 둘째, 연구 또는 생산 코드베이스 외부에서는 잘 문서화되지 않은 딥 러닝의 특정 현대 경험적 방법과 작업을 독자에게 소개하기 위해.
+\end{itemize}
+그러나 솔직히 말해서, 여기에 제시된 솔루션과 결과는 단순히 방법론이 작동하는지 확인하기 위해 설계되었다. 따라서, 최첨단 기술을 잠재적으로 개선하기 위해 공학 및 이론적 이해 모두에서 미래의 개선을 위한 여지가 많다. 우리는 \Cref{ch:future}에서 몇 가지 미래 방향을 논의할 것이다.
 
 \section{기술적 설정 및 장 개요}\label{sec:experiment_setup}
 
-% TODO: 번역 예정
+이전 장들에서, 우리는 대규모 실세계 데이터를 처리하기 위해 표현 학습 기술을 사용한 다양한 설정을 암시했다. 이 장에서는 그러한 설정들을 매우 상세하게 설명할 것이다. 이 섹션의 목표는 독자가 이 책에서 논의된 모든 실험(또는 실제로 책 전체)을 이 책에서 제공할 설명, 이전 장들에서 소개되고 이 장에서 확장된 원리, 그리고 이 장에서 논의된 결과가 있는 소수의 논문에서 가져온 하이퍼파라미터를 사용하여 재현할 수 있도록 하는 것이다. 이를 위해, 우리는 코드에서 직접 구현할 수 있는 상세한 언어, 의사 코드 또는 수학적 표기법으로 모든 절차를 \textit{정확하게} 설명할 것이다. 가능한 경우, 구체적인 구현이 이 책의 앞부분에서 제시된 원리와 어떻게 연결되는지 논의할 것이다.
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/encoder_pipeline.pdf}
+    \caption{\small\textbf{인코더 파이프라인 다이어그램.} 데이터 $\vX \in \cD$는 임베딩 $f_{\theta}^{\emb}$를 통해 $(\R^{d})^{*}$의 시퀀스를 얻는다. 임베딩은 백본 $f_{\theta}^{\mathrm{bb}}$를 통해 각 토큰에 대한 특징 $\vZ_{\theta}(\vX)$를 얻는다. 우리는 추출 맵 $f_{\theta}^{\ext}$를 사용하여 집계 특징 $\vz_{\theta}(\vX)$를 추출할 수 있다. 마지막으로, 다운스트림 작업에서 집계 특징을 사용하기 위해, 작업별 헤드 $h_{\theta}$를 사용할 수 있다.}
+    \label{fig:overall_encoder_pipeline}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/autoencoder_pipeline.pdf}
+    \caption{\small\textbf{오토인코더 파이프라인 다이어그램.} 데이터 $\vX \in \cD$는 임베딩 $f_{\theta}^{\emb}$를 통해 $(\R^{d})^{*}$의 시퀀스를 얻는다. 임베딩은 인코더 백본 $f_{\theta}^{\backbone}$를 통해 각 토큰에 대한 특징 $\vZ_{\theta}(\vX)$를 얻는다. $\vZ_{\theta}(\vX)$를 디코딩하기 위해, 우리는 그것을 디코더 백본 $g_{\eta}^{\backbone}$를 통과시킨다. 디코더 백본 출력을 데이터 공간 $\cD$로 다시 매핑하기 위해, 우리는 \textit{언임베딩} 계층 $g_{\eta}^{\unemb}$를 사용하여 전체적으로 재구성 $\hat{\vX}_{\theta, \eta}(\vX)$를 얻는다(여기서는 입력의 픽셀화된 재구성으로 스타일화됨).}
+    \label{fig:overall_autoencoder_pipeline}
+\end{figure}
+
+가능한 데이터 집합을 $\cD$라고 정의하자(결국 이것은 예를 들어 이미지 집합 $\cI$ 또는 텍스트 집합 $\cT$가 될 것이다). 그리고 $\R^{d}$에 있는 토큰의 유한 시퀀스 집합(즉, $d$개의 행을 가진 행렬 집합)을 $(\R^{d})^{*} \doteq \bigcup_{T = 1}^{\infty}\R^{d \times T}$라고 하자. 이 장에서 소개하는 풍부한 응용 프로그램을 논의하기 위해, 먼저 책의 나머지 부분에서 두 가지 다른 유형의 모델 아키텍처를 논의한다는 것을 상기하자.
+\begin{itemize}
+    \item $\theta$로 매개변수화된 \textit{인코더} 아키텍처는 여러 구성 요소로 구성된다:
+    \begin{itemize}
+        \item 입력 데이터 $\cD$를 $d$-차원 공간에 \textit{임베딩}된 \textit{토큰}의 연속으로 변환하는 \textit{임베딩} $f_{\theta}^{\emb} \colon \cD \to (\R^{d})^{*}$. \textit{이 장의 나머지 부분에서, 우리는 종종 토큰과 임베딩을 서로 동일시할 것이다.}
+        \item 시퀀스 대 시퀀스 연산을 사용하여 임베딩 시퀀스를 처리하는 \textit{인코더 백본} $f_{\theta}^{\backbone} \colon (\R^{d})^{*} \to (\R^{d})^{*}$. 이 백본은 이전 장에서 논의된 네트워크 아키텍처에 의해 구현되지만, 진행하면서 더 공식적인 설명을 제공할 것이다.
+        \item 전체 시퀀스의 집계 표현을 추출하는 \textit{집계 특징 추출기} $f_{\theta}^{\ext} \colon (\R^{d})^{*} \to \R^{d}$. 이것은 전체 데이터 샘플에 대한 단일 특징을 정의하는 데 사용된다.
+        \item 예측을 위한 $m$-차원 출력을 추출하는 \textit{작업별 헤드} $h_{\theta} \colon \R^{d} \to \R^{m}$.
+    \end{itemize}
+    우리는 또한 $f_{\theta} \doteq f_{\theta}^{\backbone} \circ f_{\theta}^{\emb} \colon \cD \to (\R^{d})^{*}$로 정의한다. 입력 $\vX$가 주어졌을 때, 우리는 $\vZ_{\theta}(\vX) \doteq f_{\theta}(\vX)$와 $\vz_{\theta}(\vX) \doteq f_{\theta}^{\ext}(\vZ_{\theta}(\vX))$라고 쓴다. 전체 파이프라인은 $\Cref{fig:overall_encoder_pipeline}$에 묘사되어 있다.
+    \item \textit{오토인코더} 아키텍처는 여러 구성 요소로 구성된다:
+    \begin{itemize}
+        \item 입력 데이터 $\cD$를 $d$-차원 공간에 임베딩된 \textit{토큰}의 연속으로 변환하는 \textit{임베딩} $f_{\theta}^{\emb} \colon \cD \to (\R^{d})^{*}$.
+        \item 시퀀스 대 시퀀스 연산을 사용하여 임베딩 시퀀스를 처리하는 \textit{인코더 백본} $f_{\theta}^{\backbone} \colon (\R^{d})^{*} \to (\R^{d})^{*}$.
+        \item 개념적으로 인코더 백본의 연산을 되돌리는 \textit{디코더 백본} $g_{\eta}^{\backbone} \colon (\R^{d})^{*} \to (\R^{d})^{*}$.
+        \item 임베딩의 역으로 작용하는 \textit{언임베딩} $g_{\eta}^{\unemb} \colon (\R^{d})^{*} \to \cD$.
+    \end{itemize}
+    우리는 또한 $f_{\theta} \doteq f_{\theta}^{\backbone} \circ f_{\theta}^{\emb} \colon \cD \to (\R^{d})^{*}$와 $g_{\eta} \doteq g_{\eta}^{\unemb} \circ g_{\eta}^{\backbone} \colon (\R^{d})^{*} \to \cD$로 정의한다. 입력 $\vX$가 주어졌을 때, 우리는 $\vZ_{\theta}(\vX) \doteq f_{\theta}(\vX)$와 $\hat{\vX}_{\theta, \eta}(\vX) \doteq g_{\eta}(\vZ_{\theta}(\vX))$라고 쓴다. 전체 파이프라인은 $\Cref{fig:overall_autoencoder_pipeline}$에 묘사되어 있다.
+\end{itemize}
+
+우리는 이 장에서 이 표기법을 여러 번 반복해서 사용할 것이므로, 이해가 되지 않는 부분이 있으면 언제든지 다시 참조하라. 우리의 네트워크 분해는 대부분의 코드 구현과도 밀접하게 일치하므로, 이러한 네트워크를 정의하여 코딩 프로젝트를 시작할 수 있다.
+
+이 장에서는 $\Cref{sec:contrastive_learning}$에서 대조 학습에 대한 책의 원리 적용을 논의할 것이다. 이것은 이미지 데이터, 데이터 증강 기술, 그리고 트랜스포머로 알려진 일반적인 아키텍처에 대한 소개 역할과 함께, 우리가 입증된 원리를 사용하여 만들 수 있는 과감한 종류의 단순화에 대한 첫 번째 시연 역할을 할 것이다. 우리는 $\Cref{sec:image_classification,sec:clm_text}$에서 이미지 및 텍스트 도메인 내의 \textit{인코딩}을 위한 단순화된 아키텍처의 기능을 보여주는 \textit{네트워크 아키텍처} 수정을 계속할 것이다. 그런 다음 $\Cref{sec:image_completion}$에서 \textit{오토인코딩}을 위한 단순화된 아키텍처를 시연할 것이다. %
 
 \section{단순화된 대조 학습}\label{sec:contrastive_learning}
 
+데이터의 고품질 및 충실한 표현을 학습하는 것은 딥 러닝의 근본적인 문제이며, \textit{자기 지도 학습}으로 알려져 있다. 이 작업을 위해 제안된 많은 접근 방식이 있으며, 그 중 다수는 이 원고에 설명된 기술과 원리를 명백히 사용하지 않는다. 그러한 접근 방식 중 하나는 \textit{대조 학습}이라고 불리는데, 학습 목표가 (대략적으로 말하면) "유사한" 데이터의 특징은 유사하고, "유사하지 않은" 데이터의 특징은 멀리 떨어져 있도록 보장하는 것에 관한 것이기 때문에 그렇게 명명되었다. 대조 학습 솔루션은 종종 고도로 엔지니어링되고 경험적으로 설계된 접근 방식이다. 이 섹션에서는 DINO $\citep{caron2021emerging}$라는 그러한 접근 방식 중 하나를 설명하고, 이전 장에서 설명한 원리를 사용하여 학습된 표현을 개선하면서 설계 결정을 과감하게 단순화할 것이다.
+
 \subsection{데이터}\label{sub:contrastive_learning_data}
 
-% TODO: 번역 예정
+DINO 방법론을 탐구하고 단순화하기 위해 사용할 데이터는 모두 2차원 이미지 데이터이다. \textit{훈련}을 위해 ImageNet-1K 및 ImageNet-21K 데이터셋을 사용할 것이다. 데이터셋의 각 샘플은 다양한 해상도의 RGB 이미지와 이미지가 포함하는 객체 또는 장면을 나타내는 레이블(즉, 이미지의 \textit{클래스})이다. ImageNet-1K 데이터셋에는 1.28M개의 훈련 이미지와 1K 클래스로 분할된 50K개의 검증 이미지가 포함되어 있다. ImageNet-21K 데이터셋에는 14.2M개의 훈련 이미지와 21.8K개의 클래스가 포함되어 있지만 클래스는 서로소 집합이 아니다(즉, 일부 클래스는 다른 클래스의 하위 집합이다). 자기 지도 학습을 하고 있기 때문에, 레이블은 훈련 중에는 사용되지 않고 평가 중에만 사용된다. \textit{평가}를 위해, 우리는 다양한 데이터셋을 사용할 것이다. 이들 중 가장 일반적인 것은 CIFAR-10이다. CIFAR-10은 10개 클래스로 분할된 60K개의 RGB 32 $\times$ 32 자연 이미지 데이터셋이며, 50K 샘플의 사전 설정된 훈련 세트와 10K 샘플의 검증 세트가 있다. CIFAR-10을 사용하는 목적은 한 분포의 이미지(ImageNet)에서 훈련된 모델이 다른 분포의 이미지(CIFAR-10)로 일반화될 수 있는지 확인하는 것이다. 우리는 또한 CIFAR-100(CIFAR-10과 서로소), Oxford Flowers, Oxford Pets와 같은 다른 유사한 데이터셋을 참조한다. ImageNet-1K 및 CIFAR-10 데이터의 예는 $\Cref{fig:in1k_cifar10_examples}$에 나와 있다. 모델의 견고성을 높이기 위해, 처리 중 각 이미지에 뒤집기, 작은 무작위 잡음 추가 또는 무작위 큰 자르기와 같은 \textit{작은 데이터 증강}을 적용하는 경우가 많다; 자연 이미지의 각 증강은 우리 데이터셋의 자연 이미지 자체(와 매우 유사)이므로 표기법에 이를 포함하지 않는다.
 
-\subsection{과제와 목적 함수}\label{sub:contrastive_learning_objective}
+\begin{figure}
+    \centering
+    
+    \hfill 
+    \begin{subfigure}{0.3\textwidth}
+        \centering 
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/imagenet.pdf}
+        \caption{\small ImageNet-1K 샘플.}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}{0.26\textwidth}
+        \centering 
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/cifar10.pdf}
+        \caption{\small CIFAR10 샘플.}
+    \end{subfigure}
+    \hfill 
+    \phantom{}
 
-% TODO: 번역 예정
+    \caption{\small\textbf{ImageNet-1K \textit{(왼쪽)} 및 CIFAR-10 \textit{(오른쪽)}의 이미지.} CIFAR-10 이미지가 일반적으로 훨씬 낮은 해상도임을 주목하라. 이는 해당 분포 학습의 복잡도를 감소시킨다.}
+    \label{fig:in1k_cifar10_examples}
+\end{figure}
+
+약간 더 형식적인 수준에서, 우리의 데이터 $\vX$는 이미지일 것이다; 우리는 $\cI$를 모든 이미지의 집합이라고 하자. 이미지는 픽셀의 직사각형 배열이고 각 픽셀은 RGB, CMYK 또는 다른 색상 형식으로 주어진 색상을 가지므로, 이미지는 $\R^{c \times h \times w}$의 원소라고 말한다 --- 여기서 $c$는 채널 수(즉, RGB의 경우 $3$, CMYK의 경우 $4$), $h$는 이미지 높이, $w$는 이미지 너비이다. 결과적으로, 모든 이미지의 집합 $\cI \doteq \bigcup_{c, h, w = 1}^{\infty}\R^{c \times h \times w}$는 모든 가능한 그러한 데이터의 집합이다. 다시, 우리는 이 표기법을 반복적으로 사용할 것이다.
+
+\subsection{과제와 목적 함수} \label{sub:contrastive_learning_objective}
+
+우리의 과제는 데이터의 좋은 표현을 학습하는 것이다. 대조 학습은 대체로 입력 이미지의 어떤 속성을 특징이 반영하기를 원하는지 정의하고, 이러한 속성을 공유하지만 다른 속성은 다른 이미지를 구성하고, 공유된 속성을 가진 이미지의 특징은 가깝고 다른 속성을 가진 이미지의 특징은 다르도록 촉진하는 손실을 설정함으로써 이를 수행한다. 이 학습 문제에 대한 자연적으로 최적인 해는 학습된 특징이 입력의 원하는 속성을 보존하는 것이다. 그러나 대조 모델을 훈련하는 과정에서 발생하는 많은 실용적이고 경험적인 복잡성이 있다.
+
+DINO의 경우, 저자들은 전체 이미지에 대한 단일 특징 벡터를 생성하고 특징 벡터가 "전역적"(즉, 이미지 수준) 정보를 포함하기를 바라는 방법론을 제안한다. 따라서 손실은 유사한 전역 정보를 가진 이미지는 유사한 특징을 가지고, 다른 전역 정보를 가진 이미지는 다른 특징을 가지도록 촉진할 것이다.
+
+이것은 직관적으로 보이지만, 이전에 언급했듯이, 손실을 설정하는 동안에도 몇 가지 경험적 고려 사항이 있다. 첫째, 유사성과 차이점을 어떻게 촉진해야 하는가? DINO $\citep{caron2021emerging}$의 대답은\footnote{저자의 견해로는, 설명할 수 없게도...} 출력 특징을 어떤 확률 분포에 해당하는 "로짓"으로 변환하고 그들의 교차 엔트로피를 취하는 것이다. 더 구체적으로, $\R^{m}$의 확률 벡터 공간을 $\Delta_{m} \doteq \{\vx \in \R^{m} \colon x_{i} \geq 0\ \forall i \in [m], \sum_{i = 1}^{m}x_{i} = 1\}$로 정의하고, 함수 $d_{\CE} \colon \R^{m} \times \R^{m} \to \R$를 다음과 같이 정의한다
+ \begin{equation}\label{eq:cross_entropy_difference}
+    d_{\CE}(\vp, \vq) \doteq \CE(\vp, \vq), \quad \forall \vp, \vq \in \Delta_{m}
+ \end{equation}
+ 여기서 $\CE \colon \Delta_{m} \times \Delta_{m} \to \R$는 교차 엔트로피이며, 다음과 같이 정의된다
+ \begin{equation}\label{eq:expts_def_ce}
+    \CE(\vp, \vq) \doteq -\sum_{i = 1}^{m}p_{i}\log q_{i}, \quad \forall \vp = (p_{1}, \dots, p_{m}), \vq = (q_{1}, \dots, q_{m}) \in \Delta_{m}.
+ \end{equation}
+ 논의를 계속하기 전에, 이 거리 함수에 대한 직관을 구축해보자. 특히, 다음을 가진다
+ \begin{align}
+    \CE(\vp, \vq)
+    &= -\sum_{i = 1}^{m}p_{i}\log q_{i} = \sum_{i = 1}^{m}p_{i}\log(p_{i}/q_{i})
+     - \sum_{i = 1}^{m}p_{i}\log p_{i} = \KL(\vp\mmid \vq) + H(\vp)
+ \end{align}
+ 여기서 $\KL \colon \Delta_{m} \times \Delta_{m} \to \R$는 KL 발산이며, 다음과 같이 정의된다
+ \begin{equation}
+    \KL(\vp\mmid \vq) \doteq \sum_{i = 1}^{m}p_{i}\log(p_{i}/q_{i}),
+ \end{equation}
+ 그리고 $H \colon \Delta_{m} \to \R$는 확률 변수의 엔트로피이다. $\KL(\vp\mmid \vq)$는 $\vp = \vq$일 때만 최소화된다는 점에 유의하라. 따라서 $d_{\CE}$를 최소화하는 것은 두 가지를 수행한다: $\vp = \vq$를 만들고, $\vp$와 $\vq$가 최소 엔트로피를 가지도록 만든다(즉, 한 구성 요소에 $1$이 있고 다른 곳은 $0$인 벡터—이들은 \textit{원-핫 벡터}라고 불린다). 전반적으로, 이 목표의 목표는 $\vp$와 $\vq$를 일치시키는 것\textit{뿐만 아니라}, 이들을 특정 방식으로 형성하여 저-엔트로피로 만드는 것이다. 공식을 논의할 때 이 점을 염두에 두라.
+
+다음 질문은, 어떻게 유사한 전역 정보를 가진 샘플을 얻을 수 있는가? DINO(거의 모든 대조 학습과 마찬가지로)의 대답은 \textit{데이터 증강}이다 --- 각 샘플에서 원하는 속성을 공유하는 여러 상관된 샘플을 만든다. DINO의 경우, 입력 이미지의 다른 자르기 또는 \textit{뷰}를 사용한다. 이미지를 집합 $\cI$의 원소로 모델링한다는 것을 상기하라. 이 표기법에서, 뷰는 함수 $v \colon \cI \to \cI$이다. DINO의 경우, 뷰는 \textit{무작위 리사이즈 자르기}이다: 이미지의 무작위로 선택된 직사각형 자르기(이미지 전체 면적의 고정된 비율 $p_{v} \in [0, 1]$를 가짐)를 취하고, \textit{짧은 쪽}이 $S_{\rsz}$ 픽셀 길이가 되도록 비례적으로 크기를 조정한 다음, 고정된 모양 $(C, S_{v}, S_{v})$으로 크기를 조정한다. 여기서 $S_{v} \geq 1$는 뷰의 크기이고 $C$는 원본 이미지의 채널 수이다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{\toplevelprefix/chapters/chapter7/figs/global_local_views.pdf}
+    \caption{\textbf{DINO의 로컬 및 글로벌 뷰.} 로컬 뷰와 글로벌 뷰는 입력 이미지의 직사각형 자르기를 취하여 정사각형 모양으로 크기를 조정한 다음, 처리를 위해 네트워크에 입력한다.}
+    \label{fig:dino_local_global_views}
+\end{figure}
+
+우리가 사용하고자 하는 뷰에는 두 가지 유형이 있으며, $\Cref{fig:dino_local_global_views}$에 묘사되어 있다:
+\begin{itemize}
+    \item 면적 비율 매개변수 $p_{\glo} \in [0, 1]$와 출력 모양 $(C, S_{\glo}, S_{\glo})$를 가진 무작위 리사이즈 자르기인 \textit{글로벌 뷰};
+    \item 면적 비율 매개변수 $p_{\loc} \in [0, 1]$와 출력 모양 $(C, S_{\loc}, S_{\loc})$를 가진 무작위 리사이즈 자르기인 \textit{로컬 뷰}. 여기서 $p_{\loc} < p_{\glo}$이고 $S_{\loc} < S_{\glo}$이다.
+\end{itemize}
+
+DINO는 입력 이미지 $\vX$의 모든 뷰 $\vX_{v} \doteq v(\vX)$의 집계 특징 $\vz_{\theta}(\vX_{v}) \doteq (f_{\theta}^{\ext} \circ f_{\theta})(\vX_{v})$가 서로 일관성이 있기를 바란다. DINO는 행렬 $\vW \in \R^{s \times d}$와 벡터 $\vmu \in \R^{s}$로 매개변수화된 \textit{"DINO 헤드"}$\footnote{\(h_{\vW, \vmu}\)가 작업별 헤드이며, $\Cref{sec:experiment_setup}$에서는 특정 매개변수가 아닌 $\theta$로만 매개변수화되지만, 두 번째 매개변수의 다른 값을 가진 두 번의 $\h$ 호출을 사용하므로 지정된 표기법을 유지한다.} $h_{\vW, \vmu}$를 사용하여, 집계 특징 $\vz_{\theta}(\vX_{v})$로부터 다음 간단한 레시피를 사용하여 확률 벡터 $\vp_{\theta, \vW, \vmu}(\vX_{v}) \doteq h_{\vW, \vmu}(\vz_{\theta}(\vX_{v}))$를 추출한다:
+\begin{equation}
+    h_{\vW, \vmu}(\vz) \doteq \softmax([\vW\vz - \vmu]/\tau), \qquad \forall \vz \in \R^{d}
+\end{equation}
+여기서 $\softmax \colon \R^{s} \to \Delta_{s}$ 함수는 다음과 같이 정의된다
+\begin{equation}
+    \softmax\rp{\mat{x_{1} \\ \vdots \\ x_{s}}} \doteq \frac{1}{\sum_{i = 1}^{s}e^{x_{i}}}\mat{e^{x_{1}} \\ \vdots \\ e^{x_{s}}}
+\end{equation}
+그리고 $\tau > 0$는 소프트맥스 출력의 엔트로피를 제어하는 "온도" 매개변수이다.
+
+특히, DINO는 각 글로벌 뷰 $\vX_{g} \doteq v_{g}(\vX)$에 대한 확률 벡터 $\vp_{\theta, \vW, \vmu}(\vX_{g}) \doteq h_{\vW, \vmu}(\vz_{\theta}(\vX_{g}))$와 각 뷰 $\vX_{c} \doteq v_{c}(\vX)$에 대한 확률 벡터 $\vp_{\theta, \vW}(\vX_{c}) \doteq h_{\vW, \vzero_{m}}(\vz_{\theta}(\vX_{c}))$ 사이의 차이를 최소화한다. 여기서 $v_{c}$는 \textit{로컬 뷰 또는 글로벌 뷰}일 수 있다. 우리는 $\Cref{sub:contrastive_learning_architecture}$에서 $f_{\theta}$와 $f_{\theta}^{\ext}$의 구현을 곧 논의할 것이다. 전반적으로 DINO는 다음 문제를 해결한다
+ \begin{equation}\label{eq:dino_loss}
+     \min_{\theta, \vW, \vmu}\cL_{\dino}(\theta, \vW, \vmu) \qquad \text{where} \qquad \cL_{\dino}(\theta, \vW, \vmu) \doteq \Ex[d_{\CE}(\vp_{\theta, \vW, \vmu}(\vX_{g}), \vp_{\theta, \vW}(\vX_{c}))],
+\end{equation}
+여기서 기댓값은 데이터 $\vX$, 글로벌 뷰 $v_{g}$, 그리고 다른 뷰 $v_{c}$에 대해 취해진다.
+
+그러나 이 특정 경우, $\eqref{eq:dino_loss}$를 구현하고 실제 네트워크에서 최적화하려고 하면 문제가 발생할 가능성이 높다: 학습 알고리즘의 몇 번의 반복을 실행한 후, 특징 매핑 $f_{\theta}^{\ext} \circ f_{\theta}$는 \textit{상수 함수가 될 것이다}! 이것은 동일한 이미지의 다른 뷰의 특징 사이의 거리를 최소화하므로 위의 손실을 확실히 최적화한다. 그러나 우리는 분명히 이 해결책을 배우고 싶지 않다.
+
+실제로 붕괴를 피하는 것은 대조 학습에서 매우 일반적인 고려 사항이다. 그렇다면 이 경우 어떻게 할 수 있을까? DINO의 해결책은 다시 경험적으로 설계되었으며, 배치 내 모든 샘플을 사용하여 업데이트되는 매개변수 $\vmu$와 $h_{\vW, \vmu}$ 구현의 일부이며 $\Cref{sub:contrastive_learning_architecture}$에서 논의된 "온도" 하이퍼파라미터 $\tau$의 최적화를 신중하게 조정한다. 잘 작동하는 특정 특수 하이퍼파라미터 집합이 주어지면, 이는 실제로 표현의 비붕괴를 보장하기에 충분하다. 그러나 이 특수 구성 외부에서는 모델을 수렴하도록 훈련하기가 어렵고 훈련이 매우 불안정하다.
+
+이러한 상황을 개선하기 위해, 공식에 대한 단순화를 논의하자. 첫째, 집계 특징 $\vz_{\theta}$의 학습된 변환 $h_{\vW, \vmu}$를 사용하여 확률 벡터를 계산하는 대신, \textit{집계 표현을 직접 사용할 수 있다}. 작업별 헤드를 무시하거나(또는 항등 매핑으로 설정). 그러나 이제 벡터를 직접 비교할 방법이 필요하다. $\Cref{ch:compression,ch:representation}$의 가설, 즉 좋은 표현은 유클리드 (부분 공간) 기하학을 가져야 한다는 것을 사용하면, 훨씬 더 자연스러운 차이 측정은 다음과 같이 정의된 \textit{제곱 $\ell^{2}$ 거리} $d_{\ell^{2}} \colon \R^{d} \times \R^{d} \to \R$이다
+\begin{equation}\label{eq:cosine_similarity}
+    d_{\ell^{2}}(\vx, \vy) \doteq \frac{1}{2}\norm{\vx - \vy}_{2}^{2}, \qquad  \forall \vx, \vy \in \R^{d}.
+\end{equation}
+이 거리 기반 점수는 교차 엔트로피 점수보다 계산하기 훨씬 효율적이다. 따라서 $d_{\ell^{2}}$는 우리의 단순화에서 $d_{\CE}$의 자리를 차지한다.
+
+이전에 붕괴는 $\vmu$와 $\tau$를 업데이트하기 위한 트릭을 사용하여 피했다. 우리의 단순화에서, 확률로 변환하는 대신 표현 공간 내에서 특징을 비교하면, 이러한 매개변수 중 어느 것도 없으므로 붕괴를 피하기 위한 다른 방법을 고려해야 한다. 이를 위해, 우리는 기본으로 돌아간다. 붕괴를 피하는 기본 아이디어는 모든 샘플이 정확히 동일한 특징을 반환하지 않도록 하려면 다른 샘플이 다른 특징을 가져야 한다는 것이다. 즉, 특징의 \textit{공분산}이 어떤 의미에서 \textit{커야} 한다. 그러나 $\Cref{ch:compression,ch:representation}$에서, 우리는 이미 공분산 행렬의 크기를 측정하는 양을 가지고 있다. 즉, 우리는 다른 이미지의 글로벌 뷰의 특징이 잘 분리되고 붕괴되지 않도록(따라서 확장되도록) 보장하기 위해 간단한 (모집단 수준) \textit{가우시안 코딩 레이트} $R$를 사용한다. 전체 수정된 손실 $\cL_{\simdino}$는 다음과 같다:
+\begin{equation}\label{eq:simdino_loss}
+    \cL_{\simdino}(\theta) \doteq \Ex[d_{\ell^{2}}(\vz_{\theta}(\vX_{g}),
+    \vz_{\theta}(\vX_{c}))] - \frac{\gamma}{2}\log\det\rp{\vI + \frac{d}{\eps^{2}}\Cov(\vz_{\theta}(\vX_{g})))},
+\end{equation}
+여기서 $\eps > 0$는 고정되고 적절한 기댓값은 이전과 같이 데이터 $\vX$, 글로벌 뷰 $v_{g}$, 그리고 다른 (로컬 또는 글로벌) 뷰 $v_{c}$에 대해 취해진다. $\eqref{eq:simdino_loss}$의 손실은 단순화된 DINO(``SimDINO'')에 사용되는 손실이다. 우리가 보게 되겠지만, 적절하게 구현되면, 원래 DINO만큼 잘 작동한다.
 
 \subsection{아키텍처: 비전 트랜스포머}\label{sub:contrastive_learning_architecture}
 
-% TODO: 번역 예정
+아키텍처로는 표준 비전 트랜스포머를 사용한다. 이미지 데이터 맥락에서 이러한 아키텍처가 공식적으로 어떻게 작동하는지 여기에 설명한다. $\Cref{sec:experiment_setup}$에서 상기했듯이, 인코더 아키텍처에는 임베딩, 백본, 특징 추출기, 작업별 헤드라는 네 가지 구성 요소가 있다. 우리는 이 네 부분을 현재 논의한다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{\toplevelprefix/chapters/chapter7/figs/patchify.pdf}
+    \caption{\small\textbf{이미지를 $5 \times 5$ 정사각형 패치로 변환하여 래스터 순서로 배치한 예시.} 각 패치는 동일한 크기이며, 패치 그리드는 $(N_{H}, N_{W}) = (5, 5)$ 모양이다. 그런 다음 패치 그리드는 래스터 순서로 길이 $5 \times 5 = 25$의 시퀀스로 펼쳐진다.}
+    \label{fig:patchify_rasterize}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/transformer_embedding.pdf}
+    \caption{\small\textbf{트랜스포머 임베딩 파이프라인.} 래스터 순서의 펼쳐진 패치 시퀀스 $\vX^{\patch}$가 주어지면, 각 펼쳐진 패치는 특징 공간으로 선형 투영되고, (가산) 위치 인코딩과 클래스 토큰으로 알려진 추가 토큰이 장착된다. 출력은 첫 번째 계층 입력 특징 $\vZ_{\theta}^{1}(\vX) = f_{\theta}^{\emb}(\vX)$이다.}
+    \label{fig:transformer_embedding}
+\end{figure}
+
+\paragraph{임베딩.} 이미지 데이터 $\vX \in \cI$가 주어지면, 맵 $f_{\theta}^{\emb}$를 사용하여 $\R^{d}$의 토큰 시퀀스로 임베딩한다. 처음 두 단계는 $\Cref{fig:patchify_rasterize}$에 묘사되어 있고, 후자의 두 단계는 $\Cref{fig:transformer_embedding}$에 묘사되어 있다:
+\begin{enumerate}
+    \item 먼저, 이미지 데이터 $\vX$를 모양 $(C, P_{H}, P_{W})$의 패치 시퀀스로 변환한다. 여기서 $P_{H}$와 $P_{W}$는 패치 차원이다. $P_{H}$와 $P_{W}$가 각각 $\vX$의 높이와 너비를 고르게 나눈다고 가정한다($\Cref{sub:contrastive_learning_objective}$의 표기법에서 우리는 $P_{H}$와 $P_{W}$가 $S_{\loc}$와 $S_{\glo}$를 고르게 나눈다고 가정한다). 결과 패치 그리드가 $N_{H}$ 행과 $N_{W}$ 열을 가진다고 하자.
+    \item 각 패치를 길이 $D \doteq CP_{H}P_{W}$의 벡터로 펼친다. $N \doteq N_{H}N_{W}$개의 패치 벡터가 있으며, 이를 "래스터 순서"(왼쪽 상단 $\to$ 오른쪽 상단 $\to$ 왼쪽 하단 $\to$ 오른쪽 하단)로 행렬 $\vX^{\patch} \in \R^{D \times N}$에 배치한다. 여기서 $\vX^{\patch} \doteq f^{\patch}(\vX)$이다. $D$는 패치 크기와 채널 수에만 의존한다는 점에 유의하라. 후자의 양은 일반적으로 동일한 데이터셋의 샘플 간에 일정하므로, $D$는 데이터셋의 모든 이미지에 대해 동일하며, $N$은 더 크거나 작은 이미지에 따라 다르다.
+    \item 그런 다음 $\vX^{\patch} \in \R^{D \times N}$에 다음 연산을 수행하여 $\R^{d \times n}$(여기서 $n \doteq N + 1$)으로 투영한다:
+    \begin{equation}
+        \vX^{\patch} \mapsto [\vz_{\cls}^{1}, \vW^{\emb}\vX] + \vE^{\pos}.
+    \end{equation}
+    여기에는 세 가지 훈련 가능한 매개변수 $\vW^{\emb}$, $\vz_{\cls}^{1}$, $\vE^{\pos}$가 있으며, 그 목적은 다음과 같다:
+    \begin{itemize}
+        \item $\vW^{\emb} \in \R^{d \times D}$는 각 패치 벡터를 토큰 특징으로 투영하는 행렬이다.
+        \item $\vz_{\cls}^{1} \in \R^{d}$는 소위 \textit{클래스 토큰} 또는 \textit{레지스터 토큰}이다. 클래스 토큰은 경험적으로 전체 데이터의 전역 정보를 보유하며 다운스트림 작업에 사용된다. $\Cref{ch:representation}$의 압축 심층 네트워크 프레임워크에서, 클래스 토큰은 순방향 전달 과정 동안 두드러지거나 의미적으로 관련된 토큰과 동일한 부분 공간으로 투영될 것으로 예상한다.
+        \item $\vE^{\pos} \in \R^{d \times N}$는 다른 패치의 토큰을 서로 구별하는 소위 \textit{위치 인코딩}이다. 즉, 토큰 특징은 위치 정보를 가져야 하므로, 전체 맵 $f^{\pre}$가 패치의 순열에 불변하지 않고, $\vE^{\pos}$가 이 위치 정보를 삽입한다.
+        \begin{itemize}
+            \item 이 DINO의 경우, 트랜스포머가 다른 크기의 이미지를 받기 때문에, 훈련 중에 받은 가장 큰 크기에 대한 위치 인코딩을 학습하고, 더 작은 크기의 입력에 대한 위치 인코딩을 얻기 위해 보간한다.
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+따라서, 결국에는 다음을 얻는다
+\begin{equation}\label{eq:definition_of_embedding_module}
+    f_{\theta}^{\emb}(\vX) \doteq \mat{\vz_{\cls}^{1}, \vW^{\emb}f^{\patch}(\vX) + \vE^{\pos}}.
+\end{equation}
+모든 매개변수 $\vz_{\cls}^{1}, \vW^{\emb}, \vE^{\pos}$는 매개변수 집합 $\theta$에 포함된다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/transformer_backbone.pdf}
+    \caption{\small\textbf{트랜스포머 백본의 한 계층 $f_{\theta}^{\ell}$.} 입력 특징은 계층 정규화, 다중 헤드 자기 어텐션, 다층 퍼셉트론 블록을 순서대로 통과하여 계층의 출력 특징을 형성한다.}
+    \label{fig:transformer_backbone}
+\end{figure}
+
+\paragraph{백본.} 임베딩 시퀀스 $\vZ_{\theta}^{1}(\vX) \doteq f_{\theta}^{\emb}(\vX) \in (\R^{d})^{*}$가 주어지면, $\Cref{fig:transformer_backbone}$에 묘사된 대로 백본 맵 $f_{\theta}^{\backbone}$을 사용하여 다음과 같이 처리한다. 함수 $f_{\theta}^{\backbone}$는 $L$개의 \textit{계층} $f_{\theta}^{\ell}$로 구성된다, 즉,
+\begin{equation}
+    f_{\theta}^{\backbone} = f_{\theta}^{L} \circ \cdots \circ f_{\theta}^{1}.
+\end{equation}
+ 계층 $f_{\theta}^{\ell}$는 다음과 같은 구현을 가진다:
+\begin{align}\label{eq:vit-res-block}
+    \vZ_{\theta}^{\ell + 1/2}(\vX)
+    &= \vZ_{\theta}^{\ell}(\vX) + \MHSA_{\theta}^{\ell}(\LN_{\theta}^{1, \ell}(\vZ_{\theta}^{\ell}(\vX)))
+    \vZ_{\theta}^{\ell + 1}(\vX)
+    &= \vZ_{\theta}^{\ell + 1/2}(\vX) + \MLP_{\theta}^{\ell}(\LN_{\theta}^{2, \ell}(\vZ_{\theta}^{\ell + 1/2}(\vX)))
+\end{align}
+그리고 $f_{\theta}^{\ell}$는 $f_{\theta}^{\ell}(\vZ_{\theta}^{\ell}(\vX)) \doteq \vZ_{\theta}^{\ell + 1}(\vX)$가 되도록 정의된다. 여기서 우리는 다음과 같이 정의되는 $\MHSA_{\theta}^{\ell}, \MLP_{\theta}^{\ell}$ 및 $\LN_{\theta}^{i, \ell}$와 같은 일부 연산자를 사용했다:
+\begin{itemize}
+    \item $\MHSA_{\theta}^{\ell}$ 연산자는 다중 헤드 자기 어텐션으로, 다중 헤드 부분 공간 자기 어텐션의 전신이다(참조 $\Cref{ch:representation}$). 공식은 다음과 같다:
+    \begin{align}
+        \MHSA_{\theta}^{\ell}(\vZ)
+        &= \vU_{\out}^{\ell}\mat{\SA([\vU_{\query}^{1, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{1, \ell}]^{\top}\vZ, [\vU_{\val}^{1, \ell}]^{\top}\vZ) \\ \vdots \\ \SA([\vU_{\query}^{K, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{K, \ell}]^{\top}\vZ, [\vU_{\val}^{K, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{n}^{\top} \label{eq:mhsa} \\        \label{eq:self_attention}
+        \text{여기서} \qquad \SA(\vQ, \vK, \vV)
+        &= \vV \underbrace{\softmax\rp{\frac{\vK^{\top}\vQ}{\sqrt{p}}}}_{\doteq \vA(\vQ, \vK)}
+ \end{align}
+여기서 $p$는 양의 정수이고, $\vU_{\query}^{k, \ell}, \vU_{\attnkey}^{k, \ell}, \vU_{\val}^{k, \ell} \in \R^{d \times p}$, $\vU_{\out}^{\ell} \in \R^{d \times Kp}$ 및 $\vb_{\out}^{\ell} \in \R^{d}$는 매개변수 집합 $\theta$에 포함된 훈련 가능한 매개변수이며, $\softmax$는 다음과 같이 열별로 정의된다.
+    \begin{align}
+        \softmax(\vM)
+        &= \mat{\softmax(\vm_{1}) & \cdots & \softmax(\vm_{p})} \\        \forall \vM
+        &= \mat{\vm_{1}, \dots, \vm_{p}} \in \R^{n \times p}.
+    \end{align}
+    실제로 차원은 보통 $Kp = d$가 되도록 선택된다. 항
+    \begin{equation}
+        \label{eq:attention_map}
+        \vA_{\theta}^{k, \ell}(\vZ) \doteq \vA([\vU_{\query}^{k, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{k, \ell}]^{\top}\vZ), \qquad \SA_{\theta}^{k, \ell}(\vZ) \doteq \SA([\vU_{\query}^{k, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{k, \ell}]^{\top}\vZ, [\vU_{\val}^{k, \ell}]^{\top}\vZ)
+    \end{equation}
+    는 각각 \textit{\(k\)번째 어텐션 맵}과 \textit{\(k\)번째 어텐션 헤드 출력}이라고도 알려져 있다. 더욱이, 연산 $\SA(\vQ, \vK, \vV)$는 FlashAttention $\citep{shah2025flashattention}$과 같은 전문화된 소프트웨어를 사용하여 매우 효율적으로 계산될 수 있다.
+    \item $\MLP_{\theta}^{\ell}$는 2계층 퍼셉트론으로, 심층 네트워크에서 사용되는 일반적인 비선형성이며, 다음과 같은 형태를 가진다
+    \begin{equation}
+        \MLP_{\theta}^{\ell}(\vZ) \doteq \vW_{\down}^{\ell}\ReLU(\vW_{\up}^{\ell}\vZ + \vb_{\up}^{\ell}\vone_{n}^{\top}) + \vb_{\down}^{\ell}\vone_{n}^{\top}
+    \end{equation}
+    여기서 $\vW_{\up}^{\ell} \in \R^{q \times d}, \vW_{\down}^{\ell} \in \R^{d \times q}, \vb_{\up}^{\ell} \in \R^{q}, \vb_{\down}^{\ell} \in \R^{d}$는 매개변수 집합 $\theta$에 포함된 훈련 가능한 매개변수이고, $\ReLU$는 원소별 ReLU 비선형성이다, 즉, $\ReLU(\vM)_{ij} = \max\{M_{ij}, 0\}$.
+    \item 각 계층 정규화 $\LN_{\theta}^{i, \ell}$ (i \in \{1, 2\})는 표준 정규화이며, 각 토큰 특징에 독립적으로 열별로 적용된다:
+    \begin{equation}
+        \LN_{\theta}^{i, \ell}(\vZ) = \LN_{\theta}^{i, \ell}(\mat{\vz_{1}, \dots, \vz_{n}}) = \mat{\LN_{\theta}^{i, \ell}(\vz_{1}), \dots, \LN_{\theta}^{i, \ell}(\vz_{n})}
+    \end{equation}
+    그리고 다음과 같은 형태를 가진다
+    \begin{equation}
+        \LN_{\theta}^{i, \ell}(\vz) = \frac{\vz
+        - \operatorname{mean}(\vz)\vone_{d}}{\norm{\vz
+        - \operatorname{mean}(\vz)\vone_{d}}_{2}} \hada \valpha^{i, \ell} + \vbeta^{i, \ell} \quad \text{여기서} \quad \operatorname{mean}(\vz) = \frac{1}{d}\vone_{d}^{\top}\vz
+    \end{equation}
+    여기서 $\hada$는 원소별 곱셈을 나타내고, $\valpha^{i, \ell}, \vbeta^{i, \ell} \in \R^{d}$는 매개변수 집합 $\theta$에 포함된 훈련 가능한 매개변수이다. 계층 정규화 연산자는 각 토큰에 대한 일종의 정규화 역할을 하며, 이후 각 토큰의 스케일은 학습 가능하고 모든 토큰 간에 공유된다.
+\end{itemize}
+
+트랜스포머는 역사상 가장 인기 있는 신경망 아키텍처 중 하나이며, 딥 러닝의 거의 모든 분야의 응용 프로그램을 구동한다.
+
+\paragraph{특징 추출기.} 우리는 \textit{클래스 토큰 특징}(입력 이미지에 대한 집계 정보를 포함하도록 의도된 특징)을 추출하고 MLP와 정규화를 적용하는 후처리 단계 $f_{\theta}^{\ext}$를 사용한다. 즉, 다음을 가진다
+\begin{equation}
+    \vz_{\theta}(\vX) \doteq f_{\theta}^{\ext}(\vZ_{\theta}(\vX)) = f_{\theta}^{\ext}( [\vz_{\theta}^{1}(\vX), \dots, \vz_{\theta}^{n}(\vX)]) \doteq \frac{\MLP_{\theta}^{\ext}(\vz_{\theta}^{1}(\vX))}{\norm{\MLP_{\theta}^{\ext}(\vz_{\theta}^{1}(\vX))}_{2}}.
+\end{equation}
+
+\paragraph{작업별 ("DINO") 헤드.} DINO의 경우, 작업별 DINO 헤드 $h_{\vW, \vmu}$를 사용한다. SimDINO의 경우, 이전에 설명한 대로 \textit{전혀} 작업별 헤드를 사용하지 않는다.
 
 \subsection{최적화 전략}\label{sub:contrastive_learning_optimization}
 
-% TODO: 번역 예정
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/dino_pipeline.pdf}
+    \caption{\small \textbf{DINO 파이프라인.} 학생 특징과 교사 특징이 각 입력에 대해 계산된다. 목표는 두 특징 집합을 고차원 확률 단체로 투영하고 교차 엔트로피 손실을 계산하여 학생 특징을 교사 특징에 맞추려는 시도이다. 특히, "stop-grad" 때문에, 그래디언트는 \textit{학생 매개변수의 출력}에 대해서만 계산된다.}
+    \label{fig:dino_pipeline}
+\end{figure}
+
+\paragraph{DINO 최적화.} 손실 함수와 아키텍처가 있으므로, 이제 최적화 전략을 논의한다. DINO의 최적화 전략은 \textit{동일한 아키텍처에 대해 두 세트의 가중치}를 사용한다: \textit{학생} 가중치 $\theta_{\student}$와 \textit{교사} 가중치 $\theta_{\teacher}$. 이들은 동일한 아키텍처를 가진 교사 네트워크와 학생 네트워크라는 두 개의 다른 신경망에 해당한다. 교사 네트워크는 모든 글로벌 뷰를 인코딩하고, 학생 네트워크는 모든 "다른" 뷰를 인코딩한다. 손실의 목표는 교사 출력을 학생 모델로 증류하는 것이다. 즉, 손실 $\cL_{\dino{}-\student\teacher}$에 대해 훈련한다:
+\begin{equation}\label{eq:dino_loss_teacherstudent}
+    \cL_{\dino{}-\student\teacher}(\theta_{\student}, \theta_{\teacher}, \vW_{\student}, \vW_{\teacher}, \vmu) \doteq \Ex[d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{g}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{c}))].
+\end{equation}
+이제, $\Cref{fig:dino_pipeline}$에 묘사된 DINO의 전체 파이프라인을 완전히 설명할 수 있다.
+
+$\eqref{eq:dino_loss_teacherstudent}$에 대해 추론하기는 쉽지만, $\cL_{\dino{}-\student\teacher}$로 주어진 손실을 사용하여 경사 하강과 같은 최적화 알고리즘을 실제로 구현하는 것은 불가능하다. 이는 손실의 기댓값을 평가하는 것이 불가능하고, 그래디언트를 취하는 것은 더더욱 불가능하기 때문이다. 이 극도로 빈번한 경우, 우리는 유한 샘플을 통해 기댓값을 근사한다. 즉, 각 시간 단계 $k$에서 우리는:
+\begin{itemize}
+    \item 데이터셋에서 $B$개의 데이터 포인트 $\ \ \{\vX_{1}^{(k)}, \dots, \vX_{B}^{(k)}\} \subset \cI$를 하위 샘플링한다.
+    \item 각 데이터 포인트 $\vX_{b}^{(k)}$에 대해, $M_{\glo}$개의 글로벌 뷰 $v_{b, g}^{(k), i}$와 $M_{\loc}$개의 로컬 뷰 $v_{b, 	extbackslash 	extbackslash loc}^{(k), i}$를 샘플링한다. 뷰를 $\vX_{b}^{(k)}$에 적용하여 $\vX_{b, g}^{(k), i} \doteq v_{b, g}^{(k), i}(\vX_{b}^{(k)})$와 $\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i} \doteq v_{b, 	extbackslash 	extbackslash loc}^{(k), i}(\vX_{b}^{(k)})$를 얻는다.
+    \item 각 \textit{로컬} 뷰 $\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}$에 대해, 다음 양을 계산한다:
+    \begin{equation}
+        \vz_{\theta_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}) \doteq (f_{\theta_{\student}}^{\ext} \circ f_{\theta_{\student}})(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}), \qquad \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}) \doteq h_{\vW_{\student}, \vzero_{m}}(\vz_{\theta_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}(\theta)))
+    \end{equation}
+    그리고 각 \textit{글로벌} 뷰 $\vX_{b, g}^{(k), i}$에 대해, 다음 양을 계산한다(표기법의 남용으로):
+    \begin{align}
+        &\vz_{\theta_{\student}}(\vX_{b, g}^{(k), i}) \doteq (f_{\theta_{\student}}^{\ext} \circ f_{\theta_{\student}})(\vX_{b, g}^{(k), i}), \qquad \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, g}^{(k), i}) \doteq h_{\vW_{\student}, \vzero_{m}}(\vz_{\theta_{\student}}(\vX_{b, g}^{(k), i})),
+        &\vz_{\theta_{\teacher}}(\vX_{b, g}^{(k), i}) \doteq (f_{\theta_{\teacher}}^{\ext} \circ f_{\theta_{\teacher}})(\vX_{b, g}^{(k), i}), \qquad \vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}) \doteq h_{\vW_{\teacher}, \vmu}(\vZ_{\theta_{\teacher}}(\vX_{b, g}^{(k), i})).
+    \end{align}
+    \item 다음과 같이 정의된 \textit{대리, 근사 손실} $\hat{\cL}_{\dino-\student\teacher}^{(k)}$를 계산한다:
+    \begin{align}\label{eq:dino_loss_teacherstudent_empirical}
+        &\hat{\cL}_{\dino{}-\student\teacher}^{(k)}(\theta_{\student}, \theta_{\teacher}, \vW_{\student}, \vW_{\teacher}, \vmu) \doteq
+        \frac{1}{BM_{\glo}(M_{\glo} + M_{\loc} - 1)}\sum_{b = 1}^{B}\sum_{i = 1}^{M_{\glo}}\\[\sum_{j = 1}^{M_{\loc}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), j})) + \sum_{\substack{j = 1 \ j \neq i}}^{M_{\glo}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, g}^{(k), j}))\Bigg]
+    \end{align}
+    뿐만 아니라 $\theta_{\student}$ 및 $\vW_{\student}$에 대한 그래디언트도 계산해야 하며, 이는 $\theta_{\teacher}$, $\vW_{\teacher}$ 및 $\vmu$가 상수라는 가정 하에 계산되어야 한다 --- 즉, 이들은 \textit{계산 그래프에서 분리되어} $\theta_{\student}$ 및 $\vW_{\student}$에 의존하지 않는다.
+    \item 반복적인 그래디언트 기반 최적화 알고리즘을 통해 학생 매개변수 $\theta_{\student}$ 및 $\vW_{\student}$를 업데이트하고, 감쇠 매개변수 $\nu^{(k)}$, $\nu^{(k)}$ 및 $\rho^{(k)}$를 사용하여 각각 지수 이동 평균을 통해 $\theta_{\teacher}$, $\vW_{\teacher}$ 및 $\vmu$를 업데이트한다. 즉,
+    \begin{align}
+        (\theta_{\student}^{(k + 1)}, \vW_{\student}^{(k + 1)})
+        &= \textsc{OptUpdate}^{(k)}(\theta_{\student}^{(k)}, \vW_{\student}^{(k)}; \nabla_{(\theta_{\student}, \vW_{\student})}\hat{\cL}_{\dino-\student\teacher}^{(k)})
+        \theta_{\teacher}^{(k + 1)}
+        &= \nu^{(k)}\theta_{\teacher}^{(k)} + (1 - \nu^{(k)})\theta_{\student}^{(k + 1)}
+        \vW_{\teacher}^{(k + 1)}
+        &= \nu^{(k)}\vW_{\teacher}^{(k)} + (1 - \nu^{(k)})\vW_{\student}^{(k + 1)}
+        \vmu^{(k + 1)}
+        &= \rho^{(k)}\vmu^{(k)} + (1 - \rho^{(k)})\cdot\frac{1}{BM_{\glo}}\sum_{b = 1}^{B}\sum_{i = 1}^{M_{\glo}}\vW^{(k)}\vz_{\theta_{\teacher}}(\vX_{b, g}^{(k), i}),
+    \end{align}
+    예를 들어, 선택한 최적화 알고리즘이 확률적 경사 하강법이라면, $\theta_{\student}^{(k + 1)} \doteq \theta_{\student}^{(k)} - \delta^{(k)}\nabla_{\theta_{\student}}\hat{\cL}_{\dino-\student\teacher}^{(k)}$ 업데이트를 가질 것이다.
+\end{itemize}
+최적화 절차가 다소 불규칙하다는 점에 주목하라: 모든 네 매개변수가 각 반복에서 변경되지만, 그 중 두 개만 그래디언트 기반 방법에서 직접 업데이트된다. 다른 두 개는 지수 이동 평균에서 업데이트되며, 실제로 그래디언트를 계산할 때 상수로 처리된다. 훈련 후, 학생 가중치를 버리고 교사 가중치를 훈련된 네트워크 $f$에 사용하는데, 이 지수 이동 평균이 결과 모델을 안정화시키는 것으로 경험적으로 입증되었기 때문이다(이 아이디어는 Polyak 평균화 또는 반복 평균화로 알려져 있다). 
+
+최적화 궤적에 걸쳐 $\nu$와 $\rho$가 변하는 방식(즉, 함수 $k \mapsto \nu^{(k)}$와 $k \mapsto \rho^{(k)}$)은 하이퍼파라미터 또는 설계 결정이며, 보통 $\nu^{(1)} < 1$이고 $\lim_{k \to \infty}\nu^{(k)} = 1$이며, $\rho$에 대해서도 유사하다. DINO 헤드 $h_{\vW, \vmu}$에서 사용되는 온도 하이퍼파라미터 $\tau$도 최적화 궤적에 걸쳐 변한다(이 의존성은 명시적으로 표기되지 않음).
+
+대리 ("경험적") 손실을 사용하는 것은 $\eqref{eq:dino_loss_teacherstudent}$의 손실을 최적화하는 것과 같이 다루기 힘든 최적화 문제를 본질적으로 세상의 모든 딥 러닝 모델을 훈련하는 데 실행되는 다루기 쉬운 확률적 최적화 문제로 변환한다. 이 변환은 몇 가지 예제를 본 후에는 매우 자연스러우며, 우리는 이 장 전체에서 이러한 예제를 제공하기를 희망한다.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{\toplevelprefix/chapters/chapter7/figs/simdino_pipeline.pdf}
+    \caption{\small\textbf{SimDINO 파이프라인.} 여기서는, $\Cref{fig:dino_pipeline}$의 DINO 파이프라인과 대조적으로, 추가 조작 없이 특징에 대해 직접 손실이 계산된다. 이는 여러 개의 큰 행렬 크기의 매개변수를 절약하고 파이프라인을 단순화하며, 동시에 훈련 안정성을 높인다.}\label{fig:simdino_pipeline}
+\end{figure}
+
+\paragraph{SimDINO 최적화.} 단순화된 DINO 모집단 수준 목표는 정신은 매우 유사하지만 실행은 훨씬 간단하다, 즉,
+\begin{equation}\label{eq:simdino_loss_teacherstudent}
+    \cL_{\simdino-\student\teacher}(\theta_{\student}, \theta_{\teacher}) \doteq
+    \Ex\rs{d_{\ell^{2}}(\vz_{\theta_{\teacher}}(\vX_{g}),
+    \vz_{\theta_{\student}}(\vX_{c}))} - \frac{\gamma}{2}\log\det\rp{\vI + \frac{d}{\eps^{2}}\Cov(\vz_{\theta_{\student}}(\vX_{g})))}.
+\end{equation}
+따라서, $\Cref{fig:simdino_pipeline}$에서 상술한 바와 같이, SimDINO 파이프라인은 DINO 파이프라인보다 엄격하게 간단하다. 우리는 SimDINO를 최적화하기 위해 DINO 훈련 파이프라인의 더 간단한 버전을 사용할 수 있다. 각 시간 단계 $k$에서, 우리는:
+\begin{itemize}
+    \item 데이터셋에서 $B$개의 데이터 포인트 $\ \ \{\vX_{1}^{(k)}, \dots, \vX_{B}^{(k)}\} \subset \cI$를 하위 샘플링한다.
+    \item 각 데이터 포인트 $\vX_{b}^{(k)}$에 대해, $M_{\glo}$개의 글로벌 뷰 $v_{b, g}^{(k), i}$와 $M_{\loc}$개의 로컬 뷰 $v_{b, 	extbackslash 	extbackslash loc}^{(k), i}$를 샘플링한다. 뷰를 $\vX_{b}^{(k)}$에 적용하여 $\vX_{b, g}^{(k), i} \doteq v_{b, g}^{(k), i}(\vX_{b}^{(k)})$와 $\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i} \doteq v_{b, 	extbackslash 	extbackslash loc}^{(k), i}(\vX_{b}^{(k)})$를 얻는다.
+    \item 각 \textit{로컬} 뷰 $\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}$에 대해 $\vz_{\theta_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i}) \doteq (f_{\theta_{\student}}^{\ext} \circ f_{\theta_{\student}})(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), i})$를 계산한다. 각 \textit{글로벌} 뷰 $\vX_{b, g}^{(k), i}$에 대해 $\vz_{\theta_{\student}}(\vX_{b, g}^{(k), i}) \doteq (f_{\theta_{\student}}^{\ext} \circ f_{\theta_{\student}})(\vX_{b, g}^{(k), i})$와 $\vz_{\theta_{\teacher}}(\vX_{b, g}^{(k), i}) \doteq (f_{\theta_{\teacher}}^{\ext} \circ f_{\theta_{\teacher}})(\vX_{b, g}^{(k), i})$를 계산한다.
+    \item 다음과 같이 정의된 \textit{대리, 근사 손실} $\hat{\cL}_{\simdino-\student\teacher}^{(k)}$를 계산한다:
+    \begin{align}\label{eq:simdino_loss_teacherstudent_empirical}
+        &\hat{\cL}_{\simdino{}-\student\teacher}^{(k)}(\theta_{\student}, \theta_{\teacher}) \doteq
+        \frac{1}{BM_{\glo}(M_{\glo} + M_{\loc} - 1)}\sum_{b = 1}^{B}\sum_{i = 1}^{M_{\glo}}\Bigg[\sum_{j = 1}^{M_{\loc}}d_{\ell^{2}}(\vz_{\theta_{\teacher}}(\vX_{b, g}^{(k), i}), \vz_{\theta_{\student}}(\vX_{b, 	extbackslash 	extbackslash loc}^{(k), j})) \\
+        &\qquad \qquad + \sum_{j = 1}^{M_{\glo}}d_{\ell^{2}}(\vz_{\theta_{\teacher}}(\vX_{b, g}^{(k), i}), \vz_{\theta_{\student}}(\vX_{b, g}^{(k), j}))\Bigg] - \frac{\gamma}{M_{\glo}}\sum_{i = 1}^{M_{\glo}}R_{\eps}( [\vz_{\theta_{\student}}(\vX_{1, g}^{(k), i}), \dots, \vz_{\theta_{\student}}(\vX_{B, g}^{(k), i})])
+    \end{align}
+    여기서 $R_{\eps}$는 $\Cref{ch:representation}$에 설명된 유한 샘플에서 추정된 가우시안 코딩 레이트이다. $\hat{\cL}_{\simdino-\student\teacher}^{(k)}$의 $\theta_{\student}$에 대한 그래디언트는 $\theta_{\teacher}$가 상수라는 가정 하에 (다시) 계산되어야 한다.
+    \item 반복적인 그래디언트 기반 최적화 알고리즘을 통해 학생 매개변수 $\theta_{\student}$를 업데이트하고, 감쇠 매개변수 $\nu^{(k)}$를 사용하여 지수 이동 평균을 통해 $\theta_{\teacher}$를 업데이트한다. 즉,
+    \begin{align}
+        \theta_{\student}^{(k + 1)}
+        &= \textsc{OptUpdate}^{(k)}(\theta_{\student}^{(k)}; \nabla_{\theta_{\student}}\hat{\cL}_{\simdino-\student\teacher}^{(k)})
+        \theta_{\teacher}^{(k + 1)}
+        &= \nu^{(k)}\theta_{\teacher}^{(k)} + (1 - \nu^{(k)})\theta_{\student}^{(k + 1)}.
+    \end{align}
+\end{itemize}
+다시 말하지만, 그래디언트는 $\theta_{\teacher}$를 상수로 취급하면서 $\theta_{\student}$에 대해서만 취해진다는 점을 재차 강조한다. 여기서, $\nu$의 선택은 여전히 설계 결정이지만, 하이퍼파라미터 $\rho$와 $\tau$는 제거된다는 점에 유의하라.
 
 \subsection{평가 방법론}\label{sub:contrastive_learning_evals}
 
-% TODO: 번역 예정
+훈련된 트랜스포머 모델을 평가하는 방법에는 여러 가지가 있다. 이 섹션에서는 두 가지를 강조한다. \textit{중앙 자르기} 뷰 $v_{\cc} \colon \cI \to \cI$를 정의하자. 이는 \textit{결정론적 리사이즈 자르기}이다:
+\begin{itemize}
+    \item 이미지를 리사이즈하여 가장 짧은 가장자리의 크기가 $S_{\rsz}$가 되도록 한다(면적 비율 매개변수 $1$인 무작위 리사이즈 자르기와 유사함);
+    \item 그런 다음 \textit{중앙} $S_{\cc} \times S_{\cc}$ 자르기를 취한다;
+\end{itemize}
+따라서 최종 모양은 $(C, S_{\cc}, S_{\cc})$이다. 뷰 $v_{\cc}$는 입력이 주어지면 완전히 결정론적임에 주목하라. 입력 $\vX$에 대해, $\vX_{\cc} \doteq v_{\cc}(\vX)$라고 쓴다. 여기서 $S_{\cc} \leq S_{\rsz}$이다.
 
-\subsection{실험 설정 및 결과}\label{sub:contrastive_learning_experiment_results}
+\paragraph{선형 프로빙.}
 
-% TODO: 번역 예정
+인코더 모델 $\vX \mapsto \vz_{\theta}(\vX)$을 평가하는 첫 번째이자 가장 아키텍처에 구애받지 않는 방법은 \textit{선형 프로빙}을 사용하는 것이다. 선형 프로빙은 한마디로 인코더에 의해 계산된 집계 특징에 대해 로지스틱 회귀를 실행하는 것이다. 이것은 표현에 얼마나 많은 의미론적 정보가 있는지, 그리고 이 정보를 얼마나 쉽게 추출할 수 있는지를 알려준다. (즉: 다른 의미를 가진 이미지의 특징이 특징 공간의 다른 부분 공간에 어느 정도 살고 있는가?)
+
+더 형식적으로, $N_{\cls}$개의 클래스가 있고 $\vy \in \{0, 1\}^{N_{\cls}}$가 "원-핫 인코딩"(즉, $\vX$가 $i$번째 클래스에 있으면 $i$번째 위치에 $1$이 있고 다른 모든 위치는 $0$인)인 이미지-레이블 데이터 $(\vX, \vy)$에 대한 인코더의 특징의 품질과 충실도를 평가하고 싶다고 가정하자. 이를 수행하는 한 가지 방법은 로지스틱 회귀 문제를 해결하는 것이다:
+\begin{equation}\label{eq:linear_probing}
+    \min_{\vW \in \R^{N_{\cls} \times d}}\Ex[\CE(\vy, \vW \vz_{\theta}(\vX_{\cc}))].
+\end{equation}
+더 실용적으로, 레이블이 지정된 데이터 $\{(\vX_{b}, \vy_{b})\}_{b = 1}^{B}$가 있다면, 다음과 같이 주어진 \textit{경험적} 로지스틱 회귀 문제}(\eqref{eq:dino_loss_teacherstudent}$ 대 $\eqref{eq:dino_loss_teacherstudent_empirical}$와 유사)를 해결할 수 있다:
+\begin{equation}\label{eq:linear_probing_empirical}
+    \min_{\vW \in \R^{N_{\cls} \times d}}\frac{1}{B}\sum_{b = 1}^{B}\CE(\vy_{b}, \vW \vz_{\theta}(\vX_{b, \cc})).
+\end{equation}
+이 문제는 $\vW$에 대한 볼록 최적화 문제이므로 (확률적) 경사 하강 또는 다양한 다른 알고리즘을 통해 효율적으로 해결할 수 있다. 이 선형 프로브는 인코더와 함께 분류기로 사용될 수 있으며, 분류 정확도를 평가할 수 있다. 일반적인 관행은 먼저 대규모 데이터셋(예: ImageNet-1K)에서 모델을 훈련한 다음, 데이터셋(예: CIFAR-10의 훈련 데이터셋)에서 선형 프로브를 훈련하고, 두 번째 데이터셋과 동일한 분포에서 추출된 세 번째("홀드아웃") 데이터셋(예: CIFAR-10의 평가 데이터셋)에서 평가하는 것이다.
+
+\paragraph{\(k\)-최근접 이웃.} 우리는 또한 $k$-최근접 이웃 알고리즘을 사용하여 평균 예측 레이블을 얻음으로써 특징의 분류 작업 성능을 \textit{명시적으로 분류기를 훈련할 필요 없이} 평가할 수 있다. 즉, 데이터셋 $\{ \vz_{b} \}_{b = 1}^{B} \subseteq \R^{d}$가 주어졌을 때, 다른 점 $\vz \in \R^{d}$의 $k$-최근접 이웃을 $\operatorname{NN}_{k}(\vz, \{\vz_{b}\}_{b = 1}^{B})$로 정의한다. 이 표기법을 사용하여, 예측된 레이블 $\hat{\vy}_{\theta}(\vX \mid \{(\vX_{b}, \vy_{b})\}_{b = 1}^{B})$를 다음과 같이 계산할 수 있다:
+\begin{equation}
+    \hat{\vy}_{\theta}(\vX \mid \{(\vX_{b}, \vy_{b})\}_{b = 1}^{B}) = \vone(i^{\star}) \quad \text{여기서} \quad i^{\star} \doteq \argmax_{i \in [Q]}\sum_{b = 1}^{B}\vy_{b}\indvar[\vz_{\theta}(\vX_{\cc, b}) \in \operatorname{NN}_{k}(\vz_{\theta}(\vX_{\cc}))].
+\end{equation}
+여기서, $\vone(i) \in \Delta_{N_{\cls}}$는 $i$에 지지되는 원-핫 확률 벡터(즉, $i$번째 좌표에 $1$이고 다른 곳은 $0$임)이다(표기법의 남용, 지시 변수 참조). 즉, 이 절차는 특징 공간에서 $k$개의 가장 가까운 점들 사이에서 가장 일반적인 레이블을 취한다. $k$-최근접 이웃 분류 정확도는 바로 이 예측된 레이블의 정확도이다. 즉,
+\begin{equation}
+    \Ex_{\vX, \vy}[\indvar(\hat{\vy}_{\theta}(\vX \mid \{(\vX_{b}, \vy_{b})\}_{b = 1}^{B}) = \vy)]
+\end{equation}
+또는 더 일반적으로 해당 경험적 버전, 여기서 $(\vX, \vy)$는 유한 데이터셋($k$ 이웃에 사용되는 기존 샘플 $(\vX_{b}, \vy_{b})$이 아님)에 걸쳐 있다.
+
+\paragraph{어텐션 맵의 충실도.}
+
+트랜스포머 기반 인코더의 표현 성능을 확인하는 또 다른 방법은 마지막 계층 $L$에서 $\Cref{eq:attention_map}$에 정의된 어텐션 맵 $\vA^{L, k} \in \R^{n \times n}$의 충실도를 검사하는 것이다. 이는 다음 파이프라인에 의해 주어진다:
+\begin{align}
+    \vX \mapsto \cdots \mapsto \vZ^{L - 1} = [\underbrace{\vz_{1}^{L - 1}}_{\text{클래스 토큰}}, \underbrace{\vz_{2}^{L - 1} \dots, \vz_{n}^{L - 1}}_{	ext{패치 토큰}}] \mapsto \vA^{k, L} = \mat{\vA_{1, 1}^{k, L} & \vA_{1, 2:}^{k, L} \\ \vA_{2:, 1}^{k, L} & \vA_{2:, 2:}^{k, L}}.
+\end{align}
+특히, 주어진 입력에 대한 어텐션 맵이 입력 이미지의 두드러진 객체에 대해 무엇을 드러내는지, 즉 이미지의 어느 부분이 클래스 토큰에 가장 전역적으로 관련된 정보를 제공하는지 검사한다. 이를 수행하는 한 가지 구체적인 방법은 클래스 토큰이 쿼리로 추출되고 값 행렬에서 제거된 어텐션 맵의 구성 요소를 검사하는 것이다. 즉, $\vA_{2:, 1}^{k, L} \in \R^{1 \times (n - 1)} = \R^{1 \times N}$ 또는 그 전치 $\va^{k, L} = (\vA_{2:, 1}^{k, L})^{\top} \in \R^{N}$이다. 이 벡터 $\va^{k, L}$를 "\textit{\(L\)번째 계층의 \(k\)번째 어텐션 헤드에서의 현저성 벡터}"라고 부르며, 모든 패치 $1, \dots, N$에 대해 값을 가지며, 이 값을 사용하여 각 패치가 전역 정보에 얼마나 관련이 있는지를 설명한다. 특히 시각화를 위해, 각 패치를 현저성 벡터의 해당 값으로 대체하여 새로운 이미지를 만들고, 각 패치의 기여도를 보여준다; 이 이미지를 "\textit{\(L\)번째 계층의 \(k\)번째 어텐션 헤드에서의 현저성 맵}"이라고 부른다. 모든 헤드에 걸쳐 각 패치의 총 관련성을 시각화하기 위해, 현저성 벡터를 평균할 수 있다. 즉, $\tilde{\va}^{L} \doteq \frac{1}{K}\sum_{k = 1}^{K}\va^{k, L}$이고 \textit{평균 현저성 맵}으로 확장한다. 평균 현저성 맵은 입력 이미지의 관련 부분을 강조해야 한다.
+
+\paragraph{객체 탐지 및 분할.}
+
+우리는 \textit{의미론적 분할}에 특징을 사용하여 입력의 미세한(즉, 더 작거나 더 상세한) 속성을 얼마나 잘 포착하는지 평가할 수 있다. 대략적으로, 이것은 입력의 모든 객체에 대한 경계 상자를 구성하기 위해 특징을 사용한다는 것을 의미한다. 이를 수행하는 방법과 지상 진실과 비교하여 결과 경계 상자를 채점하는 방법에는 여러 가지가 있다. 각 방법의 조합은 특정 분할 메트릭에 해당한다. 우리는 여기서 그것들을 공식적으로 설명하지 않는데, 특별히 통찰력이 있지는 않기 때문이다. 그러나 DINO 논문 $\citep{caron2021emerging}$와 DINOv2 논문 $\citep{oquab2023dinov2}$에는 실제로 사용되는 모든 메트릭에 대한 참조가 포함되어 있다.
+
+\subsection{실험 설정 및 결과} \label{sub:contrastive_learning_experiment_results}
+
+SimDINO는 DINO를 직접 기반으로 하므로, 공정한 비교를 위해 원래 논문 $\citep{caron2021emerging}$에서 제공한 DINO의 최적 설정을 SimDINO에 적용한 동일한 설정과 비교한다.
+
+\paragraph{목적 함수.} 모든 실험에 대해 해상도 $96 \times 96$(즉, $S_{\loc} = 96$)인 $10$개의 로컬 뷰($M_{\loc} = 10$)와 해상도 $224 \times 224$(즉, $S_{\glo} = 224$)인 $2$개의 글로벌 뷰($M_{\glo} = 2$)를 사용한다. 로컬 및 글로벌 뷰에 대해 자른 원본 이미지의 해당 부분은 $p_{\loc} \in [\frac{1}{20}, \frac{3}{10}]$ 및 $p_{\glo} \in [\frac{3}{10}, 1]$이다(뷰별로 무작위로 선택됨). 리사이즈된 자르기 내의 더 작은 가장자리 크기는 $S_{\rsz} = 256$이고, 중앙 자르기(평가) 뷰 가장자리 크기는 $S_{\cc} = 224$이다. 이러한 모든 설정은 DINO와 SimDINO 모두에 적용된다.
+
+\paragraph{모델 아키텍처.} 모든 입력에 대해, 패치 크기를 $16 \times 16$(즉, $P_{H} = P_{W} = 16$)으로 설정한다. 우리는 ViT $\citep{dosovitskiy2020image}$ 아키텍처의 소형, 기본 및 대형 모델을 임베딩 및 백본으로 사용한다. 특징 추출기는 은닉 크기 $2048$과 출력 차원 $256$을 가진 3계층 MLP이며, $\Cref{sub:contrastive_learning_architecture}$에 명시된 대로 $\ell^{2}$-정규화가 뒤따른다. DINO 아키텍처(즉, SimDINO 아키텍처가 아님)의 경우, DINO 헤드 $\vW$는 $\R^{65536 \times 256}$의 행렬이고, 매개변수 $\vmu$는 $\R^{65536}$의 벡터이다.
+
+\paragraph{데이터셋 및 최적화.} 사전 훈련을 위해, DINO 복제와 SimDINO 모두 모든 방법에 대해 ImageNet-1K 데이터셋을 사용한다. 우리는 매우 표준적인 선택인 AdamW $\citep{Loshchilov2017DecoupledWD}$를 최적화 도구로 사용한다. 다음 하이퍼파라미터 권장 사항을 따른다:
+\begin{itemize}
+    \item 배치 크기는 $B = 1024$이다.
+    \item 학습률(AdamW 및 학생 모델용)의 "기본" 값은 $2 \times 10^{-3}$이다. 처음 $10$ 에포크 동안 학습률은 $0$에서 기본값으로 선형적으로 증가한다(즉, $i$번째 에포크에서 학습률은 $(i/10) \cdot 2 \times 10^{-3}$이다, $1 \leq i \leq 10$). 그런 다음 다음 $90$ 에포크 동안 학습률은 소위 \textit{코사인 스케줄}을 통해 $0$으로 다시 감소한다. 코사인 스케줄의 정의는 \href{https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CosineAnnealingLR.html}{PyTorch 문서}를 포함하여 여러 곳에 나와 있으며, 심층 비전 모델을 훈련할 때 일반적으로 사용된다.
+    \item 가중치 감쇠(AdamW의 W)는 훈련 중 0.04에서 $0.4$까지 코사인 스케줄을 따른다.
+    \item EMA 비율 $\nu$는 훈련 중 $0.996$에서 $1.0$까지 코사인 스케줄을 따른다. 특히 DINO의 경우, 중심화 EMA 비율 $\rho$는 $0.9$로 고정된다.
+    \item 특히 DINO의 경우, 교사 온도 $\tau_{\teacher}$는 $0.1$로 고정되는 반면, 학생 온도 $\tau_{\student}$는 처음 $30$ 에포크 동안 $0.04$에서 $0.07$로 선형적으로 증가하고 그 이후에는 $0.07$로 고정된다.
+\end{itemize}
+로컬 및 글로벌 뷰를 취하기 전에, 훈련 중 각 보이는 이미지에 대해 뒤집기, 색상 지터링, 가우시안 블러 및 솔라리제이션과 같은 일부 (본질적으로 정보 보존적인) 데이터 증강을 사용한다. 이를 관리하는 정확한 하이퍼파라미터는 여기에 나열되어 있지 않지만, DINO 논문 $\citep{caron2021emerging}$에 참조되어 있다.
+
+선형 프로빙의 경우, 선형 프로브는 일반적으로 학습률 $2 \times 10^{-4}$, 가중치 감쇠 $0.01$, 배치 크기 $512$를 사용하여 AdamW 옵티마이저로 훈련되지만, 손실을 최소화하기 위해 경우에 따라 수정되는 경우가 많다.
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}lcccc@{}} %
+        \toprule
+        방법 & 모델 & 에포크 & 20-NN & 선형 프로빙
+        \\ 
+        \midrule
+        DINO & ViT-B & 100 & 72.9 & 76.3 \ 
+        SimDINO & ViT-B & 100 & \bf 74.9 & \bf 77.3 \ 
+        DINO & ViT-L & 100 & -- & -- \ 
+        SimDINO & ViT-L & 100 & \bf 75.6 & \bf 77.4 \ 
+        \midrule
+        \color{gray} SwAV & \color{gray} ViT-S & \color{gray} 800 & \color{gray} 66.3 & \color{gray} 73.5 \ 
+        \color{gray} MoCov3 & \color{gray} ViT-B & \color{gray} 300  & \color{gray} -- & \color{gray} 76.7 \ 
+        \bottomrule
+    \end{tabular}
+    \caption{\small\textbf{분류 성능} $k$-최근접 이웃 정확도($k = 20$) 및 선형 프로빙을 모두 사용하여 DINO 및 SimDINO에 대한 홀드아웃 테스트 데이터. 동일한 반복 횟수($100$)에서 SimDINO는 성능 면에서 분명히 더 우수하며 더 안정적이다(제공된 설정으로 ViT-L 백본에서 실행되는 DINO 훈련은 매우 불안정한 최적화를 가지며 단기간에 NaN 손실을 얻는다). 우리는 또한 DINO가 기반으로 한 다른 뛰어난 방법, 즉 SwAV 및 MoCov3와 비교한다.}
+    \label{tab:dino_imagenet_linear_probing}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/dino_attention_maps.png}
+    \caption{\small\textbf{DINO \textit{(중간 행)} 및 SimDINO \textit{(하단 행)}에서 생성된 현저성 맵의 정성적 비교.} 각 이미지에 대해, 마지막 계층 $L$에서 평균 현저성 맵을 계산하고 표시한다. 현저성 맵은 모델 전반에 걸쳐 유사하며, 이는 모든 모델이 중요한 객체에 대한 유사한 개념으로 수렴함을 의미한다. $X_{\evaluation}$이 정사각형 이미지이지만, 이 시각화를 위해 직사각형 모양으로 다시 보간된다는 점에 유의하라.}
+    \label{fig:dino_attention_maps_saliency}
+\end{figure}
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}llcccccccc@{}}
+        \toprule
+         &  & \multicolumn{3}{c}{탐지 $\uparrow$} &  \multicolumn{3}{c}{분할 $\uparrow$} \\ 
+        방법 & 모델 & AP$_{50}$  & AP$_{75}$ & AP & AP$_{50}$ & AP$_{75}$ & AP  \\ 
+        \midrule
+        SimDINO &ViT-L/16 &\bf 5.4 &1.9 &2.4 &4.5 &1.4 &1.9 \ 
+        SimDINO &ViT-B/16 &5.2 & \bf 2.0 & \bf 2.5 & \bf4.7 & \bf 1.5 & \bf 2.0 \ 
+        DINO &ViT-B/16 &3.9 &1.5 &1.8 &3.1 &1.0 &1.4 \ 
+        \midrule
+        \color{gray} DINO & \color{gray} ViT-B/8 & \color{gray}5.1 & \color{gray}2.3 & \color{gray}2.5 & \color{gray}4.1 & \color{gray}1.3 & \color{gray}1.8 \ 
+        \bottomrule
+    \end{tabular}
+    \caption{\small\textbf{COCO val2017 $\citep{lin2014microsoft}$에서 사전 훈련된 DINO 및 SimDINO 모델의 분할 성능}, 객체 위치 메타데이터를 포함하는 분할 데이터셋. 우리는 COCO에서 훈련하지 않고, 단지 사전 훈련된 임베딩과 백본을 사용하며, 경계 상자는 MaskCut $\citep{wang2023cut}$이라는 방법을 통해 특징에서 추출된다. 그럼에도 불구하고, SimDINO는 공정한 비교 하에서 객체 탐지 및 분할에서 DINO를 능가하며, 더 작은 패치 크기(측면 길이 $8$ 대신 $16$)를 가진 DINO조차도 능가한다. 더 작은 패치 크기는 특히 탐지 및 분할 작업에서 성능을 향상시키는 것으로 알려져 있으므로, 이 결과는 매우 놀랍고 고무적이다.}
+    \label{tab:dino_segmentation}
+\end{table}
 
 \section{이미지 분류}\label{sec:image_classification}
 
+이전 섹션에서는 압축 렌즈를 통한 표현 학습에 대한 우리의 직관을 사용하여 지나치게 복잡한 학습 목표를 단순화했다. 그러나 가장 인기 있는 학습 절차 중 다수는 믿을 수 없을 정도로 간단하다. 이러한 경우, 목표를 더 단순화하기 어렵다. 따라서, 이 섹션과 향후 섹션에서는 다양한 작업에 대한 \textit{딥 네트워크 아키텍처}를 수정하는 원칙적인 방법에 초점을 맞출 것이다. 
+
+먼저 기계 학습에서 가장 고전적인 작업인 \textit{이미지 분류}부터 시작하자. 이는 종종 패턴 인식 알고리즘이나 심층 네트워크 아키텍처를 평가하는 표준 작업으로 사용된다. $\Cref{ch:representation}$의 화이트박스 아키텍처에 대한 논의에서, 화이트박스 아키텍처로 좋은 표현을 배우려면 의미론적으로 의미 있는 작업만 필요하다. 이 섹션에서 이 아이디어를 검증할 것이다.
+
+첫째, 데이터셋은 $\Cref{sub:contrastive_learning_data}$에서 논의된 이미지 데이터셋과 대체로 동일하다. 훈련 및 테스트 데이터 모두 레이블이 지정된 이미지, 즉 이미지-레이블 쌍 $(\vX, \vy) \in \R^{C \times H \times W} \times \{0, 1\}^{N_{\cls}}$로 구성된다. 우리는 여전히 각 새로운 배치의 각 샘플에 다양한 데이터 증강(예: 뒤집기, 가우시안 블러, 솔라리제이션 등)을 적용한다.
+
 \subsection{과제와 목적}\label{sub:image_classification_objective}
 
-% TODO: 번역 예정
+이전과는 달리, 우리의 과제는 데이터의 좋은 표현을 배우는 것뿐만 아니라 동시에 분류기를 구축하는 것이다. 공식적으로, 레이블이 지정된 데이터 쌍 $(\vX, \vy)$가 있으며, 여기서 $\vy \in \{0, 1\}^{N_{\cls}}$는 $\vX$의 클래스 멤버십을 나타내는 원-핫 벡터이다. 입력 데이터 $\vX$의 결정론적 \textit{중앙 자르기 뷰} $v_{\cc}$(참조 $\Cref{sub:contrastive_learning_objective}$)를 고려한다. 우리는 특징 매핑 $(f_{\theta}, f_{\theta}^{\ext})$와 다음과 같이 정의된 \textit{분류 헤드} $h_{\theta}$를 공동으로 훈련하고자 한다:
+\begin{equation}
+    h_{\theta}(\vz) \doteq \softmax(\vW^{\head}\vz + \vb^{\head}), \qquad  \forall \vz \in \R^{d}
+\end{equation}
+여기서 $(\vW^{\head}, \vb^{\head}) \in \R^{N_{\cls} \times d} \times \R^{N_{\cls}}$는 매개변수 집합 $\theta$에 있는 훈련 가능한 매개변수이며, 맵 $\vX_{\cc} \mapsto \vp_{\theta}(\vX_{\cc}) \doteq h_{\theta}(\vz_{\theta}(\vX_{\cc}))$가 입력 $\vX$의 뷰 $\vX_{\cc} = v_{\cc}(\vX)$에 대한 평활화된 레이블을 예측하도록 한다. 학습 문제는 교차 엔트로피를 통해 측정된 $\vp_{\theta}$와 $\vy$ 사이의 거리를 최소화하려고 시도한다:
+\begin{equation}\label{eq:classification_ce_loss}
+    \min_{\theta}\bc{\cL_{\CE}(\theta) \doteq \Ex[\CE(\vy, \vp_{\theta}(\vX_{\cc}))]}.
+\end{equation}
 
 \subsection{CRATE 아키텍처}\label{sub:image_classification_architecture}
 
-% TODO: 번역 예정
+우리가 사용하는 아키텍처는 $\Cref{ch:representation}$에서 자세히 설명된 CRATE 아키텍처이다. 전체 설정은 몇 가지 변경 사항이 있지만 $\Cref{sub:contrastive_learning_architecture}$의 일반 트랜스포머와 유사하다. 임베딩 단계는 $\Cref{sub:contrastive_learning_architecture}$의 DINO 및 SimDINO와 동일하지만, 특징 추출 단계는 클래스 토큰에 해당하는 특징만 추출하므로 $\Cref{sub:contrastive_learning_architecture}$의 SimDINO와 동일하며, 분류 헤드는 $\Cref{sub:image_classification_objective}$에 설명되어 있지만 백본 아키텍처는 다르다. 각 계층은 다음 형태를 취한다
+\begin{align}
+    \vZ_{\theta}^{\ell + 1/2}(\vX)
+    &= \vZ_{\theta}^{\ell}(\vX) + \MSSA_{\theta}^{\ell}(\LN_{\theta}^{1, \ell}(\vZ_{\theta}^{\ell}(\vX))), \\ 
+    \vZ_{\theta}^{\ell + 1}(\vX)
+    &= \ISTA_{\theta}^{\ell}(\LN_{\theta}^{2, \ell}(\vZ_{\theta}^{\ell + 1/2}(\vX)))
+\end{align}
+여기서 $\MSSA_{\theta}^{\ell}$ 및 $\ISTA_{\theta}^{\ell}$ 블록은 $\Cref{ch:representation}$에 설명된 대로이다. 즉:
+\begin{itemize}
+    \item $\MSSA$ 연산자는 다중 헤드 부분 공간 자기 어텐션으로, 다음과 같이 정의된다:
+    \begin{equation}
+        \MSSA_{\theta}^{\ell}(\vZ) \doteq \vU_{\out}^{\ell}\mat{\SA([\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ)\\ \vdots \\ \SA([\vU^{K, \ell}]^{\top}\vZ, [\vU^{K, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{N}^{\top}
+    \end{equation}
+    여기서 $\vU^{k, \ell} \in \R^{d \times p}$, $\vU_{\out}^{\ell} \in \R^{d \times Kp}$ 및 $\vb_{\out}^{\ell} \in \R^{d}$는 매개변수 집합 $\theta$에 속하는 훈련 가능한 매개변수이며, (상기) 자기 어텐션 연산자 $\SA$는 $\eqref{eq:self_attention}$에 정의되어 있다.
+    \item $\ISTA$ 연산자는 반복 수축 임계값 알고리즘 연산자로, 다음과 같이 정의된다:
+    \begin{equation}
+        \ISTA_{\theta}^{\ell}(\vZ) \doteq \ReLU(\vZ - \beta (\vD^{\ell})^{\top}(\vD^{\ell}\vZ - \vZ) + \beta \lambda \vone_{d}\vone_{n}^{\top}),
+    \end{equation}
+    맵 $\vX \mapsto \ReLU(\vX - \beta \vD^{\top}(\vD\vX - \vZ) + \beta  \lambda \vone_{d}\vone_{n}^{\top})$가 완전 사전 $\vD$에 대해 $\vZ$에 대한 원소별 비음수 희소 표현을 찾기 위한 잘 확립된 ISTA 알고리즘의 한 단계이기 때문에 그렇게 명명되었다(참조 $\Cref{sec:dictionary_learning}$). 
+\end{itemize}
 
-\subsection{최적화}\label{sub:image_classification_optimization}
+우리는 이 아키텍처를 CRATE라고 부르며, 백본의 한 계층은 $\Cref{fig:crate_backbone}$에 묘사되어 있다. CRATE 모델은 해석 가능할 뿐만 아니라 일반적으로 성능이 우수하고 매개변수 효율적이다.
 
-% TODO: 번역 예정
+\subsection{최적화} \label{sub:image_classification_optimization}
 
-\subsection{평가 방법론}\label{sub:image_classification_evals}
+우리는 간단한 종단 간 확률적 최적화 절차를 사용하여 분류기를 훈련한다. 여기서 데이터와 뷰를 하위 샘플링하고, 이러한 샘플에 대한 평균 손실과 그 그래디언트를 계산하고, 매개변수를 변경하기 위해 최적화 알고리즘을 사용한다. 각 시간 단계 $k$에서, 우리는:
+\begin{itemize}
+    \item 데이터셋 $\cI \times \{0, 1\}^{N_{\cls}}$에서 $B$개의 다른 레이블이 지정된 샘플 $(\vX_{b}^{(k)}, \vy_{b}^{(k)})$을 하위 샘플링한다.
+    \item 각 레이블이 지정된 샘플 $(\vX_{b}^{(k)}, \vy_{b}^{(k)})$에 대해, 중앙 자르기 뷰 $v_{b, 	extbackslash 	extbackslash cc}^{(k)}$를 계산하고 이를 $\vX_{b}^{(k)}$에 적용하여 $\vX_{b, 	extbackslash 	extbackslash cc}^{(k)} \doteq v_{b, 	extbackslash 	extbackslash cc}^{(k)}(\vX_{b}^{(k)})$를 얻는다.
+    \item 예측 $\vp_{\theta}(\vX_{b, 	extbackslash 	extbackslash cc}^{(k)}) \doteq (h_{\theta} \circ f_{\theta}^{\ext} \circ f_{\theta})(\vX_{b, 	extbackslash 	extbackslash cc}^{(k)})$를 계산한다.
+    \item 대리 확률적 손실을 형성한다.
+    \begin{equation}
+        \hat{\cL}_{\CE}^{(k)}(\theta) \doteq \frac{1}{B}\sum_{b = 1}^{B}\CE(\vy_{b}^{(k)}, \vp_{\theta}(\vX_{b, 	extbackslash 	extbackslash cc}^{(k)})).
+    \end{equation}
+    \item $\theta$에 대한 최적화 알고리즘의 한 단계를 계산하여 다음 반복을 제공한다:
+    \begin{equation}
+        \theta^{(k + 1)} \doteq \textsc{OptUpdate}^{(k)}(\theta^{(k)}; \nabla_{\theta}\hat{\cL}_{\CE}^{(k)}).
+    \end{equation}
+\end{itemize}
 
-% TODO: 번역 예정
+\subsection{평가 방법론} \label{sub:image_classification_evals}
+
+우리는 $\Cref{sub:contrastive_learning_evals}$와 동일한 평가 절차를 사용한다. 요약하자면, 모든 평가(및 훈련)에 대해, 우리는 입력 이미지의 채널 수가 $C$일 때 최종 이미지를 측면 길이가 $S_{\cc} = S_{\mask}$ 픽셀인 정사각형으로 리사이즈하고 크기 $(C, S_{\cc}, S_{\cc})$의 큰 중앙 자르기를 취하는 중앙 자르기 뷰 $v_{\cc}$를 사용한다. 그런 다음 이 뷰의 출력이 주어지면 선형 프로빙, 어텐션 맵 시각화, 탐지/분할 벤치마크를 수행할 수 있다.
 
 \subsection{실험 설정 및 결과}\label{sub:image_classification_experiments}
 
-% TODO: 번역 예정
+CRATE는 트랜스포머를 직접 기반으로 하므로, 공정한 비교를 위해 $\cite{dosovitskiy2020image,touvron2020training}$에서 제공한 ViT의 최적 설정을 CRATE에 적용한 동일한 설정과 비교한다.
+
+\paragraph{모델 아키텍처.} 중앙 자르기는 전체 이미지를 가장 짧은 가장자리가 $256$(즉, $S_{sz} = 256$)이 되도록 리사이즈한 후, 평가와 훈련 모두에서 $224 \times 224$(즉, $S_{\cc} = 224$) 크기의 중앙 자르기를 취한다. 우리는 패치 크기를 $16$(즉, $P_{H} = P_{W} = 16$)으로 한다. 우리는 ViT $\cite{dosovitskiy2020image}$ 아키텍처의 타이니, 스몰, 베이스, 라지 모델을 임베딩과 백본으로 사용하며, MHSA 및 MLP 구성 요소를 각각 MSSA 및 ISTA로 교체한다. MSSA의 경우 동일한 수의 헤드와 헤드 차원을 사용하므로, 훈련 매개변수 수를 대폭 줄인다. CRATE의 경우, $(\beta, \lambda) = (1, 0.1)$로 설정한다.
+
+\paragraph{데이터셋 및 최적화.} 사전 훈련을 위해 ImageNet-1K 데이터셋을 사용한다. ViT 복제와 CRATE 모두를 사전 훈련하기 위해 LION 옵티마이저 $\citep{chen2024symbolic}$를 사용한다. 기본 학습률을 $2.4 \times 10^{-4}$, 가중치 감쇠를 $0.5$, 배치 크기를 $B = 2048$로 설정한다. 학습률 스케줄은 처음 $5$ 에포크 동안 학습률을 기본 학습률까지 선형적으로 증가시키고, 다음 $145$ 에포크 동안 코사인 스케줄을 사용하여 $0$으로 감소시킨다(모든 모델을 각각 $150$ 에포크 동안 훈련). 사전 훈련을 위해, 이미지 데이터에 일반적인 데이터 증강(뒤집기, 가우시안 블러, 솔라리제이션 등)을 적용하고, 레이블에도 작은 잡음을 추가한다(이를 \textit{레이블 스무딩} $\citep{muller2019does}$이라고 한다).
+
+선형 프로빙을 위해, CIFAR10, Oxford-Flowers, Oxford-IIT-Pets와 같은 여러 평가 데이터셋을 사용한다. 선형 프로브를 훈련하기 위해 AdamW 옵티마이저를 사용하며, 학습률 $5 \times 10^{-5}$, 가중치 감쇠 $0.01$, 배치 크기 $B = 256$를 사용한다. 또한 이미지 데이터에 앞서 언급한 데이터 증강을 적용한다.
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}lcccc|cc@{}}
+    \toprule
+    \textbf{모델} & CRATE-T  &  CRATE-S & CRATE-B & CRATE-L & { \color{gray} ViT-T} &  { \color{gray}ViT-S } \\ 
+    \midrule
+    \midrule
+     \# 매개변수 & 6.09M & 13.12M & 22.80M & 77.64M & { \color{gray} 5.72M} & { \color{gray} 22.05M} \\ 
+    \midrule
+     ImageNet-1K & 66.7 & 69.2 & 70.8 & 71.3 & { \color{gray} 71.5} & { \color{gray} 72.4} \\ 
+     ImageNet-1K ReaL & 74.0 & 76.0 & 76.5 & 77.4 & { \color{gray} 78.3 } & { \color{gray} 78.4} \\ 
+     CIFAR10 & 95.5 & 96.0 & 96.8 & 97.2 & { \color{gray} 96.6} & { \color{gray} 97.2} \\ 
+     CIFAR100 & 78.9 & 81.0 & 82.7 & 83.6 & { \color{gray} 81.8} & { \color{gray} 83.2}\\ 
+     Oxford Flowers-102 & 84.6 & 87.1 & 88.7 & 88.3 & { \color{gray} 85.1} & { \color{gray} 88.5}\\ 
+     Oxford-IIIT-Pets & 81.4 & 84.9 & 85.3 & 87.4 & { \color{gray} 88.5} & { \color{gray} 88.6} \\ 
+     \bottomrule
+    \end{tabular}
+    \caption{\small \textbf{CRATE 및 ViT의 선형 프로빙 분류 정확도} 백본이 ImageNet-1K 분류를 위해 사전 훈련되었을 때 다양한 모델 크기의 다양한 데이터셋에 대해. 동일한 모델 구성을 고려할 때, CRATE는 더 간단하고, 더 원칙적이며, 더 매개변수 효율적인 설계로 비교 가능한 분류 성능을 가짐을 관찰한다.}
+    \label{tab:crate_classification_linear_probing}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.8\textwidth]{\toplevelprefix/chapters/chapter7/figs/crate_semantic_heads.pdf}
+    \caption{\small\textbf{패치 크기 8의 CRATE에서 해석 가능한 현저성 맵.} 유사한 속성을 가진 이미지가 주어졌을 때(반드시 동일한 클래스는 아님), 마지막 계층의 다른 어텐션 헤드에 해당하는 현저성 맵은 각각 특정 속성을 강조한다. 평균 현저성 맵(포함되지 않음)은 이미지의 모든 관련 객체를 강조하여 분류를 위해 입력 이미지의 모든 미세한 세부 사항을 사용함을 보여준다. 이는 저자의 지식으로, 분할 데이터에 대한 훈련 없이 자동으로 이 작업을 수행하는 \textit{최초}의 기계 학습 시스템이다.}
+    \label{fig:crate_semantic_heads}
+\end{figure}
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}lcccccccc@{}}
+    \toprule
+     &  & \multicolumn{3}{c}{탐지 (\(\uparrow\))} &  \multicolumn{3}{c}{분할 (\(\uparrow\))} \\ 
+    모델 & AP$_{50}$ & AP$_{75}$ & AP & AP$_{50}$ & AP$_{75}$ & AP  \\ 
+    \midrule
+    \midrule
+    CRATE-S/8 & \textbf{2.9} & \textbf{1.0} & 1.1 & 1.8 & \textbf{0.7} & 0.8 \\ 
+    CRATE-B/8 & \textbf{2.9} & \textbf{1.0} & \textbf{1.3} & \textbf{2.2} & \textbf{0.7} & \textbf{1.0} \\ 
+    ViT-S/8 & 0.1& 0.1 & 0.0 & 0.0 & 0.0 & 0.0 \\ 
+    ViT-B/8 & 0.8 & 0.2 & 0.4 & 0.7 & 0.5 & 0.4 \\ 
+    \bottomrule
+    \end{tabular}
+    \caption{\small \textbf{COCO {val2017} $\citep{lin2014microsoft}$에서 MaskCut를 통한 객체 탐지 및 미세 분할}. 여기서 모든 모델은 16 대신 패치 크기 8로 훈련된다. CRATE는 지도 분류를 사용하여 훈련될 때 탐지 및 분할 메트릭에서 ViT보다 결정적으로 더 나은 성능을 보인다.}
+    \label{tab:crate_detection_segmentation}
+\end{table}
+
+\paragraph{실험 결과.}
+
+$\Cref{tab:crate_classification_linear_probing}$는 CRATE 모델이 적어도 다른 클래스에 대한 특징의 선형 분리성 측면에서 유사한 매개변수 수에서 인기 있는 Vision Transformer(ViT) 아키텍처와 비교하여 동등하거나 향상된 성능을 달성함을 보여준다. 어텐션 맵 충실도 측면에서, $\Cref{fig:crate_semantic_heads}$는 진정으로 놀라운 결과를 보여준다: 분할 또는 객체 탐지 데이터에 대한 훈련 없이, \textit{현저성 맵이 입력 이미지의 모든 관련 부분을 포착할 뿐만 아니라}, 현저성 맵이 샘플과 클래스에 걸쳐 각각 개념의 이산 집합에 해당하도록 \textit{자기 조직화}된다! 저자의 지식으로는, 이것이 이를 수행하는 최초의 시스템이며, 이미지 분류 데이터 외에 추가 데이터 없이 이를 수행할 수 있다. $\Cref{tab:crate_detection_segmentation}$의 분할 및 객체 탐지 성능은 동일한 지도 분류 설정에서 훈련된 ViT에 비해 상당한 개선을 보여주며 이러한 정성적 통찰력을 정량적으로 확인한다.
 
 \section{인과적 언어 모델링}\label{sec:clm_text}
 
-\subsection{데이터}\label{sub:clm_text_data}
+이제 대규모 언어 모델(LLM)을 훈련하는 방법인 \textit{인과적 언어 모델링}을 연구한다. 이것은 GPT-2 및 기타 여러 언어 모델을 포함한 많은 모델을 훈련하는 데 사용된 것과 동일한 설정이다.
 
-% TODO: 번역 예정
+\subsection{데이터} \label{sub:clm_text_data}
 
-\subsection{과제와 목적}\label{sub:clm_text_objective}
+언어 작업에 대한 CRATE의 성능을 조사하는 데 사용할 데이터는 OpenAI가 GPT2를 훈련하는 데 사용한 미공개 WebText 데이터셋의 오픈 소스 재현인 OpenWebText(OWT)$\\cite{Gokaslan2019OpenWeb}$이다. OWT의 각 샘플은 웹 문서이며, 일반적으로 고품질 웹 페이지, 블로그, 기사 또는 온라인 토론에서 공급되며, 잘 구성된 자연어로 작성되었다. OpenWebText 데이터셋에는 약 801만 개의 다양한 길이의 문서가 포함되어 있으며, 총 텍스트 용량은 약 41.70GB이다. 평가를 위해 WikiText $\cite{merity2016pointer}$\footnote{WikiText2 및 WikiText103 $\cite{merity2016pointer}$의 경우, 테스트 분할이 동일하므로 WikiText라는 단일 데이터셋으로 병합한다.}, LAMBADA $\cite{paperno2016lambadadatasetwordprediction}$\footnote{LAMBADA 데이터셋에서 정확도를 얻기 위해 탐욕적 디코딩을 사용한다.}, PTB $\cite{marcus-etal-1993-building}$와 같은 여러 데이터셋을 사용할 것이다. PTB와 OWT는 일반적으로 다른 데이터셋에 비해 쉽다. PTB는 더 간단한 저널리즘 텍스트에 초점을 맞춰 전통적인 언어 모델링에 이상적이며, OWT는 다양하고 비공식적이며 다양한 주제를 다루지만 언어 구조나 장거리 의존성 면에서 복잡성이 덜하다. 공식적인 구조와 도메인별 콘텐츠를 가진 WikiText는 OWT보다 더 복잡한 이해를 요구하지만 여전히 관리 가능하다. LAMBADA는 문장을 정확하게 완성하기 위해 모델이 더 넓은 문맥 정보를 파악해야 하는 장거리 의존성을 포함하므로 가장 어렵다.
 
-% TODO: 번역 예정
+보다 공식적인 수준에서, 우리의 데이터 $\vX$는 텍스트 또는 문자열이 될 것이다; 우리는 $\cT$를 모든 문자열의 집합이라고 하자.
+
+\subsection{과제와 목적} \label{sub:clm_text_objective}
+
+인과 언어 모델링 사전 훈련의 아이디어는 \textit{모델이 인간과 같은 텍스트를 출력하도록 훈련}시키는 것이다. 이를 수행하는 가장 인기 있는 방법은 2단계 훈련 과정을 사용하는 것이다:\footnote{현대 언어 모델 훈련에는 다른 데이터 분포와 알고리즘 접근 방식을 요구하는 여러 추가 훈련 단계가 있다. 그러나 단순히 인간의 글쓰기를 모방하도록 모델을 훈련시키는 것은 제시된 몇 가지 단계만 필요하다.}
+\begin{itemize}
+    \item \textit{첫째}, 문서를 \textit{토큰}이라고 불리는 기본("구성 요소") 문자열의 시퀀스로 최적으로 인코딩하는 방법을 \textit{학습}하고자 한다. 이것을 \textit{토큰화}라고 하며, 우리는 \textit{토크나이저}를 구축한다.
+    \item \textit{둘째}, \textit{이전 모든 토큰이 주어졌을 때 토큰의 분포를 예측}하는 방법을 \textit{학습}하고자 한다. 이것을 \textit{다음 토큰 예측}이라고 하며, 우리는 \textit{언어 모델}을 구축한다.
+\end{itemize}
+이 절차는 실제로 마르코프에게까지 거슬러 올라가는데, 그는 적절한 토큰화가 주어지면 자연어가 동명의 마르코프 연쇄 구조 $\citep{markov2006example}$로 모델링될 수 있음을 처음으로 발견했다. 그런 다음 섀넌은 문자 수준 토크나이저(즉, 각 문자가 토큰임)와 언어 모델 대신 소위 "$\\ n$-그램"(즉, $n$개의 이전 토큰이 주어졌을 때 토큰의 분포에 대한 훈련 데이터로부터 계산된 명시적 조회 테이블)을 사용하여 이 정확한 언어 모델링 설정을 수행할 것을 제안했다 $\citep{Shannon-1948}$.\footnote{최근 연구 $\citep{liu2024infini}$는 $n$-그램 모델을 확장하여 큰 $n$에 대해 텍스트를 합리적으로 잘 모델링할 수 있음을 보여주었지만, 물론 그러한 조회 테이블을 저장하는 데 필요한 메모리는 $V^{n}$ 순서이며 따라서 완전히 다루기 어렵다.}
+
+\subsubsection{토크나이저 훈련}
+
+토크나이저를 구축하는 것은 어휘 $\mathcal{V}$를 구축하는 것과 같다. 이는 토큰의 집합이며 미리 지정된 크기 $V$를 가진다. 이를 수행하는 방법에는 여러 가지가 있다. 한 가지 인기 있는 알고리즘은 바이트 쌍 인코딩(BPE)으로 알려져 있으며, 다음과 같이 설명할 수 있다:
+\begin{itemize}
+    \item 훈련 데이터의 모든 고유 문자와 그 빈도 목록으로 시작한다. 이러한 문자가 $V$개 미만인지 확인하고, 각 문자를 별도의 문자열("토큰")로 빈도와 함께 어휘에 추가한다.
+    \item 어휘에 $V$개의 토큰이 있을 때까지:
+    \begin{itemize}
+        \item 가장 빈번한 두 개의 기존 토큰을 가져와 병합하여 토큰을 구성한다.
+        \item 데이터셋에서 이 토큰의 빈도를 계산한다.
+        \item 어휘에 추가한다(빈도와 함께).
+    \end{itemize}
+    \item 이 시점에서 빈도 정보는 더 이상 필요하지 않으며 버릴 수 있다.
+\end{itemize}
+BPE의 전체 과정은 $\Cref{fig:BPE}$에 있다. 이 절차는 텍스트와 같은 바이트 스트림 데이터의 \textit{무손실 인코딩을 학습}하기 위한 고전적인 정보 이론적 압축 절차의 수정이며, 따라서 데이터의 최적 무손실 압축을 찾는 것으로 해석될 수 있다. 이는 (이미지와 달리) 여기의 데이터가 근본적으로 이산적이고 잡음이 없기 때문에 가능하다는 점에 유의하라.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\textwidth]{\toplevelprefix/chapters/chapter7/figs/BPE1.png}\hspace{0.6in}
+    \includegraphics[width=0.45\textwidth]{\toplevelprefix/chapters/chapter7/figs/BPE2.png}
+    \caption{\small {\bf BPE를 사용한 텍스트 데이터 토큰화 과정.} (이미지 출처: \url{https://huggingface.co/learn/nlp-course/chapter6/5}). (왼쪽) 주어진 텍스트 코퍼스를 분석하여 개별 문자(또는 바이트 수준 BPE의 경우 바이트)로 구성된 초기 어휘를 구축하는 것으로 시작한다. 그런 다음, 코퍼스에서 인접한 문자 쌍의 빈도를 계산한다. 이는 전체 텍스트를 스캔하고 각 두 문자 시퀀스(바이그램)가 얼마나 자주 나타나는지 계산하는 것을 포함한다. (오른쪽) 인접한 문자 쌍의 빈도를 계산한 후, 코퍼스에서 가장 빈번한 쌍을 식별한다. 이 쌍은 새로운 하위 단어 단위로 병합되어 단일 토큰으로 어휘에 추가된다. 이 과정은 미리 정의된 어휘 크기에 도달할 때까지 반복적으로 수행된다.}
+    \label{fig:BPE}
+\end{figure}
+
+그러한 어휘가 구축된 후, 토크나이저는 문서를 토큰으로 분해할 수 있다(즉, "토큰화"한다). BPE는 훈련에서와 유사한 절차를 사용하여 데이터를 토큰화한다:
+\begin{itemize}
+    \item 문서를 한 문자 길이의 토큰 목록으로 분리한다. 즉, 문서가 "Hello"이면 초기 목록은 'H', 'e', 'l', 'l', 'o'이다.
+    \item 인접한 두 토큰을 연결할 수 있고 그 연결이 다른 토큰인 동안, 우리는 그것을 한다. 즉, 이 토큰 쌍을 병합된 토큰으로 대체한다. 즉, 어휘에 'He'가 토큰이면 'H', 'e', 'l', 'l', 'o'는 'He', 'l', 'l', 'o'가 된다.
+    \item 더 이상 병합할 수 없을 때까지 위 과정을 반복한다. 이 시점에서 문서는 최종 토큰 목록(시퀀스)으로 분할된다.
+\end{itemize}
+
+토큰화 과정에서 고려해야 할 많은 실용적이고 효율성 기반의 고려 사항이 있다. 위에 제시된 알고리즘은 순진하게 구현하면 \textit{최적이 아닌} 것이다. 이 주제를 자세히 다루지는 않지만, 온라인에는 \href{https://huggingface.co/learn/nlp-course/en/chapter6/5}{HuggingFace 튜토리얼}과 같은 더 많은 자료가 있다.
+
+예를 들어, 각 토큰은 어휘(결국 길이가 $V$인 목록)에서의 인덱스인 해당 \textit{인덱스}를 가진다. 따라서 대부분의 토크나이저의 출력은 인덱스 목록, 예를 들어 $[V]^{*}$의 원소이다. 위에서 보여준 바와 같이, 이들은 원본 문서의 하위 문자열에 해당한다는 점을 명심하라.
+
+\subsubsection{언어 모델 훈련}
+
+각 문서를 토큰 시퀀스 $\vX \in [V]^{N} \subseteq [V]^{*} = \cT$로 가지면, 다음 토큰 예측을 수행하고자 한다. 즉, \textit{문맥} $\vX_{:n} \in [V]^{n}$(즉, 문서의 첫 $n$개 토큰 $\vx_{1}, \dots, \vx_{n} \in [V]$)\footnote{파이썬 표기법과의 불일치에 주목하라: 여기서 표기법은 인덱스 $n$을 \textit{포함}한다.}가 주어졌을 때, 위치 $n + 1$의 토큰 $\vx_{n + 1} \in [V]$를 예측하고자 한다. 이를 위해 $\vX_{:n}$의 집계 특징을 $\vz_{\theta}(\vX_{:n}) \doteq (f_{\theta}^{\ext} \circ f_{\theta})(\vX_{:n}) \in \R^{d}$를 통해 계산하고, 분류 헤드 $h_{\theta} \colon \R^{d} \to \Delta_{V}$(선형 계층, MLP 또는 약간 더 복잡한 것으로 구현됨)를 사용하여 이 특징을 $V$-차원 확률 단체 $\Delta_{V}$로 투영한다. 이 투영 $\vp_{\theta}(\vX_{:n}) \doteq h_{\theta}(\vz_{\theta}(\vX_{:n}))$는 다음 토큰의 추정 확률 분포 역할을 한다. 그런 다음, $\vone(\vx_{n + 1}) \in \Delta_{V}$를 $\vx_{n + 1}$번째 성분에 $1$이 있고 다른 곳은 $0$인 표기법을 사용하여, 인과 언어 모델링 손실은 다음과 같다.
+\begin{equation}\label{eq:clm_loss}
+    \min_{\theta}\bc{\cL_{\mathrm{CLM}}(\theta) \doteq \Ex_{\vX}\rs{\frac{1}{N - 1}\sum_{n = 1}^{N - 1}\CE(\vone(\vx_{n + 1}), \vp_{\theta}(\vX_{:n}))}}
+\end{equation}
+이것이 분류 손실(예: 이미지)과 얼마나 유사한지 주목하라; 교차 엔트로피를 사용하고 예측된 확률 벡터를 지상 진실과 정렬하려고 시도한다. 이 두 손실의 주요 차이점은 이 손실에서는 전체 시퀀스에 대한 손실을 계산하며, 각 예측이 다른 예측과 상관 관계가 있다는 것이다(i.i.d. 분류 경우와 달리).
+
+이 손실을 최적화하는 것은 일반적으로 언어 모델 커뮤니티에서 "사전 훈련"이라고 불린다("사후 훈련" 및 최근에는 "중간 훈련"과 대조적으로, 이는 유용한 작업을 위해 다음 토큰 예측기를 수정하는 방법론이다).
+
+\textit{참고:} $\eqref{eq:clm_loss}$의 첫 번째 항이 $\vone(\vx_{2})$를 예측하고, 첫 번째 토큰을 예측하는 손실을 측정하는 항이 없는 이유는 무엇인가? 첫 번째 토큰을 예측하려면 문맥으로 \textit{빈 시퀀스}를 가지게 되므로, 이 첫 번째 토큰 예측을 다른 토큰에 적용되는 것과는 질적으로 다른 메커니즘을 사용하여 수행해야 하기 때문이다. 따라서 실제로 이 모델은 어떤 문서의 \textit{맨 처음} 토큰을 예측하도록 훈련되지 않는다. 이것이 괜찮은 이유는 토크나이저의 구현 세부 사항 때문이다: 종종, 토크나이저를 구축한 후, 어휘에 \textit{문자열 시작(또는 문서)} 토큰이라는 \textit{특별한} 토큰을 삽입하고 $\texttt{<|bos|>}$로 레이블을 지정한다.\footnote{일반적으로 다른 목적을 위해 여러 특수 토큰이 있다. 특수 토큰을 포함하는 기존 텍스트는 특별히 처리된다.} 그런 다음, 각 문서를 처리하는 동안 문서의 토큰 시퀀스 시작 부분에 $\texttt{<|bos|>}$ 토큰을 추가하여 토큰화된 시퀀스의 길이를 $1$만큼 늘린다. 따라서 위의 인과 언어 모델링 목표에는 문맥으로 $\texttt{<|bos|>}$ 토큰만 주어진 상태에서 문서의 첫 번째 토큰을 예측하려는 항이 포함되어 있으므로 개념적으로 올바른 손실이다.
 
 \subsection{아키텍처: 인과적 CRATE}
 
-% TODO: 번역 예정
+아키텍처의 경우, 표준 GPT-2 스타일 트랜스포머를 사용하며, 트랜스포머 계층을 CRATE 계층으로 대체한다.\footnote{이 책의 관례와 다른 많은 커뮤니티의 관례와는 정반대로, NLP 커뮤니티는 이러한 GPT-2 스타일 트랜스포머(현재 거의 모든 LLM을 포함)를 "디코더 전용" 트랜스포머라고 부른다. "인코더 전용" 트랜스포머는 다른 아키텍처를 가지며, "인코더-디코더" 트랜스포머는 "인코더 전용" 트랜스포머와 "디코더 전용" 트랜스포머를 연결한다. "디코더 전용" 트랜스포머가 데이터의 인코딩도 계산한다는 사실에도 불구하고 그렇다!} 완전성을 위해, 여기에 아키텍처를 명시한다.
+
+\paragraph{임베딩.} 먼저 토큰 시퀀스 $\vX \in [V]^{N}$를 유클리드 공간에 임베딩한다. 이것은 종종 $\ [V]$의 각 인덱스를 \textit{거대한}$\footnote{"거대하다"는 것은 그러한 구조가 종종 언어 모델의 전체 크기의 상당 부분을 차지한다는 것을 의미한다.} 배열 $\vE \in \R^{V \times d}$를 사용하여 $\R^{d}$의 벡터와 연관시키고, 시퀀스 $[vE_{\vx_{1}}, \dots, \bvE_{\vx_{N}}] \in \R^{d \times N}$를 직접 형성함으로써 수행된다. 전체 임베딩 맵 $f_{\theta}^{\emb}$는 또한 위치 인코딩 $\vE^{\pos} \in \R^{d \times N_{\max}}$를 적용한다. 여기서 $N_{\max}$는 처리할 수 있는 최대 토큰 수이다.\footnote{현대의 위치 인코딩 방법은 이 문제를 해결하고 (이론적으로) 무한한 외삽을 허용하지만, 그러한 방법은 개발하기 더 복잡하며, 단순성을 위해 여기서는 절대 가산 위치 인코딩만 소개한다.} 이것은 임베딩 맵을 산출한다
+\begin{equation}
+    f_{\theta}^{\emb}(\vX) \doteq [\vE_{\vx_{1}}, \dots, \vE_{\vx_{N}}] + \vE_{:N}^{\pos}
+\end{equation}
+매개변수 $\vE$와 $\vE^{\pos}$는 직접 훈련 가능하다. $\vE$가 매우 크기 때문에(그리고 각 샘플에서 어휘의 작은 부분만 사용되므로 그래디언트 업데이트가 매우 희소함), 메모리 업데이트가 너무 부담스럽지 않도록 전문화된 소프트웨어가 사용된다. 또한 다른 섹션에서처럼 클래스 토큰을 사용하지 않는다는 점에 주목하라; 이에 대해서는 나중에 더 자세히 설명한다.
+
+\paragraph{백본.} 우리는 인과 마스킹을 사용하는 CRATE와 유사한 백본을 사용하여 임베딩을 처리한다. 인과 마스킹을 동기 부여하기 위해, $\eqref{eq:clm_loss}$에 정의된 인과 언어 모델링 손실 $\cL_{\mathrm{CLM}}$를 고려하자. 가장 순진한 구현은 한 번 역전파하기 위해 순방향 전달을 $N$번 계산해야 한다. $N$은 종종 수천에 달할 수 있으므로 이는 분명히 매우 비효율적이다. 이 손실로 훈련을 효율적으로 확장하기 위해, 우리는 \textit{인과적} 제약을 부과한다. 즉,
+\begin{equation}\label{eq:causal_backbone_def}
+    \vZ_{\theta}(\vX_{:n}) = \vZ_{\theta}(\vX)_{:n}
+\end{equation}
+즉, 토큰 특징 $\vZ_{\theta}(\vX_{:n}) \in \R^{d \times n}$의 $n$개 열은 $N \geq n$인 양의 값 $n$과 $N$에 관계없이 토큰 특징 $\vZ_{\theta}(\vX) \in \R^{d \times N}$의 첫 $n$개 열과 동일해야 한다. 사실상, 이것은 백본을 전체 시퀀스에 \textit{한 번} 적용하여 $\vZ_{\theta}(\vX)$를 계산한 다음, $n$이 시퀀스 길이 $N$으로 커짐에 따라 각 증가하는 하위 집합 $\vZ_{\theta}(\vX_{:n}) = \vZ_{\theta}(\vX)_{:n}$에 $f_{\theta}^{\ext}$를 적용할 수 있음을 의미한다. 그런 다음 손실을 계산하기 위해 그 모든 것을 사용할 수 있다.
+
+이제 백본에 대한 인과적 아키텍처를 원하는데, 어떻게 얻을 수 있을까? 각 트랜스포머 계층 내부의 MLP 및 계층 정규화는 각 토큰에 개별적으로 영향을 미치므로, 인과성에 대해 중요한 유일한 것은 어텐션 블록(또는 CRATE의 경우 $\MSSA$)이다. $\MSSA$를 인과적으로 만들기 위해, $\mathrm{CausalMSSA}$ 블록을 다음과 같이 정의한다
+\begin{align}
+    &\operatorname{CausalMSSA}_{\theta}^{\ell}(\vZ) \doteq \vU_{\out}^{\ell}\mat{\SA([\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ) \\ \vdots \\ \SA([\vU^{K, \ell}]^{\top}\vZ, [\vU^{K, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{N}^{\top} \\ 
+    \text{여기서} \quad & \operatorname{CausalSA}(\vQ, \vK, \vV) \doteq \vV\softmax\rp{\frac{\operatorname{CausalMask}(\vK^{\top}\vQ)}{\sqrt{p}}} \\ 
+    \text{여기서} \quad & \operatorname{CausalMask}(\vM)_{ij} = \casework{M_{ij}, & \text{if}\ i \geq j, \\ -\\infty, & \text{if}\ i < j}.
+\end{align}
+여기서, 실무자들은 인과 마스크가 \textit{미래 토큰 $i$가 과거 토큰 $j$에 어텐션할 수 있지만 그 반대는 허용하지 않는다}고 말한다. 이유를 알기 위해, $\operatorname{CausalSA}(\vQ, \vK, \vV)$의 $t$번째 열에 대한 표현식을 적어보자:
+\begin{equation}
+    \operatorname{CausalSA}(\vQ, \vK, \vV)_{t} = \sum_{i = 1}^{t}\vV_{i}\softmax\rp{[\vK_{:t}]^{\top}\vQ_{t}}_{i}
+\end{equation}
+(여기서 콜론이 없는 아래 첨자는 열을 나타낸다). $t$번째 토큰에 대한 이 표현식은 인덱스 $t$를 넘어서는 어떤 토큰에 대한 정보도 사용하지 않는다. 따라서 $\operatorname{CausalSA}$, 따라서 $\operatorname{CausalMSSA}$, 따라서 전체 인과 CRATE 백본은 $\eqref{eq:causal_backbone_def}$의 정의 측면에서 인과적이며, 약속된 상당한 효율성 향상을 얻는다.
+
+\paragraph{특징 추출기.} 우리는 다음 토큰을 예측하기 위해 \textit{마지막으로 알려진 토큰의 특징 벡터}를 추출하는 후처리 단계 $f_{\theta}^{\ext}$를 사용한다. 이론적으로, 이것은 각 토큰 $\vZ_{\theta}(\vX)_{n}$이 인덱스 $n$ 이전 또는 $n$에 오는 모든 토큰, 즉 $\vx_{1}, \dots, \vx_{n}$에 대한 풍부한 정보를 포함해야 함을 의미한다. 왜냐하면 이 모든 정보가 인덱스 $n + 1$의 다음 토큰을 예측하는 데 사용 가능해야 하기 때문이다. 실제로, 각 예측 작업에는 이러한 토큰 중 몇 개만 정말로 필요하다. 어쨌든, $f_{\theta}^{\ext}$에 대한 방정식은 다음과 같다.
+\begin{equation}
+    f_{\theta}^{\ext}(\vZ_{\theta}(\vX_{:n})) \doteq (\vZ_{\theta}(\vX))_{n}
+\end{equation}
+여기서 (다시) 콜론이 없는 아래 첨자는 열이다. 이 경우, 약속한 대로, 시퀀스의 마지막 토큰의 특징 벡터를 직접 추출한다.
+
+\paragraph{작업별 헤드.} 우리의 분류 헤드 $h_{\theta}$의 경우, GPT-2 아키텍처는 원하는 확률 벡터를 얻기 위해 간단한 선형 계층과 소프트맥스를 사용한다:
+\begin{equation}
+    h_{\theta}(\vz) \doteq \softmax(\vW^{\out}\vz + \vb^{\out}),
+\end{equation}
+여기서 $\vW^{\out} \in \R^{V \times d}, \vb^{\out} \in \R^{V}$이다. 다른 더 현대적인 아키텍처는 작은 MLP와 계층 정규화를 사용하지만, 아이디어는 거의 동일하다. 이 선형 계층도 큰 메모리 사용량을 가지며(\(V\)가 매우 크기 때문에), 훈련에서 병목 현상을 형성한다는 점에 유의하라; 이를 피하려는 상당한 노력이 있었다.
+
+이러한 모든 아키텍처 선택은 인과적 훈련이 비인과적 훈련에 비해 매우 효율적임을 의미한다:
+\begin{itemize}
+    \item 전체 시퀀스에 대한 손실을 계산하기 위해 백본을 통한 \textit{단 한 번의 순방향 전달}만 필요하다.
+    \item 특징 추출은 기본적으로 \textit{무료}이다.
+    \item 모든 토큰은 작업별 헤드를 통해 \textit{병렬로} 밀어 넣을 수 있다.
+\end{itemize}
 
 \subsection{최적화 전략}
 
-% TODO: 번역 예정
+우리는 종단 간 확률적 최적화를 사용하여 언어 모델을 훈련한다. 한 가지 남은 문제는 실제로 배치의 다른 문서들이 다른 길이(각 시퀀스에 필요한 토큰 수 측면에서)를 가지지만, 이 책을 쓰는 시점에서 주요 딥 러닝 프레임워크는 대체로 이 동작을 수용하지 않는 "직사각형" 텐서만 허용한다는 것이다. 이 문제를 해결하기 위해, 우리는 배치의 모든 짧은 샘플에 대해 특수 패딩 토큰 $\texttt{<|pad|>}$를 삽입하여 직사각형 텐서를 사용하여 모든 것을 일괄 처리할 수 있도록 한다. 각 시간 단계 $k$에서, 우리는:
+\begin{itemize}
+    \item 데이터셋 $\cT = [V]^{*}$에서 $B$개의 다른 토큰화된 문서 $\ \ \{\vX_{b}^{(k)}\}_{b = 1}^{B}$을 하위 샘플링한다. 각 문서의 길이는 $N_{b}^{(k)}$이다.
+    \item $N_{\max}^{(k)} \doteq \max_{b \in [B]}N_{b}^{(k)}$를 계산하고 각 $\vX_{b}^{(k)}$를 특수 패딩 토큰을 사용하여 길이 $N_{\max}^{(k)}$로 채운다.
+    \item 특징 $\vZ_{\theta}(\vX_{b}^{(k)})$를 계산한다.
+    \item 예측된 분포 $\vp_{\theta}(\vX_{b, :n}^{(k)}) \doteq (h_{\theta} \circ f_{\theta}^{\ext})(\vZ_{\theta}(\vX_{b}^{(k)})_{:n})$를 계산한다.
+    \item 대리 확률적 손실을 형성한다.
+    \begin{equation}
+        \hat{\cL}_{\mathrm{CLM}}^{(k)}(\theta) \doteq \frac{1}{B(N_{\max}^{(k)} - 1)}\sum_{b = 1}^{B}\sum_{n = 1}^{N_{\max}^{(k)}-1}\CE(\vone(\vx_{b, n + 1}^{(k)}), \vp_{\theta}(\vX_{b, :n}^{(k)})).
+    \end{equation}
+    \item $\theta$에 대한 최적화 알고리즘의 한 단계를 계산하여 다음 반복을 제공한다:
+    \begin{equation}
+        \theta^{(k + 1)} \doteq \textsc{OptUpdate}^{(k)}(\theta^{(k)}; \nabla_{\theta}\hat{\cL}_{\mathrm{CLM}}^{(k)}).
+    \end{equation}
+\end{itemize}
 
-\subsection{평가 방법론}\label{sub:clm_text_evals}
+\subsection{평가 방법론} \label{sub:clm_text_evals}
 
-% TODO: 번역 예정
+훈련된 트랜스포머 언어 모델을 평가하는 방법에는 여러 가지가 있다.
+\begin{itemize}
+    \item 임의의 텍스트의 홀드아웃 데이터셋에서, 우리는 $\cL_{\mathrm{CLM}}$을 평가할 수 있다; 모델의 샘플링이 더 나은 성능을 산출한다는 것을 의미하므로 손실이 낮을수록 좋다.
+    \item 객관식 질문 데이터셋에서, 각 질문에 대해 우리는 그것을 문맥으로 두고 정답이 생성될 추정 확률을 확인할 수 있다.
+    \item 우리는 또한 \textit{텍스트 생성} 능력을 테스트할 수 있다. 즉, 문맥이 주어졌을 때 다음 토큰에 대한 모델의 확률 분포에서 반복적으로 샘플링할 수 있다. 샘플링할 때마다 새로운 토큰을 생성하며, 이를 출력하고 문맥에 추가한다. 이것은 우리가 LLM에서 샘플링하고, 생성된 샘플을 원하는 대로 판단할 수 있게 해준다.\footnote{매번 각 토큰에 대해 모델을 다시 실행해야 하는 것은 엄청나게 비용이 많이 들 수 있다. 언어 모델의 다른 내부 특징(소위 \textit{\(K\)-\(V\) 캐시})의 영리한 저장과 아키텍처의 인과성은 샘플링 비용을 극적으로 줄일 수 있다.}
+\end{itemize}
+이 섹션에서는 첫 번째 종류의 평가만 독점적으로 수행한다.
 
 \subsection{실험 설정 및 결과}
 
-% TODO: 번역 예정
+우리의 인과적 CRATE 아키텍처는 GPT-2를 직접 기반으로 하므로, 공정한 비교를 위해 NanoGPT 저장소 $\citep{nanogpt}$에서 제공하는 GPT-2의 최적 설정을 CRATE에 적용한 동일한 설정과 비교한다.
+
+\paragraph{모델 아키텍처.} GPT-2 토크나이저를 사용하며, 어휘 크기는 $\texttt{<|pad|>}$에 대한 특수 토큰을 포함하여 $V = 50257$이다.\footnote{\texttt{<|bos|>}$ 토큰은 이 설정에 포함되어 있지 않지만, 현대 언어 모델에서는 매우 일반적이다.} 컨텍스트 길이는 $N_{\max} = 1024$이다. 백본 모델은 GPT2-Base 아키텍처 $\citep{radford2019language}$를 따르며, 인과적 CRATE 계층을 갖도록 적절한 변경이 가해졌으며, GPT2-Small 및 GPT2-Base와 비교한다.
+
+\paragraph{데이터셋 및 최적화.} 인과적 CRATE 훈련을 위해, NanoGPT 저장소 $\citep{nanogpt}$의 구현을 따른다. 구체적으로, 배치 크기 384를 사용하고 Adam 옵티마이저$\citep{kingma2014adam}$로 600,000 단계 동안 훈련한다. Adam 옵티마이저의 경우, $(\beta_1, \beta_2)=(0.9, 0.95)$와 가중치 감쇠 0.1을 사용한다. 학습률 스케줄의 경우, 선형 워밍업과 코사인 감쇠를 적용하며, 2,000번째 반복에서 최고값 $\eta=6\times 10^{-4}$, 최소값 $6\times 10^{-5}$를 사용한다. 반복 횟수에 따른 훈련 및 검증 손실은 $\Cref{fig:crate-text-evals}$에 나와 있다. 훈련/검증 손실은 배치 크기 384와 600,000번의 반복으로 훈련한 후 약 3.37로 수렴한다. 이에 비해, 공개 GPT-2 구현은 배치 크기 512와 600,000 단계로 OpenWebText에서 사전 훈련되었으며 검증 손실 2.85로 수렴한다 $\citep{nanogpt}$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{\toplevelprefix/chapters/chapter7/figs/gpt-loss.pdf}
+    \caption{\bf OpenWebText 데이터셋에서 훈련된 CRATE-GPT-Base의 손실 곡선.}
+    \label{fig:crate-text-evals}
+\end{figure}
+
+\paragraph{실험 결과.}
+
+$\Cref{tab:gpt-eval}$는 CRATE 모델이 유사한 매개변수 수와 유사한 아키텍처를 가진 GPT-2 모델과 비교하여 다양한 데이터셋에서 인과 언어 모델링 손실에 대해 합리적인 성능을 달성함을 보여준다.
+
+\begin{table}
+\def\arraystretch{1.1}
+    \small
+    \caption{\small CRATE-GPT2-Base 모델과 GPT2-Small, GPT2-Base 모델의 제로샷 교차 엔트로피 손실을 데이터셋의 테스트 분할에서 평가($\downarrow$ 낮을수록 좋음).
+    }
+    \centering
+    \begin{tabular}{ccccccc}
+    \hline
+    & \# 매개변수 & \textbf{OWT} & \textbf{LAMBADA} & \textbf{WikiText} & \textbf{PTB} & \textbf{평균} \\ 
+     \hline
+     GPT2-Base  & {124M} & 2.85$\downarrow$ & 4.12$\downarrow$ & 3.89$\downarrow$ & 4.63$\downarrow$ & 3.87$\downarrow$ \\ 
+     {GPT2-Small } &  {64M} & {3.04} & {4.49} & {4.31} & {5.15} & {4.25} \\ 
+     Causal-CRATE-Base & {60M} & 3.37 & 4.91 & 4.61 & 5.53 & 4.61 \\ 
+     \hline
+    \end{tabular}
+    \label{tab:gpt-eval}
+\end{table}
 
 \section{화이트박스 트랜스포머 스케일링}\label{sec:scalable}
 
-\subsection{네트워크 폭 증가: CRATE-\texorpdfstring{$\alpha$}{alpha}}\label{sub:crate_alpha_experiments}
+이 섹션에서는 CRATE 유형 모델의 다양한 부분을 화이트박스로 유지하면서 확장하거나 효율적으로 만드는 세 가지 방법을 논의할 것이다. 이러한 개발은 개념적 통찰과 경험적 통찰을 혼합하며, 화이트박스 이해를 사용하여 실제로 딥 러닝 모델을 개선하는 방법에 대한 사례 연구로 볼 수 있다. 방법을 평가하는 데 사용할 작업은 이미지 분류와 다음 토큰 예측이며, 데이터는 각각 ImageNet과 OpenWebText가 될 것이며, 최적화 절차는 동일한 역전파가 될 것이며, 변경되는 유일한 것은 아키텍처이다.
 
-% TODO: 번역 예정
+\subsection{네트워크 폭 증가: CRATE-\texorpdfstring{\(\alpha\)}{alpha}}\label{sub:crate_alpha_experiments}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/crate_alpha_backbone.pdf}
+    \caption{\small\textbf{CRATE-\(\alpha\) 백본의 한 계층.} CRATE와의 차이점은 $\ISTA_{\theta}^{\ell}$ 블록이 과완비 사전을 사용하여 여러 $\ISTA$ 단계를 수행하는 $\operatorname{ODL}_{\theta}^{\ell}$ 블록으로 대체된다는 것이다.}
+    \label{fig:crate_alpha_backbone}
+\end{figure}
+
+CRATE 프레임워크에 의해 강제된 한 가지 설계 결정은 네트워크의 비선형성의 \textit{폭}이다. 일반적인 트랜스포머에서, 폭은 보통 특징 차원의 $4$, $8$, 또는 $\frac{11}{3}$배로 설정된다. 그러나 CRATE는 폭이 특징 차원과 정확히 같도록 강제한다. 즉, 사전 $\vD^{\ell}$는 정사각형이며, 이는 성능 저하로 이어질 수 있다. CRATE 프레임워크가 우리를 이 선택으로 제한하는 근본적인 이유는 다음과:
+\begin{itemize}
+    \item ISTA 블록은 사전 학습을 위해 \textit{단일} 최적화 단계를 취한다.
+    \item 보통 어떤 반복 최적화 알고리즘의 한 단계도 목적 함수를 효과적으로 최적화할 수 없다. 그렇다면 왜 이것이 작동하는가?
+    \item 최적화 알고리즘은 좋은 초기화, 즉 \textit{웜 스타트}가 있을 때만 매우 빠르게 수렴한다. ISTA 블록은 웜 스타트를 가진다 --- 입력 특징을 결과적인 희소 코드에 대한 초기화로 처리한다.
+    \item 이것은 입력 특징과 희소 코드가 동일한 차원을 갖도록 강제한다. 즉, ISTA는 완전한 희소화 사전을 학습한다(참조 $\Cref{ch:classic}$). 
+\end{itemize}
+따라서 넓은 사전을 사용하려면 ISTA가 \textit{과완비} 사전 학습을 수행해야 한다. 이것은 우리가 동일한 웜 스타트(희소 코드가 특징보다 더 큰 차원을 가지므로)를 가질 수 없으며, 희소 코드로 수렴하기 위해 더 많은 반복이 필요함을 의미한다. 따라서 특징 $\vZ_{\theta}^{\ell + 1/2}$에서 희소 코드 $\vZ_{\theta}^{\ell + 1}$로의 단계는 더 이상 다음과 같지 않을 것이다.
+\begin{equation}
+    \vZ_{\theta}^{\ell + 1} = \ISTA_{\theta}^{\ell}(\vZ_{\theta}^{\ell + 1/2} \mid \vZ_{\theta}^{\ell + 1/2})
+\end{equation}
+여기서 $\ISTA_{\theta}^{\ell}$ 함수는 (이전 섹션의 표기법 남용으로) 다음과 같이 정의된다.
+\begin{equation}
+    \ISTA_{\theta}^{\ell}(\vZ \mid \vY) \doteq \ReLU(\vZ - \beta (\vD^{\ell})^{\top}(\vD^{\ell}\vZ - \vY) + \beta \lambda \vone_{s}\vone_{n}^{\top})
+\end{equation}
+오히려 다음 반복이다:
+\begin{equation}
+    \vZ_{\theta}^{\ell + 1} = \vA_{\theta}^{\ell, T}; \qquad \vA_{\theta}^{\ell, t + 1} = \ISTA_{\theta}^{\ell}(\vA_{\theta}^{\ell, t} \mid \vZ_{\theta}^{\ell + 1/2}) \quad \forall 0 \leq t < T; \qquad \vA_{\theta}^{\ell, 0} = \vzero_{s \times n},
+\end{equation}
+즉, 각 계층의 순방향 전달에서 $T \geq 1$ 단계 동안 LASSO 목표에 대해 근접 경사를 실행하며, $\vzero_{s \times n}$에서 초기화된다. 이 상황에서, 사전은 필요한 만큼 넓을 수 있다. 즉, $\vD^{\ell} \in \R^{s \times d}$ 여기서 $s \geq d$(실제로는 보통 $s = 4d$를 취한다).
+
+\begin{table}[b]
+    \centering
+    \begin{tabular}{@{}lcccccccc@{}}
+    \toprule
+     &  & \multicolumn{3}{c}{탐지} &  \multicolumn{3}{c}{분할} \\ 
+    모델 & AP$_{50} \uparrow $ & AP$_{75} \uparrow $ & AP $\uparrow$ & AP$_{50} \uparrow$ & AP$_{75} \uparrow $ & AP $\uparrow$ \\ 
+    \midrule
+    \midrule
+    CRATE-\( \alpha \)-B/8 & 3.5 & 1.1 & 1.5 & 2.2 & 1.0 & 1.1 \\ 
+    CRATE-\( \alpha \)-L/8 & \textbf{4.0} & \textbf{1.7} & \textbf{2.0} & \textbf{2.7} & \textbf{1.1} & \textbf{1.4} \\ 
+    \midrule
+    \color{gray}CRATE-B/8 & \color{gray}2.9 & \color{gray}1.0 & \color{gray}1.3 & \color{gray}2.2 & \color{gray}0.7 & \color{gray}1.0 \\ 
+    \color{gray}ViT-B/8 & \color{gray}0.8 & \color{gray}0.2 & \color{gray}0.4 & \color{gray}0.7 & \color{gray}0.5 & \color{gray}0.4 \\ 
+    \bottomrule
+    \end{tabular}
+    \caption{\small \textbf{COCO val2017~\citep{lin2014microsoft}에서 MaskCut를 통한 객체 탐지 및 미세 분할}. 여기서 모든 모델은 16 대신 패치 크기 8로 훈련된다. CRATE 및 ViT와 같은 기존 모델과 비교할 때, CRATE-\( \alpha \) 모델 패밀리는 성능뿐만 아니라 확장성도 눈에 띄게 향상되었다.}
+    \label{tab:crate_alpha_detection_segmentation}
+\end{table}
+
+그러나 이것은 경험적 문제를 제시한다. 위의 구성을 사용하면, $\vZ^{\ell + 1/2} \in \R^{d \times n}$이면, $\vZ^{\ell + 1} \in \R^{s \times n}$이 되며, 임의로 큰 특징 차원을 가질 수 있다. 실제로는 각 계층의 특징 차원이 동일하기를 원한다. 따라서 이것은 네트워크 설계를 위한 실용적인 삼분법을 설정한다. 즉, 다음 모든 바람직한 사항을 \textit{모두} 가질 수는 없다:
+\begin{enumerate}
+    \item 각 계층의 특징 차원이 동일하다.
+    \item 사전이 넓다, 즉 과완비이다.
+    \item 비선형성의 출력은 사전에 대한 입력의 희소 코드이다.
+\end{enumerate}
+실제로, (1)을 포기하는 것은 효율성상의 이유로 덜 다루기 쉽다. (2)를 포기하면 일반적인 CRATE 프레임워크로 이어진다. (3)을 포기하면 CRATE의 넓은 버전, 즉 CRATE-\( \alpha \)로 이어진다. 이는 $\vZ^{\ell + 1/2}$에서 $\vZ^{\ell + 1}$로 가기 위해 다음 비선형성을 가진다:
+\begin{equation}
+    \vZ_{\theta}^{\ell + 1} = \vD^{\ell}\vA_{\theta}^{\ell, T}; \qquad \vA_{\theta}^{\ell, t + 1} = \ISTA_{\theta}^{\ell}(\vA_{\theta}^{\ell, t} \mid \vZ_{\theta}^{\ell + 1/2}) \quad \forall 0 \leq t < T; \qquad \vA_{\theta}^{\ell, 0} = \vzero,
+\end{equation}
+즉, 근접 경사 하강을 통해 얻은 희소 코드를 취하고 사전으로 곱하여 입력의 잡음 제거된 버전을 얻는다. 따라서 CRATE-\( \alpha \)의 비선형성은 실제 희소 코드 자체가 아니라 희소 코딩에 적합한 입력의 잡음 제거된 버전을 계산한다. 여기서 $\vZ_{\theta}^{\ell + 1/2}$에서 $\vZ_{\theta}^{\ell + 1}$로의 맵은 과완비 사전 학습(ODL) 블록이라고 하며 $\operatorname{ODL}_{\theta}^{\ell}$로 표시된다. 즉,
+\begin{equation}
+    \vZ_{\theta}^{\ell + 1}(\vX) \doteq \operatorname{ODL}_{\theta}^{\ell}(\vZ_{\theta}^{\ell + 1/2}(\vX)).
+\end{equation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/crate_alpha_semantic_heads.pdf}
+    \caption{\small\textbf{패치 크기 8의 CRATE-\( \alpha \)에서 나온 현저성 맵.} 각 이미지 쌍은 원본 이미지(왼쪽)와 마지막 계층의 어텐션 헤드에 해당하는 선택된 현저성 맵(오른쪽)으로 구성된다. CRATE 모델에서는 일반적이지만, 일반적인 트랜스포머와 유사한 모델에서는 이례적으로, 현저성 맵이 입력 이미지의 객체에 해당한다.}
+    \label{fig:crate_alpha_saliency_maps}
+\end{figure}
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    모델 & GPT-2-B(ase) & CRATE-B & CRATE-\( \alpha \)-S(mall) & CRATE-\( \alpha \)-B \\ 
+    \midrule
+    \midrule
+    \# 매개변수 & 124M & 60M & 57M & 120M \\ 
+    OWT 검증 손실 & 2.85 & 3.37 & 3.28 & 3.14 \\ 
+    \bottomrule
+    \end{tabular}
+    \caption{\small\textbf{언어 모델링의 검증 손실.} 여기서 모든 모델은 OpenWebText의 대부분에서 사전 훈련되었으며, 검증 교차 엔트로피 손실은 OpenWebText의 홀드아웃 하위 집합에서 측정된다. CRATE-\( \alpha \)는 CRATE 설계에 비해 상당한 개선을 보여주지만, GPT-2와 같은 기존 트랜스포머와의 격차는 여전히 존재한다.}
+    \label{tab:crate_alpha_lm}
+\end{table}
+
+CRATE-\( \alpha \) 계층은 $\Cref{fig:crate_alpha_backbone}$에 나와 있다. 실제로 CRATE의 이러한 수정은 더 큰 규모에서 매우 잘 수행된다. 예를 들어, ImageNet-21K에서 CRATE-\( \alpha \) 모델을 사전 훈련할 때, 분할과 같은 비지도 작업($\Cref{fig:crate_alpha_saliency_maps}$ 및 $\Cref{tab:crate_alpha_detection_segmentation}$ 참조)은 일반적으로 CRATE에 비해 성능이 크게 향상된다. 인과 자기 어텐션을 사용한 언어 모델 훈련에서도 유사한 추세가 나타난다($\Cref{tab:crate_alpha_lm}$ 참조). 전반적으로, 트랜스포머와 같은 블랙박스 모델과 성능을 맞추기 위해 성능을 확장하는 유망한 방법이다.\footnote{이 섹션의 실험 결과는 약간 다른 모델 아키텍처를 사용하며, 이는 매우 약간의 경험적 이득을 추가한다. 변경 사항은 다음과 같다: (1) ODL 블록에 추가 잔차 연결, (2) $\vD^{\ell}$ 및 $(\vD^{\ell})^{\top}$ 대신 두 개의 별도 사전을 사용하도록 $\ISTA$ 수정.}
 
 \subsection{선형 시간 복잡도 트랜스포머}\label{sub:tost_experiments}
 
-% TODO: 번역 예정
+실제로, 딥 러닝 모델은 공간 및 시간 복잡도에서 병목 현상을 겪으며, 이는 고정된 자원이 주어졌을 때 확장할 수 없는 문제 크기를 나타낸다. 이러한 병목 현상 중 하나는, 특히 각 샘플 자체가 고차원이고 풍부한 데이터(예: 긴 텍스트 스트림 또는 비디오)를 다룰 때 의미 있는 것으로, 긴 데이터 시퀀스를 처리하는 \textit{시간 복잡도}이다. 트랜스포머를 사용하여 데이터 처리의 시간 복잡도를 완화하기 위해, $\Cref{sub:tost}$에서 우리는 \textit{토큰 통계 자기 어텐션} 연산자 $\TSSA_{\theta}^{\ell}$를 제안했다. 이제 우리는 \textit{토큰 통계 트랜스포머}(ToST)를 구축한다. 특히, CRATE의 백본 계층에 대한 드롭인 대체로 다음 계층( $\Cref{fig:tost_backbone}$에 묘사됨)을 사용할 수 있다:
+\begin{align}
+    \vZ_{\theta}^{\ell + 1/2}(\vX)
+    &= \vZ_{\theta}^{\ell}(\vX) + \TSSA_{\theta}^{\ell}(\LN_{\theta}^{1, \ell}(\vZ_{\theta}^{\ell}(\vX)))
+    \\ 
+    \vZ_{\theta}^{\ell + 1}(\vX)
+    &= \vZ_{\theta}^{\ell + 1/2}(\vX) + \MLP_{\theta}^{\ell}(\LN_{\theta}^{2, \ell}(\vZ_{\theta}^{\ell + 1/2}(\vX)))
+\end{align}
+여기서 $\TSSA$ 블록은 $\Cref{sub:tost}$에서 정의된 대로이다. 이것은 $\TSSA$가 기존의 다중 헤드 자기 어텐션 블록 $\MHSA$를 대체한다는 점을 제외하고는 $\Cref{sub:contrastive_learning_architecture}$에서 논의된 비전 트랜스포머 아키텍처와 정확히 동일하다는 점에 주목하라. 그럼에도 불구하고, 이 계층의 순방향 전달의 계산 복잡도는 모든 문제 변수—시퀀스 길이, 특징 차원, 헤드 수, 헤드 차원—에 대해 선형이다.
 
-\subsection{어텐션 전용 트랜스포머}\label{sub:aot_experiments}
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/tost_backbone.pdf}
+    \caption{\small\textbf{ToST 백본의 한 계층.} 토큰 표현은 계층 정규화, 토큰 통계 자기 어텐션(TSSA) 연산자 및 MLP를 통과하여 계층의 출력을 형성한다.}
+    \label{fig:tost_backbone}
+\end{figure}
 
-% TODO: 번역 예정
+\begin{table}[t]
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{@{}lccc|cc|cc@{}}
+    \toprule
+    데이터셋 & ToST-T(iny) & ToST-S(mall) & ToST-M(edium) &  { \color{gray} XCiT-S} &  { \color{gray}XCiT-M} &  {\color{gray}ViT-S} & {\color{gray}ViT-B(ase)}\\ 
+    \toprule
+     \# 매개변수 & 5.8M & 22.6M & 68.1M &  { \color{gray} 24.9M }& { \color{gray}80.2M } & { \color{gray} 22.1M } & { \color{gray}86.6 M } \\ 
+    \midrule
+     ImageNet & 67.3 & 77.9 & 80.3 &  { \color{gray} 80.5} & { \color{gray} 81.5 } & { \color{gray} 79.8} & { \color{gray} 81.8} \\ 
+     ImageNet ReaL & 72.2  & 84.1 & 85.6 &  { \color{gray} 85.6 } & { \color{gray} 85.9} & { \color{gray} 85.6 } & { \color{gray} 86.7 }\\ 
+     \midrule
+     CIFAR10 & 95.5 & 96.5 & 97.5 &  { \color{gray} 98.1} & { \color{gray} 98.3} & { \color{gray} 98.6} & { \color{gray} 98.8}\\ 
+     CIFAR100 & 78.3 & 82.7 & 84.5 &  { \color{gray} 86.1} & { \color{gray} 87.6} & { \color{gray} 88.8} & { \color{gray} 89.3}\\ 
+     Oxford Flowers-102 & 88.6 & 92.8 & 94.2 &  { \color{gray} 93.9} & { \color{gray} 94.0} & { \color{gray} 94.0}& { \color{gray} 95.7}\\ 
+     Oxford-IIIT-Pets & 85.6 & 91.1 & 92.8 &  { \color{gray} 92.9} & { \color{gray} 94.0} & { \color{gray} 92.8} & { \color{gray} 94.1} \\ 
+     \bottomrule
+    \end{tabular}% 
+    }
+    \caption{\small \textbf{ToST의 선형 프로빙 분류 정확도} 백본이 ImageNet-1K 분류를 위해 사전 훈련되었을 때 다양한 모델 크기의 다양한 데이터셋에 대해. XCiT(긴 시퀀스의 효율적인 처리에 특화된 경험적으로 설계된 트랜스포머와 유사한 아키텍처) 및 ViT와 비교할 때, ToST는 더 빠른 런타임 및 화이트박스 설계와 같은 이점을 누리면서도 비교적 유사한 성능을 유지함을 관찰한다.}
+    \label{tab:tost_linear_probing}
+\end{table}
+
+\begin{table}[!htbp]
+    \centering
+    \begin{tabular}{@{}lcccccc@{}}
+        \toprule
+        모델        & \# 매개변수 & OWT & Lambada & Wikitext & PTB & 평균 $\downarrow$ \\ \midrule
+        \midrule
+        GPT-2-Base & 124M & 2.84 & 4.32 & 4.13 & 5.75 & 4.26 \\ 
+        ToST-Base & 110M & 3.20 & 4.98 & 4.77 & 6.39 & 4.84 \\ 
+        ToST-Medium & 304M & 2.88 & 4.45 & 4.30 & 5.64 & 4.32 \\ 
+        ToST-Large & 655M & 2.72 & 4.32 & 3.99 & 5.03 & 4.02 \\ \bottomrule
+    \end{tabular}% 
+    \caption{\small\textbf{언어 모델링 검증 손실} 모델을 해당 데이터셋에서 사전 훈련한 후, 다양한 자연어 데이터셋의 (홀드아웃 집합)에서 계산됨. ToST가 잘 확장되어, ToST-Large가 인과 언어 모델링에서 기준 GPT-2-Base를 능가하면서 긴 컨텍스트에서 우수한 효율성을 누림을 관찰한다.}
+    \label{tab:tost_lm}
+\end{table}
+
+\begin{table}
+    \centering
+    
+    \begin{tabular}{@{}lccccccc@{}}
+            \toprule
+            모델        & ListOps  & 텍스트     & 검색 & 이미지    & Pathfinder & 평균      \\ 
+            \midrule
+            \midrule
+            Reformer              & \textbf{37.27} & 56.10             & 53.40              & 38.07             & 68.50               & 50.56             \\ 
+            BigBird               & 36.05             & 64.02             & 59.29              & 40.83             & 74.87                & 54.17             \\ 
+            LinFormer         & 16.13             & \underline{65.90} & 53.09              & 42.34             & \underline{75.30}               & 50.46             \\ 
+            Performer             & 18.01             & 65.40             & 53.82              & 42.77             & \textbf{77.05}                & 51.18             \\ 
+            Transformer           & 37.11             & 65.21             & \underline{79.14}              & \underline{42.94}             & 71.83              & \underline{59.24}            \\ 
+            ToST & \underline{37.25}    & \textbf{66.75}    & \textbf{79.46}     & \textbf{46.62}    &    69.41      &     \textbf{59.90}\\ 
+            
+            \bottomrule
+        \end{tabular}% 
+    \caption{\small \textbf{긴 컨텍스트에 최적화된 상위 트랜스포머 변형 대 ToST(-B)의 장거리 아레나(LRA) 성능 비교.} 장거리 아레나는 데이터셋과 평가 메커니즘을 고정하여 알고리즘 및 아키텍처의 긴 시퀀스 모델링 능력을 테스트하는 벤치마크 제품군이다. ToST는 XCiT 및 일반(ViT) 트랜스포머를 포함한 모든 알려진 트랜스포머 변형과 비교하여 리더보드 상위에 점수를 매긴다(참조 $\Cref{tab:tost_linear_probing}$). 더욱이, ToST는 가장 낮은 시간 및 공간 복잡도 추론을 가진다. (이 표에서 특정 벤치마크의 최고 점수는 굵게 표시되고, 두 번째 최고 점수는 밑줄이 그어져 있다.)}
+    \label{tab:tost_lra_results}
+\end{table}
+
+더욱이, 제안된 아키텍처, 즉 ToST(``토큰 통계 트랜스포머''의 약자)는 비전 작업($\Cref{tab:tost_linear_probing}$)과 언어 작업($\Cref{tab:tost_lm}$)에서 잘 수행된다. 이는 특히 긴 시퀀스 길이 작업($\Cref{tab:tost_lra_results}$)에서 그러하며, 기존 트랜스포머 및 다른 모든 트랜스포머 유사 아키텍처보다 성능이 우수하고 훨씬 효율적이다.
+
+\subsection{어텐션 전용 트랜스포머} \label{sub:aot_experiments}
+
+딥 러닝 모델, 특히 트랜스포머와 유사한 아키텍처에서 제거해야 할 또 다른 병목 현상은 MLP의 거대한 행렬 곱셈에서 비롯되는 메모리 병목 현상이다. 여기서 내부 차원은 특징 차원 $d$보다 훨씬 크다. 따라서 다음과 같은 흥미롭고 중요한 질문을 던질 수 있다: 트랜스포머 내부에 MLP가 \textit{정말로} 필요한가, 그리고 그것 없이 성능이 얼마나 좋아질 수 있을까? 이 질문을 탐구하기 위해, 우리는 $\Cref{fig:aot_backbone}$에 묘사된 어텐션 전용 트랜스포머(AoT) 아키텍처(참조 $\Cref{sub:aot}$)를 사용한다. 즉, 각 계층은 단순히 다음과 같은 형태이다
+\begin{equation}
+    \vZ_{\theta}^{\ell + 1}(\vX) = \vZ_{\theta}^{\ell}(\vX) + \MSSA_{\theta}^{\ell}(\LN_{\theta}^{\ell}(\vZ_{\theta}^{\ell}(\vX))).
+\end{equation}
+우리 구현에서는 MSSA 대신 다중 헤드 자기 어텐션(MHSA)을 사용하는 것도 실험했다. 이 아키텍처도 \textit{역시} 실행 가능하지만, 일반적인 CRATE 또는 트랜스포머 아키텍처와 동등한 성능을 달성하려면 네트워크의 깊이가 훨씬 더 커져야 한다는 것이 밝혀졌다. %
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{\toplevelprefix/chapters/chapter7/figs/aot_backbone.pdf}
+    \caption{\small\textbf{AoT 백본의 한 계층.} 토큰 표현은 계층 정규화와 다중 헤드 (부분 공간) 자기 어텐션 연산자를 통과하여 계층의 출력을 형성한다.}
+    \label{fig:aot_backbone}
+\end{figure}
+
+우리는 제안된 AoT 아키텍처를 사용하여 실험을 수행하고 그 잠재력을 입증한다. 우리는 GPT-2와 함께 다양한 크기의 AoT-MSSA 및 AoT-MHSA 모델을 OpenWebText $\citep{Gokaslan2019OpenWeb}$에서 사전 훈련한다. $\Cref{fig:loss}(a)$와 (b)에서 각각 훈련 반복 횟수에 대한 훈련 손실과 검증 손실을 플로팅한다. 중간 및 대규모 AoT 기반 모델이 GPT-2 기본 모델과 비슷한 훈련 및 검증 손실을 달성하는 것이 관찰된다. 또한, GPT-2 기본 모델과 비교할 때, AoT-MHSA 모델은 아키텍처에서 MLP 계층이 없다는 점을 제외하고는 GPT-2 기본 모델과 동일하다. $\Cref{fig:loss}$에서 보여주듯이, MLP 계층을 통합하면 훈련 과정을 가속화할 수 있다. 위의 사전 훈련된 모델을 사용하여, $\Cref{tab:zeroshot}$의 다른 데이터셋에서 훈련 없이 교차 엔트로피 검증 손실을 계산한다. 중간 및 큰 매개변수 크기를 가진 AoT 모델이 GPT-2 기본 모델과 비슷한 성능을 달성할 수 있음이 관찰된다. 더욱이, AoT에 MLP 계층을 추가해도 제로샷 성능이 향상되지 않는다는 것을 발견했다. 이러한 결과는 어텐션 전용 모델이 해석 가능성을 유지하면서 경쟁력 있는 결과를 달성할 수 있는 잠재력을 강조한다.
+
+\begin{table*}[!htbp]
+\caption{여러 언어 벤치마크 데이터셋 및 작업에 대한 제로샷 결과: MSSA 및 MHSA 연산자를 사용한 다양한 크기의 AoT 평가 및 GPT2 모델과의 비교.}\\vskip 0.1in
+\centering
+\begin{small}
+\begin{tabular}{l|cccccc}
+\toprule
+ 모델  & {\bf LAMBADA} & {\bf PTB} & {\bf WikiText} & {\bf LAMBADA} & {\bf CBT CN} & {\bf CBT NE} \\ 
+ \# 매개변수  & (검증 손실) $\downarrow$ &  (검증 손실) $\downarrow$ &(검증 손실) $\downarrow$ & (정확도) $\uparrow$ &(정확도) $\uparrow$ &(정확도) $\uparrow$ \\ 
+ \midrule
+ AoT-MSSA Base (102M) & 4.70 & 6.03 & 4.65 & 0.25 & 0.80 & 0.74\\ 
+ AoT-MSSA Medium (182M) & 4.47 & 5.08 & 4.22 & 0.29 & 0.84 & 0.77 \\ 
+ AoT-MHSA Base (122M) & 4.42 & 5.52 & 4.19 & 0.38 & 0.86 & 0.82\\ 
+ GPT-2 Base (124M) & 4.32 & 5.75 & 4.13 &  0.40 &  0.87 &  0.84 \\ 
+\bottomrule
+\end{tabular}
+\label{tab:zeroshot}
+\end{small}
+\end{table*}
+\vspace{-0.05in}
+
+\begin{figure*}[t]
+\begin{center}
+\includegraphics[width=0.4\linewidth]{\toplevelprefix/chapters/chapter7/figs/training_loss.png} \hspace{0.4in}
+\includegraphics[width = 0.4\linewidth]{\toplevelprefix/chapters/chapter7/figs/val_loss.png}
+    \\ \vspace{-0.15in}
+\caption{\centering \textbf{언어 작업에 대한 모델 평가.} OpenWebText에서 사전 훈련된 AoT 및 GPT-2 모델의 훈련 손실(왼쪽)과 검증 손실(오른쪽)을 플로팅한다.}  \label{fig:loss}
+\end{center}
+\vspace{-0.15in}
+\end{figure*}
 
 \section{이미지 데이터를 위한 마스크 오토인코딩}\label{sec:image_completion}
 
+우리가 논의하는 두 번째 응용 프로그램은 \textit{비선형 이미지 완성}, 즉 \textit{마스크 오토인코딩}(MAE)으로, $\Cref{ch:classic}$에서 논의된 저계급 행렬 완성 문제의 직접적인 일반화이다. 마스크 오토인코딩은 $\cite{he2022masked}$에 의해 딥 러닝 컨텍스트에 도입된 이래로, 각 패치 특징 $\vZ_{\theta}$ 내에 집계 정보와 이웃에 대한 정보를 부여하여 패치 특징과 집계 특징 모두 전체 샘플에 대한 풍부한 정보원이 되도록 하는 것을 목표로 하는 기본적이고 간단한 자기 지도 표현 학습 방법이었다. 
+
+데이터셋은 $\Cref{sub:contrastive_learning_data}$에서 논의된 이미지 데이터셋과 동일하게 유지된다. 평소와 같이, 우리는 여전히 각 새로운 배치의 각 샘플에 데이터 증강을 적용한다.
+
 \subsection{과제와 목적}\label{sub:image_completion_objective}
 
-% TODO: 번역 예정
+이름에서 알 수 있듯이, 마스크 오토인코딩은 입력을 감안할 때, 임의의 크기 조정된 자르기를 수행하여($\Cref{sub:contrastive_learning_objective}$ 참조) 입력 이미지를 크기 $(C, S_{\mask}, S_{\mask})$의 정사각형 이미지로 변환한 다음, 입력에서 고정된 비율 $p_{\mask} \in [0, 1]$의 픽셀을 \textit{마스킹}(즉, 0으로 설정)하는 뷰 $v_{m}$을 포함한다. 효율성상의 이유로\footnote{MAE의 원래 구현은 $\cite{he2022masked}$에 의해 전체 이미지를 임베딩하고, 마스킹될 토큰을 \textit{제거}하고, 결과 토큰 집합을 인코더를 통해 공급하고, 마스킹된 위치에 학습된 플레이스홀더 토큰을 다시 추가하고 적절한 위치 인코딩을 다시 추가하고, 결과 토큰 집합을 디코더를 통해 공급하여 오토인코딩 예측을 얻는다. 이것은 인코더가 통과해야 할 토큰이 적기 때문에 더 효율적이지만, 개념적으로는 텍스트에서 논의된 방법과 동일하며, 마스크 오토인코딩 작업 및 다운스트림 평가에서 결과 모델의 성능은 매우 유사하다.}, 마스킹은 패치 단위로 수행된다. 즉, 전체 이미지를 임베딩한 후, \textit{패치}의 $p_{\mask}$ 비율이 0으로 설정된다. MAE의 목표는 인코더 $f_{\theta} \colon \cI \to (\R^{d})^{*}$와 디코더 $g_{\eta} \colon (\R^{d})^{*} \to \cI$를 훈련하여 마스킹으로부터 입력을 재구성할 수 있도록 하는 것이다. 즉, $\hat{\vX}_{\theta, \eta} \doteq g_{\eta} \circ f_{\theta}$라고 쓰면, 다음을 얻는다:
+\begin{equation}
+    \min_{\theta, \eta}\bc{\cL_{\mathrm{MAE}}(\theta, \eta) \doteq \norm{\hat{\vX}_{\theta, \eta}(\vX_{m}) - \vX}_{F}^{2}}
+\end{equation}
+본질적으로 이것은 뷰 $\vX_{m} \doteq v_{m}(\vX)$의 특징 $\vZ_{\theta}(\vX_{m})$가 기존 패치뿐만 아니라 \textit{마스킹된 패치}에 대한 정보를 포함해야 함을 의미한다. $\Cref{ch:representation}$의 압축 기반 화이트박스 모델의 관점에서, 화이트박스 오토인코더 $(f_{\theta}, g_{\eta})$가 이 작업에 성공하면, 학습된 부분 공간과 사전이 데이터의 다른 부분의 인코딩된 부분으로부터 데이터의 누락된 부분을 재구성할 수 있도록 데이터의 \textit{중복} 인코딩을 수행함을 의미한다. 이것은 각 패치에 대한 정보가 다른 패치에 저장됨을 의미한다. 따라서 각 패치 특징은 패치에 대한 정보와 전체 이미지의 통계에 대한 정보를 모두 포함해야 한다. 따라서 다시, 우리는 표현이 지역적 및 전역적으로 의미적으로 관련된 정보를 모두 포함해야 하며, 따라서 유사한 지역 및 전역 정보를 가진 다른 패치의 표현이 관련되어야 한다고 예상한다(즉, 동일한 부분 공간에 있거나 사전으로 함께 인코딩됨).
 
 \subsection{아키텍처}\label{sub:image_completion_architecture}
 
-% TODO: 번역 예정
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/crate_ae_backbone.pdf}
+    \caption{\small\textbf{CRATE 오토인코더 백본의 인코더 및 디코더의 한 계층.} 인코더 및 디코더 계층은 모두 다중 헤드 부분 공간 자기 어텐션과 사전 학습 또는 사전 인코딩 단계를 통해 입력을 공급한다. 인코더 및 디코더 계층은 대칭적으로 설계되었다는 점에 유의하라; 각 디코더 계층의 개념적 목표는 인코더 계층을 역전시키는 것이므로, 이 대칭성은 설계에 의한 것이다(예: $\Cref{ch:autoencoding}$ 참조).}
+\end{figure}
+
+물론 일반적인 트랜스포머 인코더와 디코더를 사용하는 것이 가능하지만, $\Cref{fig:transformer_backbone}$에 묘사된 CRATE 인코더와 디코더를 사용한다. 자세한 내용은 다음과 같다.
+
+\paragraph{인코더.} 인코더는 $\Cref{sub:image_classification_architecture}$의 CRATE 인코더와 동일하며, 특징 추출기 $f_{\theta}^{\ext}$가 없다는 점이 주의할 점이다. 그러나 임베딩 $f_{\theta}^{\emb}$와 백본 $f_{\theta}^{\backbone}$은 모두 동일하다.
+
+\paragraph{디코더 백본.} 디코더 백본은 $\Cref{ch:autoencoding}$에 설명된 CRATE 디코더이다. 완전성을 위해 지금 설명한다. 특징 시퀀스 $\vZ_{\theta}(\vX) \doteq f_{\theta}(\vX) \in (\R^{d})^{*}$가 주어지면, 다음과 같이 디코더 백본 $g_{\eta}^{\backbone}$을 사용하여 처리할 수 있다. 함수 $g_{\eta}^{\backbone}$는 $L$개의 계층 $g_{\eta}^{\ell}$로 구성된다, 즉,
+\begin{equation}
+    g_{\eta}^{\backbone} = g_{\eta}^{L} \circ \cdots \circ g_{\eta}^{1}.
+\end{equation}
+계층 $g_{\eta}^{\ell}$는 다음과 같은 구현을 가진다. 먼저, $\tilde{\vZ}_{\theta, \eta}^{1}(\vX) \doteq \vZ_{\theta}(\vX)$로 정의한다. 그런 다음, 다음을 얻는다:
+\begin{align}
+    \tilde{\vZ}_{\theta, \eta}^{\ell + 1/2}(\vX)
+    &= [\tilde{\vD}^{\ell}]^{\top}\LN_{\eta}^{1, \ell}(\tilde{\vZ}_{\theta, \eta}^{\ell}(\vX)) \\ 
+    \tilde{\vZ}_{\theta, \eta}^{\ell + 1}(\vX)
+    &= \tilde{\vZ}_{\theta, \eta}^{\ell + 1/2}(\vX) - \MSSA_{\eta}^{\ell}(\LN_{\eta}^{2, \ell}(\tilde{\vZ}_{\theta, \eta}^{\ell + 1/2}))
+\end{align}
+그리고 $g_{\eta}^{\ell}$는 $g_{\eta}^{\ell}(\tilde{\vZ}_{\theta, \eta}^{\ell}) \doteq \tilde{\vZ}_{\theta, \eta}^{\ell + 1}(\vX)$가 되도록 정의된다. 여기서 관련 개념은 $g_{\eta}^{\ell}$가 각각 순방향 및 역방향 시간 확산 과정의 이산화로서 $f_{\theta}^{L + 1 - \\ell}$의 근사 역을 학습해야 한다는 것이다. 특히, $\tilde{\vD}^{\ell}$는 $\vD^{L + 1 - \\ell}$를 근사해야 하며, 유사하게, $\MSSA_{\eta}^{\ell}$ 매개변수는 $\MSSA_{\theta}^{L + 1 - \\ell}$의 매개변수와 유사해야 한다. 출력은 $\tilde{\vZ}_{\theta, \eta} \doteq \tilde{\vZ}_{\theta, \eta}^{L + 1}$이다.
+
+\paragraph{언임베딩 모듈.} $\tilde{\vZ}_{\theta, \eta}(\vX)$를 $\vX$에 대한 추정치로 다시 변환하려면, 언임베딩 모듈 $g_{\eta}^{\unemb}$를 사용하여 임베딩 모듈 $f_{\theta}^{\emb}$의 효과를 되돌려야 한다. 이와 같이, $\eqref{eq:definition_of_embedding_module}$의 임베딩 모듈의 함수 형식을 상기하면, 즉,
+\begin{equation}
+    f_{\theta}^{\emb}(\vX) \doteq \mat{\vz_{\cls}^{1}, \vW^{\emb}f^{\patch}(\vX) + \vE^{\pos}}.
+\end{equation}
+이는 우리의 역 연산 $g_{\eta}^{\unemb}$가 다음과 같이 보임을 암시한다:
+\begin{equation}
+    g_{\eta}^{\unemb}(\tilde{\vZ}) \doteq g_{\eta}^{\unemb}(\mat{\tilde{\vz}^{1}, \dots, \tilde{\vz}^{n}}) = g^{\unpatch}(\vW^{\unemb}( [\tilde{\vz}^{2}, \dots, \tilde{\vz}^{n}] - \tilde{\vE}^{\pos})),
+\end{equation}
+여기서 $g^{\unpatch}$는 $f^{\patch}$가 수행하는 펼치기 및 평탄화 연산의 역 연산을 수행한다.\footnote{다시, "역 위치 인코딩" $\tilde{\vE}^{\pos}$는 큰 입력에 대해 학습되며, 더 작은 입력에 대해서는 보간될 수 있다. $\tilde{\vE}^{\pos}$를 위치 인코딩 $\vE^{\pos}$와 동일하게 설정하고 인코더와 디코더 모두에서 각 입력에 대해 동일한 보간된 위치 인코딩을 사용하는 것도 가능하다.} 
+
+이 아키텍처는 화이트박스 오토인코더 $(f_{\theta}, g_{\eta})$이며, 여기서 (상기) $f_{\theta} = f_{\theta}^{\backbone} \circ f_{\theta}^{\emb}$이고 $g_{\eta} = g_{\eta}^{\unemb} \circ g_{\eta}^{\backbone}$이다. 특히, 우리는 이를 사용하여 마스킹된 뷰 $\hat{\vX}_{\theta, \eta}(\vX_{m}) = (g_{\eta} \circ f_{\eta})(\vX_{m})$에 대한 추정치를 계산할 수 있으며, 이는 $\vX$ 자체와 거의 같아야 한다.
 
 \subsection{최적화}\label{sub:image_completion_optimization}
 
-% TODO: 번역 예정
+$\Cref{sub:image_classification_optimization}$에서와 같이, 간단한 최적화 설정을 사용한다: 이미지와 마스크를 샘플링하고, 해당 샘플에 대한 손실과 그 그래디언트를 계산하고, 일반적인 최적화 알고리즘과 앞서 언급한 그래디언트를 사용하여 매개변수를 업데이트한다. 각 시간 단계 $k$에서, 우리는:
+\begin{itemize}
+    \item 데이터셋 $\cI$에서 $B$개의 다른 샘플 $(\vX_{b}^{(k)})$을 하위 샘플링한다.
+    \item 각 샘플 $\vX_{b}^{(k)}$에 대해, 다른 무작위 리사이즈된 자르기 및 마스크 $v_{b, m}^{(k)}$를 계산하고 이를 $\vX_{b}^{(k)}$에 적용하여 $\vX_{b, m}^{(k)} \doteq v_{b, m}^{t}(\X_{b}^{(k)})$를 얻는다.
+    \item 추정된 오토인코딩 $\hat{\vX}_{\theta, \eta}(\vX_{b, r}^{(k)}) \doteq (g_{\eta} \circ f_{\theta})(\vX_{b, r}^{(k)})$를 계산한다.
+    \item 대리 확률적 손실을 형성한다
+    \begin{equation}
+        \hat{\cL}_{\mathrm{MAE}}^{(k)}(\theta, \eta) \doteq \frac{1}{B}\sum_{b = 1}^{B}\norm{\hat{\vX}_{\theta, \eta}(\vX_{b, r}^{(k)}) - \vX_{b}^{(k)}}_{F}^{2}.
+    \end{equation}
+    \item $(\theta, \eta)$에 대한 최적화 알고리즘의 한 단계를 계산하여 다음 반복을 제공한다:
+    \begin{equation}
+        (\theta^{(k + 1)}, \eta^{(k + 1)}) \doteq \textsc{OptUpdate}^{(k)}(\theta^{(k)}, \eta^{(k)}; \nabla_{(\theta, \eta)}\hat{\cL}_{\mathrm{MAE}}^{(k)}).
+    \end{equation}
+\end{itemize}
 
-\subsection{평가}\label{sub:image_completion_optimization_1}
+\subsection{평가} \label{sub:image_completion_optimization_1}
 
-% TODO: 번역 예정
+이것은 이 장에서 논의하는 첫 번째 오토인코더 네트워크이다. $\Cref{sub:contrastive_learning_evals,sub:image_classification_evals}$에서와 동일한 중앙 자르기 뷰 $v_{\cc}$를 사용하며, 최종 이미지를 훈련 중에 본 입력 이미지의 모양과 일치하도록 측면 길이가 $S_{\cc} = S_{\mask}$ 픽셀인 정사각형으로 리사이즈한다.
+
+마스크 오토인코딩 손실 자체를 평가하는 것 외에도, 데이터 $\vX$의 뷰 $\vX_{\cc} \doteq v_{\cc}(\vX)$의 특징 $\vZ_{\theta}(\vX_{\cc})$를 직접 평가하는 것도 가능하다. 어텐션 맵 충실도 평가를 위해, $\vZ_{\theta}(\vX_{\cc})$를 얻는 것으로 충분하지만, 선형 프로빙을 위해서는 $\vZ_{\theta}$에서 요약되거나 집계된 특징을 추출해야 한다. 이를 위해, 클래스 토큰에 해당하는 특징을 반환하는 (매개변수 없는) 특징 추출 맵을 사용할 수 있다. 즉,
+\begin{equation}
+    f_{\theta}^{\ext}(\vZ) \doteq f_{\theta}^{\ext}( [\vz^{1}, \dots, \vz^{n}]) = \vz^{1},
+\end{equation}
+(예를 들어), $\Cref{sub:image_classification_objective,sub:image_classification_architecture}$에서와 같이. 이를 통해 집계 특징 $\vz_{\theta}(\vX_{\cc}) \doteq (f_{\theta}^{\ext} \circ f_{\theta})(\vX_{\cc})$를 얻는 방법을 가지게 되며, 이 시점에서 선형 프로빙, 분할 평가 등을 수행할 수 있다.
 
 \subsection{실험}\label{sub:image_completion_experiments}
 
-% TODO: 번역 예정
+CRATE-MAE는 ViT-MAE를 직접 기반으로 하므로, 공정한 비교를 위해 $\citep{he2022masked}$에서 제공한 ViT-MAE의 최적 설정을 CRATE-MAE에 적용한 동일한 설정과 비교한다.
+
+\paragraph{모델 아키텍처.} 훈련 중, 마스크된 자르기 $v_{m}$는 전체 이미지를 짧은 쪽이 $256$(즉, $S_{\rsz} = 256$)이 되도록 크기를 조정한 후, $224 \times 224$(즉, $S_{\mathrm{mask}} = 224$) 크기의 무작위 자르기를 취하고, 패치의 $p_{\mathrm{mask}} = \frac{3}{4}$를 마스킹한다. 패치 크기는 $16$(즉, $P_{H} = P_{W} = 16$)으로 한다. ViT-MAE 아키텍처의 소형 및 기본 변형을 인코더와 디코더 모두의 임베딩 및 백본으로 사용하며, MHSA 및 MLP 구성 요소를 각각 MSSA, ISTA 및 선형 계층으로 교체한다. MSSA의 경우 동일한 수의 헤드와 헤드 차원을 사용한다. 그러나 원래 ViT-MAE는 거의 모든 전체 계층을 사용하는 인코더와 몇 개의 계층만 사용하는 디코더를 사용한다; 우리는 $\Cref{ch:autoencoding}$의 개념적 및 이론적 프레임워크에서 제안한 대로, 전체 계층 수(ViT-MAE에서 CRATE-MAE까지 동일하게 유지됨)의 절반을 인코더와 디코더에 할당한다. CRATE-MAE의 경우 $(\beta, \lambda) = (1, 0.1)$로 설정한다.
+
+\paragraph{데이터셋 및 최적화.} 사전 훈련을 위해 ImageNet-1K 데이터셋을 사용한다. ViT-MAE 복제 및 CRATE-MAE 모두를 사전 훈련하기 위해 AdamW 옵티마이저를 사용한다. 기본 학습률을 $3 \times 10^{-5}$, 가중치 감쇠를 $0.1$, 배치 크기를 $B = 4096$으로 설정한다. 학습률 스케줄은 처음 $40$ 에포크 동안 학습률을 기본 학습률까지 선형적으로 증가시키고, 다음 $760$ 에포크 동안 코사인 스케줄을 사용하여 $0$으로 감소시킨다(모든 모델을 각각 $800$ 에포크 동안 훈련). 사전 훈련을 위해, 이미지 데이터에 일반적인 데이터 증강(뒤집기, 가우시안 블러, 솔라리제이션 등)을 적용한다.
+
+선형 프로빙을 위해, CIFAR10, CIFAR100, Oxford-Flowers, Oxford-IIT-Pets와 같은 여러 평가 데이터셋을 사용한다. 선형 프로빙을 위해, 대상 데이터셋의 모든 샘플에 대한 특징을 미리 계산하고 Scikit-Learn과 같은 표준 패키지의 빠른 선형 회귀 솔버를 적용한다.
+
+\paragraph{실험 결과.} $\Cref{tab:crate_mae_linear_probing}$는 CRATE-MAE 모델이 유사한 매개변수 수에서 인기 있는 ViT-MAE 아키텍처와 거의 동등한 성능을 달성하며, 특징 학습 성능(다운스트림 분류 작업의 성능으로 측정)도 규모에 따라 증가함을 보여준다. 한편, $\Cref{fig:crate_mae_semantic_heads}$는 인코더 현저성 맵(따라서 인코더에 의해 학습된 미세한 특징)이 실제로 입력 이미지의 주요 부분을 분리하고 강조함을 보여준다.
+
+\begin{table}
+    \centering
+    \begin{tabular}{@{}lcc|cc@{}}
+        \toprule
+        \textbf{모델} & CRATE-MAE-S(mall) & CRATE-MAE-B(ase) & {\color{gray} ViT-MAE-S} & {\color{gray} ViT-MAE-B} \\ 
+        \midrule
+        \midrule
+        \# 매개변수 & 25.4M & 44.6M & 47.6M & {\color{gray}143.8M} \\ 
+        \midrule
+        CIFAR10 & 79.4 & 80.9 & {\color{gray} 79.9} & {\color{gray} 87.9} \\ 
+        CIFAR100 & 56.6 & 60.1 & {\color{gray} 62.3} & {\color{gray} 68.0} \\ 
+        Oxford Flowers-102 & 57.7 & 61.8 & {\color{gray} 66.8} & {\color{gray} 66.4} \\ 
+        Oxford-IIIT-Pets & 40.6 & 46.2 & {\color{gray} 51.8} & {\color{gray} 80.1} \\ 
+        \bottomrule
+    \end{tabular}
+    \caption{\small\textbf{CRATE-MAE 및 ViT-MAE의 선형 프로빙 분류 정확도} 백본이 ImageNet-1K에서 마스크 오토인코딩을 위해 사전 훈련되었을 때 다양한 모델 크기의 다양한 데이터셋에 대해. 동일한 매개변수 수를 고려할 때, CRATE-MAE는 더 간단하고 원칙적인 아키텍처 설계를 동시에 누리면서 거의 유사한 성능을 달성한다.}
+    \label{tab:crate_mae_linear_probing}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter7/figs/crate_mae_semantic_heads.pdf}
+    \caption{\small\textbf{CRATE-MAE의 현저성 맵.} 각 이미지 쌍은 원본 이미지(왼쪽)와 마지막 계층의 어텐션 헤드에 해당하는 선택된 현저성 맵(오른쪽)으로 구성된다. CRATE 모델에서는 일반적이지만, 일반적인 트랜스포머와 유사한 모델에서는 이례적으로, 현저성 맵이 입력 이미지의 객체에 해당한다.}
+    \label{fig:crate_mae_semantic_heads}
+\end{figure}
 
 \section{요약 및 참고 사항}
 
-% TODO: 번역 예정
+이 장의 모든 작업은 $\citet{vaswani2017attention}$이 도입한 트랜스포머 아키텍처의 하위 작업이다. 트랜스포머 아키텍처는 $\Cref{sec:contrastive_learning}$에서 공식적으로 설명된다. 최근 몇 년간의 주요 경험적 혁신은 트랜스포머 아키텍처의 보급과 성능에 힘입어, 주어진 학습 문제를 시퀀스-투-시퀀스 문제로 공식화하고 트랜스포머 아키텍처를 적용하는 것이다. 이로 인해 트랜스포머 아키텍처는 (거의) 모든 딥 러닝 응용 분야에서 본질적으로 보편화되었다. 따라서 트랜스포머에 대한 직접적인 개선은 많은 문제에 대한 해결책으로 전파되어 상당한 영향을 미칠 수 있다; 유사하게, 우리는 트랜스포머와 유사한 아키텍처에 대한 우리의 화이트박스 이해를 많은 현대 문제에 적용할 수 있다. 이 장에서 다룬 자료는 이미 수행된 작업의 일부에 불과하다; 다른 작업에는 텍스트 데이터에 대한 마스크 완성(즉, BERT) $\citep{devlin2019bert,yu2024white}$, 언어 및 비전 모델의 (기계적) 해석 가능성 $\citep{bai2024improving}$, 오류 수정 코딩 $\citep{zheng2025white}$이 포함된다. 할 일은 훨씬 더 많다.
+
+또한 신경망 스케일링 실무에 대한 이론도 훨씬 더 많으며, 이는 엄청나게 실용적으로 실행 가능하며, 적어도 여기서 언급한다. 이 연구 라인은 "텐서 프로그램" 연구 라인 $\citep{yang2022tensor}$에 의해 대중화되었다. 기본 처방은 트랜스포머의 초기 그래디언트 업데이트가 일정한 크기가 되기를 원하며, 역전파 방정식($\Cref{app:optimization}$)을 신중하게 작업함으로써, 이를 달성하는 데 필요한 초기화 및 학습률(계층별로 선택됨)의 스케일을 결정할 수 있다는 것이다. 실제로, 이러한 처방은 대규모에서 훈련의 안정성과 수렴을 크게 증가시킨다; 또한 소규모 훈련만을 사용하여 대규모 훈련을 위한 "최적"\footnote{"최적"이라는 단어는 이 연구가 초기화 시 가중치 크기, 특징 크기 및 그래디언트 크기에 대한 일부 바람직한 사항만을 사용하여 "최적성"을 결정하기 때문에 인용 부호 안에 사용된다. 예를 들어, 수렴 시 테스트 손실과는 대조적이다.} 하이퍼파라미터를 찾는 방법을 처방한다. 이 연구에 대한 후속 연구는 특징 기하학을 수용하려고 시도하며 $\citep{bernstein2024oldoptimizernewnorm}$, 이는 표현 학습에 대한 이 책의 작업에 의해 정보를 얻을 수 있다. 다른 후속 연구는 이러한 가중치별 정보를 옵티마이저 자체에 통합하여 이러한 스케일링 이점을 자동으로 얻고, 최근에 조 단위 매개변수 모델을 매우 안정적으로 훈련하는 데 사용된 Muon $\citep{jordan6muon}$와 같은 옵티마이저를 얻는다. 전반적으로, 딥 러닝 이론에 대한 두 가지 접근 방식은 직교하거나 보완적이다.
 
 \section{연습문제 및 확장}
 
-% TODO: 번역 예정
+\begin{exercise}
+    DINO 논문 $\cite{caron2021emerging}$를 읽어라.
+\end{exercise}
+
+\begin{exercise}
+    DINO v2 $\cite{oquab2023dinov2}$는 DINO v1의 모든 것을 사용하지만, 데이터 증강 단계에서 각 뷰 내의 패치를 무작위로 마스킹한다. 이러한 종류의 증강은 유사한 지역 정보를 가진 이미지의 특징이 유사하도록 강제해야 한다. 인코더에서 이를 촉진하는 최적화 문제를 공식화하고 구현하라.
+\end{exercise}
+
+\begin{exercise}
+    \phantom{}
+    \begin{enumerate}[(a)]
+        \item $\eqref{eq:simdino_loss_teacherstudent}$의 공분산 정규화 항을 근사하기 위해 $\eqref{eq:simdino_loss_teacherstudent_empirical}$에서 $R_{\eps}$를 포함하는 항의 대안을 제안하라. 제안된 항과 그 그래디언트를 계산하는 데 필요한 시간 복잡도를 평가하라. 단일 계산 노드 대 여러 노드에서 계산하는 것에 대한 분석을 포함하라.
+        \item $\eqref{eq:simdino_loss_teacherstudent_empirical}$의 기존 항과 그 그래디언트를 계산하는 데 필요한 시간 복잡도를 평가하라.
+    \end{enumerate}
+\end{exercise}
+
+\begin{exercise}
+    $\eqref{eq:linear_probing}$과 $\eqref{eq:linear_probing_empirical}$가 볼록 최적화 문제임을 증명하라.
+\end{exercise}
+
+\begin{exercise}
+    \phantom{}
+    \begin{enumerate}[(a)]
+        \item CRATE 및 CRATE-\( \alpha \) 모델을 구현하라.
+        \item CIFAR-10 데이터셋에서 성능과 효율성을 비교하라.
+        \item 두 가지 방식으로 해석 가능성을 비교하라:
+        \begin{itemize}
+            \item 표현 $\vZ$의 희소성 $\norm{\vZ}_{0}$
+            \item 어텐션 맵 $\va_{\theta}^{k, \ell}$
+        \end{itemize}
+    \end{enumerate}
+\end{exercise}
 
 \end{document}
