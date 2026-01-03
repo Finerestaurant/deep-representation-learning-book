@@ -1,58 +1,883 @@
-\providecommand{\toplevelprefix}{../..}
+\providecommand{\toplevelprefix}{../..} %
 \documentclass[../../book-main_ko.tex]{subfiles}
 
 \begin{document}
 
 \chapter{저차원 분포를 사용한 추론}
+\label{ch:conditional-inference}
+
+\begin{quote}
+
+\hfill    ``{\em 수학은 다른 것에 같은 이름을 부여하는 예술이다}.''
+
+$~$ \hfill --- 앙리 푸앵카레
+\end{quote}
+\vspace{5mm} 
+
+
+이 책의 이전 장들에서, 우리는 고차원 공간에서 저차원 지지 집합을 가진 분포 $p(\x)$를 가진 세상의 변수 $\x$에 대한 표현을 효과적이고 효율적으로 학습하는 방법을 연구했다. 지금까지 우리는 주로 일반적이고 분포 또는 작업에 구애받지 않는 방식으로 표현 학습 및 오토인코딩 방법론을 개발했다. 이러한 학습된 표현을 사용하면 이미 분류(인코딩이 클래스로 감독되는 경우) 및 주어진 데이터와 동일한 분포를 가진 무작위 샘플 생성(예: 자연 이미지 또는 자연어)과 같은 일반적이고 기본적인 작업을 수행할 수 있다.
+
+그러나 일반적으로 이 책에 제시된 이론 및 계산 프레임워크의 보편성과 확장성은 자연어, 인간 자세, 자연 이미지, 비디오, 심지어 3D 장면과 같은 다양한 중요한 실세계 고차원 데이터의 분포를 학습할 수 있게 해주었다. 이러한 실제 데이터의 본질적으로 풍부하고 저차원적인 구조를 올바르게 학습하고 표현할 수 있게 되면, 강력하고 종종 기적처럼 보이는 다양한 작업이 가능해지기 시작한다. 따라서 이제부터는 이전 장들에서 제시된 일반적인 방법을 특정 구조화된 데이터 분포 및 현대 기계 지능 실무에서 인기 있는 많은 작업에 대한 유용한 표현을 학습하기 위해 연결하고 맞춤화하는 방법을 보여줄 것이다.
 
 \section{베이지안 추론과 제약 최적화}
+\paragraph{안정적이고 견고한 추론을 위한 저차원성 활용.}일반적으로, 좋은 표현 또는 오토인코딩은 다양한 조건 하에서 다양한 후속 분류, 추정 및 생성 작업을 위해 데이터 $\x$ 및 그 표현 $\z$의 학습된 저차원 분포를 활용할 수 있게 해주어야 한다. \Cref{ch:intro} \Cref{sec:intro-low-dimensionality}에서 이전에 언급했듯이, 분포의 {\em 저차원성}의 중요성은 불완전하고, 잡음이 많으며, 심지어 손상된 관측치로부터도 데이터 $\x$와 관련된 안정적이고 견고한 추론을 수행하는 데 핵심이다. \Cref{fig:low-dim-properties}의 몇 가지 간단한 예시에서 알 수 있듯이. 알고 보니, 자연 이미지 및 언어와 같이 분포가 저차원 지지 집합을 가진 실세계 고차원 데이터에도 동일한 개념이 적용된다.
 
-% TODO: 번역 예정
+언어, 이미지, 비디오 및 기타 여러 양식과 같은 데이터를 사용한 기계 학습 실무에서 눈부신 다양한 응용 분야에도 불구하고, 거의 모든 실제 응용 분야는 다음 추론 문제의 특수한 경우로 볼 수 있다: $\x$에 따라 달라지는 관측치 $\y$가 주어졌을 때, 예를 들어
+\begin{equation}
+    \y = h(\x) + \boldsymbol{w},
+\end{equation}
+여기서 $h(\cdot)$는 $\x$의 일부 또는 특정 관측된 속성의 측정을 나타내고 $\vw$는 일부 측정 잡음 및 (희소한) 손상을 나타내며, $\x$의 가장 가능성 있는 추정치 $\hat{\x}(\y)$를 얻거나 관측치 $\y \approx h(\hat{\x})$와 적어도 일관성 있는 샘플 $\hat{\x}$를 생성하는 "역 문제"를 해결한다. \Cref{fig:inference_roadmap}은 $\x$와 $\y$ 사이의 일반적인 관계를 설명한다.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.9\textwidth]{\toplevelprefix/chapters/chapter6/figs/inference_roadmap.pdf}
+  \caption{\small \textbf{저차원 분포를 사용한 추론.} 이 장의 일반적인 그림은 다음과 같다: 우리는 $\R^{D}$에 있는 변수 $\x$에 대한 저차원 분포(여기서는 \(\R^{3}\)에 있는 두 \(2\)-차원 다양체의 합집합으로 묘사됨)와 측정 모델 $\y = h(\x) + \vw \in \R^{d}$를 가지고 있다. 우리는 모델과 (잠재적으로 유한한) $\vx$ 또는 $\vy$ 샘플에 대한 다양한 정보가 주어졌을 때, $\vy$가 주어졌을 때 $\vx$의 조건부 분포 또는 조건부 기댓값 $\mathbb{E}[\vx \mid \y]$ 등 이 모델에 대한 다양한 것을 추론하고자 한다.}
+  \label{fig:inference_roadmap}
+\end{figure}
+
+\begin{example}[이미지 완성 및 텍스트 예측]
+인기 있는 자연 이미지 완성 및 자연어 예측은 $\x$의 일부가 마스킹되고 나머지를 기반으로 완성되어야 하는, $\x$의 부분 관측치 $\y$로부터 전체 데이터 $\x$를 복구해야 하는 두 가지 전형적인 작업이다. \Cref{fig:image-text-completion}은 이러한 작업의 몇 가지 예시를 보여준다. 사실, 텍스트 생성 (GPT와 같은) 및 이미지 완성 (마스크 오토인코더와 같은)을 위한 현대 대규모 모델을 훈련하는 방법을 고안하는 데 영감을 준 것이 바로 이러한 작업이다. 이에 대해서는 나중에 더 자세히 연구할 것이다.
+    \begin{figure}
+        \centering
+        \includegraphics[height=0.4\linewidth]{\toplevelprefix/chapters/chapter6/figs/image-completion.jpg} \hspace{10mm} \includegraphics[height=0.45\linewidth]{\toplevelprefix/chapters/chapter6/figs/text-prediction.jpg}
+        \caption{왼쪽: 이미지 완성. 오른쪽: 텍스트 예측. 특히, 텍스트 예측은 인기 있는 생성적 사전 훈련 트랜스포머 (GPT)의 영감이다.}
+        \label{fig:image-text-completion}
+    \end{figure}
+\end{example}
+
+
+\paragraph{베이즈 규칙을 통한 통계적 해석.}일반적으로, 이러한 작업을 잘 수행하려면 조건부 분포 $p(\x\mid \y)$를 파악해야 한다. 이를 가지고 있다면, 최대 우도 추정치(예측)를 찾을 수 있을 것이다:
+\begin{equation}
+  \hat{\x} = \argmax_{\x} p(\x\mid \y);
+\end{equation}
+조건부 기댓값 추정치를 계산할 수 있을 것이다:
+\begin{equation}
+  \hat{\x} = \mathbb{E}[\x \mid \y] = \int \x p(\x\mid \y)\odif{\vx};
+\end{equation}
+그리고 조건부 분포에서 샘플링할 수 있을 것이다:
+\begin{equation}
+  \hat{\x} \sim p(\x \mid \y).
+\end{equation}
+
+베이즈 규칙으로부터 다음을 얻는다는 점에 주목하라:
+\begin{equation}
+  p(\x\mid \y) = \frac{p(\y\mid \x) p(\x) }{p(\y)}.
+\end{equation}
+예를 들어, 최대 우도 추정치는 다음 (최대 로그 우도) 프로그램을 해결함으로써 계산될 수 있다:
+\begin{equation}
+    \hat{\x} = \argmax_{\x} [\log p(\y\mid \x) + \log p(\x)],
+\end{equation}
+경사 상승을 통해:
+\begin{equation}
+    \x_{k+1} = \x_k + \alpha \cdot \big(\nabla_{\x} \log p(\y \mid \x) + \nabla_{\x} \log p(\x)\big).
+    \label{eqn:loglikelihoo-gradient-ascent}
+\end{equation}
+조건부 분포 $p(\x \mid \y)$를 효율적으로 계산하는 것은 데이터 $\x$의 저차원 분포 $p(\x)$와 조건부 분포 $p(\y \mid \x)$를 결정하는 관측 모델 $\y = h(\x) + \vw$를 어떻게 학습하고 활용하는지에 자연스럽게 달려 있다.
+
+\begin{remark}[종단 간 대 베이즈]
+데이터 기반 기계 학습의 현대적 실무에서, 특정 인기 있는 작업에 대해 사람들은 종종 조건부 분포 $p(\x\mid \y)$ 또는 (확률적) 매핑 또는 회귀 분석기를 직접 학습한다. 이러한 매핑은 종종 일부 심층 네트워크에 의해 모델링되고 충분한 쌍 샘플 $(\x, \y)$로 종단 간 훈련된다. 이러한 접근 방식은 $\x \sim p(\x)$의 분포와 (관측) 매핑이 모두 필요한 위 베이즈 접근 방식과는 매우 다르다. 베이즈 접근 방식의 이점은 학습된 분포 $p(\x)$가 다양한 관측 모델 및 조건으로 다양한 작업을 용이하게 할 수 있다는 것이다.
+\end{remark}
+
+\paragraph{제약 최적화로서의 기하학적 해석.}
+
+\(\vx\) 분포의 지지 집합 $\cS_{\vx}$가 저차원이므로, 다음과 같은 함수 $F$가 존재한다고 가정할 수 있다.
+\begin{equation}
+  F(\vx) = \boldsymbol{0} \qquad \iff \qquad \vx \in \cS_{\vx}
+\end{equation}
+여기서 $\cS_{\vx} = F^{-1}(\{\vzero\})$는 $p(\x)$ 분포의 저차원 지지 집합이다. 기하학적으로, $F(\x)$의 자연스러운 선택 중 하나는 지지 집합 $\mathcal{S}_{\x}$까지의 "거리 함수"이다:\footnote{실제로, 우리는 분포의 지지 집합에 대한 이산 샘플만 가지고 있다. \Cref{ch:compression}에서 연구한 확산 또는 손실 코딩과 같은 연속의 정신으로, $\mathcal{S}_{\x}$를 $\epsilon$-볼로 샘플을 커버하는 $\cC_{\vx}^{\epsilon}$으로 대체하여 거리 함수를 $F(\x) \approx \min_{\x_p \in \cC_{\vx}^{\epsilon}} \|\x - \x_p\|_2$로 근사할 수 있다.}
+\begin{equation}
+    F(\x) = \min_{\x_p \in \mathcal{S}_{\x}} \|\x - \x_p\|_2.
+\end{equation}
+이제 $\y = h(\x) +\vw$가 주어졌을 때, $\x$를 풀기 위해 다음 제약 최적화 문제를 풀 수 있다:
+\begin{equation}
+    \max_{\x} - \frac{1}{2}\|h(\x) - \y\|_2^2 \quad \mbox{s.t.} \quad F(\x) = \boldsymbol{0}.
+\end{equation}
+확장 라그랑주 승수법을 사용하여 다음 비제약 프로그램을 해결할 수 있다:
+\begin{equation}
+   \max_{\x} \left[-\frac{1}{2}\|h(\x) - \y\|_2^2  + \vlambda^{\top} F(\x) - \frac{\mu}{2} \|F(\x)\|_2^2ight]
+\end{equation}
+어떤 상수 라그랑주 승수 $\vlambda$에 대해.
+이것은 다음 프로그램과 동등하다:
+\begin{equation}\label{eq:lagrange_multiplier_continuation}
+\max_{\x} \left[\log \exp\Big(- \frac{1}{2}\|h(\x) - \y\|_2^2\Big) + \log \exp\Big( - \frac{\mu}{2} \big\|F(\x) - \vlambda/\mu\big\|_2^2\Big)ight],
+\end{equation}
+여기서 $\vc \doteq {\vlambda}/{\mu}$는 제약 함수에 대한 "평균"으로 볼 수 있다. 연속을 통해 제약을 강제할 때 $\mu$가 커지면ootnote{\Cref{ch:compression}에서 우리가 $\eps \to 0$로 보냄으로써 분포에 대한 더 나은 근사를 얻었던 연속의 정신과 유사하게, 여기서는 $\mu \to \infty$로 보낸다. 더 큰 $\mu$ 값은 최적에서 $F$가 더 작고 작은 값을 취하도록 제약할 것이며, 이는 최적이 지지 집합 $\cS_{\vx}$의 더 작고 작은 이웃 내에 놓여 있음을 의미한다. 흥미롭게도, 라그랑주 승수 이론은 $F$ 및 목적 함수의 다른 항에 대한 특정 양성 조건 하에서, 최적에서 $F(\vx) = \vzero$를 보장하기 위해 $\mu$를 충분히 크게 만들 필요가 있을 뿐임을 시사한다. 이는 \textit{유한한} 페널티로 지지 집합의 \textit{완벽한} 근사를 얻는다는 의미이다. 일반적으로, 우리는 $\mu$가 $\epsilon^{-1}$와 동일한 역할을 한다는 직관을 가져야 한다.}, $\|\vc\|_2$는 점점 더 작아진다.
+
+위 프로그램은 두 가지 다른 방식으로 해석될 수 있다. 첫째, 첫 번째 항을 $\x$가 주어졌을 때 $\y$의 조건부 확률로, 두 번째 항을 $\x$의 확률 밀도로 볼 수 있다:
+\begin{equation}
+  p(\y\mid \x) \propto \exp\Big(- \frac{1}{2}\|h(\x) - \y\|_2^2\Big), \quad
+    p(\x) \propto \exp\Big( - \frac{\mu}{2}\|F(\x) - \vc\|_2^2\Big).
+\end{equation}
+따라서 역 문제에 대한 제약 최적화를 해결하는 것은 위 확률 밀도로 베이즈 추론을 수행하는 것과 동등하다. 따라서 위 프로그램 \eqref{eq:lagrange_multiplier_continuation}을 경사 상승을 통해 해결하는 것은 위 최대 우도 추정치 \eqref{eqn:loglikelihoo-gradient-ascent}와 동등하며, 여기서 그래디언트는 다음 형태를 취한다:
+\begin{equation}
+   \nabla_{\x} \log p(\y \mid \x) + \nabla_{\x} \log p(\x)   =  \pdv{h}{\vx}(\vx)\big(\y - h(\x)\big) + \mu \pdv{F}{\vx}(\vx)\big(\vc - F(\x)\big),
+\end{equation}
+여기서 $\pdv{h}{\vx}(\vx)$와 $\pdv{F}{\vx}(\vx)$는 각각 $h(\x)$와 $F(\x)$의 야코비안이다.
+
+둘째, 위 프로그램 \eqref{eq:lagrange_multiplier_continuation}은 다음와 동등하다는 점에 주목하라:
+\begin{equation}
+\min_{\x} \frac{1}{2}\|h(\x) - \y\|_2^2 + \frac{\mu}{2} \big\|F(\x) - \vlambda/\mu\big\|_2^2,
+\label{eqn:energy-minimization}
+\end{equation}
+두 항의 눈에 띄는 이차 형식 때문에, 이들은 특정 "에너지" 함수로도 해석될 수 있다. 이러한 공식은 기계 학습 문헌에서 종종 "에너지 최소화"라고 불린다.
+
+\paragraph{추론을 위한 몇 가지 대표적인 실용적 설정.}
+그러나 실제로는 $\x$의 분포 및 $\x$와 $\y$ 사이의 관계에 대한 초기 정보가 다양한 방식으로 주어질 수 있다. 일반적으로, 이들은 대부분 다음 네 가지 경우로 분류될 수 있으며, 개념적으로 점점 더 어려워진다:
+\begin{itemize}
+\item {\em 경우 1:} $\x$의 분포 모델과 관측 모델 $\y = h(\x)$ $(+ \boldsymbol{w})$가 분석적 형태로도 알려져 있다. 이는 신호 잡음 제거, \Cref{ch:classic}에서 보았던 희소 벡터 복원 문제 및 아래에서 소개될 저계급 행렬 복원 문제와 같은 많은 고전적인 신호 처리 문제의 일반적인 경우이다.
+\item {\em 경우 2:} 분포에 대한 모델은 없지만 $\x$의 샘플 $\X = \{\x_1, \ldots, \x_N\}$만 있고, 관측 모델 $\y = h(\x)$ $(+ \boldsymbol{w})$가 알려져 있다.\footnote{문헌에서는 이 설정을 때때로 {\em 경험적 베이즈 추론}이라고 부른다.} $\x$의 분포 $p(\x)$ 모델을 학습해야 하며, 이어서 조건부 분포 $p(\x\mid \y)$를 학습해야 한다. 자연 이미지 완성 또는 자연어 완성(예: BERT 및 GPT)이 이 클래스 문제의 전형적인 예시이다.
+\item {\em 경우 3:} 두 변수 $(\x, \y)$의 쌍을 이룬 샘플: $(\X, \Y) = \{ (\x_1, \y_1), \ldots, (\x_N, \y_N) \}$만 있다. $\x$와 $\y$의 분포 및 그들의 관계 $h(\cdot)$를 이 쌍을 이룬 샘플 데이터로부터 학습해야 한다. 예를 들어, 많은 이미지와 그들의 캡션이 주어졌을 때, 텍스트 조건부 이미지 생성을 학습하는 것이 그러한 문제 중 하나이다.
+\item {\em 경우 4:} 관측치 $\y$의 샘플 $\Y = \{\y_1, \ldots, \y_N\}$만 있고, 관측 모델 $h(\cdot)$는 (적어도 어떤 매개변수적 패밀리 $h(\cdot, \boldsymbol{\theta})$ 내에서) 알려져 있어야 한다. $\Y$에서 추정된 $\hat{\x}$로부터 분포 $p(\x)$와 $p(\x \mid \y)$를 학습해야 한다. 예를 들어, 보정된 또는 보정되지 않은 뷰 시퀀스로부터 새로운 뷰를 렌더링하는 것을 학습하는 것이 그러한 문제 중 하나이다.
+\end{itemize}
+이 장에서는 이러한 경우에 대해 원하는 분포를 학습하고 관련된 조건부 추정 또는 생성을 해결하기 위한 일반적인 접근법을 일반적으로 대표적인 문제를 통해 논의할 것이다. 이 장 전체에서 \Cref{fig:inference_roadmap}을 염두에 두어야 한다.
 
 \section{알려진 데이터 분포를 사용한 조건부 추론}
+이전 장들에서 논의한 설정에서, 오토인코딩 네트워크는 랜덤 벡터 $\x$의 샘플 집합을 재구성하도록 훈련된다. 이는 학습된 (저차원) 분포로부터 샘플을 재생성할 수 있게 해준다. 실제로, 분포의 저차원성은 주어지거나 학습된 후, 안정적이고 견고한 복구, 완성 또는 예측 작업을 위해 활용될 수 있다. 즉, 상당히 온화한 조건 하에서, $\x$의 매우 압축적이고, 부분적이며, 잡음이 많고, 심지어 손상된 측정치로부터 $\x$를 복구할 수 있다:
+\begin{equation}
+    \y = h(\x) + \vw,
+\end{equation}
+여기서 $\y$는 일반적으로 $\x$보다 훨씬 낮은 차원의 $\x$ 관측치이며 $\vw$는 무작위 잡음이거나 심지어 희소하고 심각한 손상일 수 있다. 이는 희소 벡터, 저계급 행렬 등과 같은 저차원 구조에 대해 고전적인 신호 처리 문헌에서 광범위하게 연구된 문제 클래스이다. 관심 있는 독자는 이 주제에 대한 완전한 설명을 위해 \cite{Wright-Ma-2022}를 참조할 수 있다.
 
-% TODO: 번역 예정
+여기서 고전적인 작업을 보다 일반적인 현대적 설정에 적용하기 위해, 데이터 (특히 이미지) 완성의 가장 간단한 작업을 통해 기본 아이디어와 사실을 설명한다. 즉, $\x$의 일부가 누락되거나 (심지어 손상된) 경우 $\x$의 샘플을 복구하는 문제를 고려한다. $\x$의 일부만 관찰하여 $\x$의 나머지를 복구하거나 예측하고자 한다:
+\begin{equation}
+f: \mathcal{P}_{\Omega}(\x) \mapsto \hat{\x},
+\end{equation}
+여기서 $\mathcal{P}_{\Omega}(\cdot)$는 마스킹 연산을 나타낸다(\Cref{fig:matrix-completion}은 예시).
+
+이 섹션과 다음 섹션에서는 두 가지 다른 시나리오에서 완성 작업을 연구할 것이다: 하나는 관심 데이터 $\x$의 분포가 분석적 형태로도 {\em 사전에} 주어지는 경우이다. 이는 신호의 구조가 알려져 있다고 가정하는 고전적인 신호 처리(예: 대역 제한, 희소 또는 저계급)에서 지배적인 경우이다. 다른 하나는 $\x$의 원시 샘플만 사용할 수 있고 완성 작업을 잘 해결하기 위해 샘플로부터 저차원 분포를 학습해야 하는 경우이다. 이는 자연 이미지 완성 또는 비디오 프레임 예측 작업의 경우이다. 이 장의 나머지 부분의 전조로서, 이미지 완성의 가장 간단한 경우부터 시작한다: 완성될 이미지가 저계급 행렬로 잘 모델링될 수 있는 경우. 나중에 점점 더 일반적인 경우와 더 어려운 설정으로 넘어갈 것이다.
+
+\paragraph{저계급 행렬 완성.}
+저계급 {\em 행렬 완성} 문제는 분포가 저차원이고 알려져 있을 때 데이터 완성에 대한 고전적인 문제이다. 랭크 $r$인 모든 행렬 공간에서 행렬 $\X_o = [\x_1, \ldots, \x_n] \in \mathbb{R}^{m\times n}$의 무작위 샘플을 고려하자. 일반적으로, 행렬의 랭크는 다음과 같다고 가정한다.
+\begin{equation}
+\mbox{rank}(\X_o) = r < \min\{m, n\}.
+\end{equation}
+따라서 랭크 $r$인 모든 행렬 공간의 내재적 차원은 주변 공간 $mn$보다 훨씬 낮다는 것이 명확하다.
+
+이제 $\Omega$를 행렬 $\X_o$의 관측된 항목의 인덱스 집합이라고 하자. 관측된 항목은 다음과 같다:
+\begin{equation}
+\Y = \mathcal{P}_{\Omega}(\X_o).
+\end{equation}
+$\\Omega^c$에 지지되는 나머지 항목은 관측되지 않았거나 누락되었다. 문제는 $\Y$로부터 $\X$의 누락된 항목을 올바르고 효율적으로 복구할 수 있는지 여부이다. \Cref{fig:matrix-completion}은 이러한 행렬을 완성하는 한 가지 예를 보여준다.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.3\linewidth]{\toplevelprefix/chapters/chapter6/figs/masked-checkerboard.png}\;\;
+\includegraphics[width=0.3\linewidth]{\toplevelprefix/chapters/chapter6/figs/mask.png}\;\;
+\includegraphics[width=0.3\linewidth]{\toplevelprefix/chapters/chapter6/figs/checkerboard.png}
+\caption{일부 항목이 마스킹되거나 손상된 저계급 행렬로서의 이미지 완성 예시. 왼쪽: 마스킹/손상된 이미지 $\Y$; 가운데: 마스크 $\Omega$; 오른쪽: 완성된 이미지 $\hat{\X}$.}
+\label{fig:matrix-completion}
+\end{figure}
+
+이러한 행렬을 완성할 수 있는 근본적인 이유는 행렬의 열과 행이 고도로 상관되어 있고 모두 저차원 부분공간에 놓여 있기 때문이다. \Cref{fig:matrix-completion}에 표시된 예시의 경우, 완성된 행렬의 차원 또는 랭크는 2에 불과하다. 따라서 이러한 행렬을 복구하는 근본적인 아이디어는 관측된 항목과 일치하는 모든 행렬 중에서 가장 낮은 랭크를 가진 행렬을 찾는 것이다:
+\begin{equation}
+\min_{\X} \mbox{rank}(\X) \quad \mbox{subject to}
+\quad
+\Y = \mathcal{P}_{\Omega}(\X).
+\label{eqn:rank-min}
+\end{equation}
+이것은 {\em 저계급 행렬 완성} 문제로 알려져 있다. 모든 저계급 행렬 공간의 완전한 특성화는 \cite{Wright-Ma-2022}를 참조하라. 랭크 함수는 불연속적이고 랭크 최소화는 일반적으로 NP-난해 문제이므로, 우리는 더 쉽게 최적화할 수 있는 것으로 완화하고자 한다.
+
+\Cref{ch:compression}의 압축에 대한 지식을 바탕으로, 우리는 $\X$의 데이터의 손실 코딩 레이트(또는 $\X$가 스팬하는 부피)를 작게 함으로써 복구된 행렬 $\X$의 저계급성을 촉진할 수 있다:
+\begin{equation}
+\min R_\epsilon(\X) = \frac{1}{2} \log \det \left(\boldsymbol{I} + \alpha  \X\X^\top \right) \quad \mbox{subject to}
+\quad
+\Y = \mathcal{P}_{\Omega}(\X).
+\label{eqn:rate-min}
+\end{equation}
+이 문제는 위 저계급 행렬 완성 문제 \eqref{eqn:rank-min}의 연속적 완화로 볼 수 있으며 경사 하강을 통해 해결될 수 있다. $\log\det$ 목적 함수에 대한 경사 하강 연산자가 행렬 $\X\X^\top$의 랭크의 근접한 대리자를 정확하게 최소화한다는 것을 보일 수 있다.
+
+레이트 왜곡 함수는 비볼록 함수이며, 그 경사 하강은 항상 전역 최적 해를 찾는 것을 보장하지는 않는다. 그럼에도 불구하고, $\X$에 대해 추구하는 기본 구조가 조각별 선형이기 때문에, 랭크 함수는 다소 효과적인 볼록 완화를 허용한다: 핵 노름---행렬 $\X$의 모든 특이값의 합이다. 압축 감지 문헌에서 보여진 바와 같이, 상당히 넓은 조건 하에서,\footnote{일반적으로, 이러한 조건은 완성을 위해 필요한 항목의 필요충분한 양을 지정하여 계산적으로 실현 가능하게 한다. 이러한 조건은 \cite{Wright-Ma-2022}에 체계적으로 특성화되어 있다.} 행렬 완성 문제 \eqref{eqn:rank-min}은 다음 볼록 프로그램을 통해 효과적으로 해결될 수 있다:
+\begin{equation}
+\min \|\X\|_* \quad \mbox{subject to}
+\quad
+\Y = \mathcal{P}_{\Omega}(\X).
+\label{eqn:nuclear-min}
+\end{equation}
+여기서 핵 노름 $\|\X\|_*$는 $\X$의 특이값의 합이다. 실제로는 종종 위의 제약된 볼록 최적화 프로그램을 비제약 프로그램으로 변환한다:
+\begin{equation}
+\min \|\X\|_*  + \lambda \|\nobreak
+\Y - \mathcal{P}_{\Omega}(\X)\|_F^2,
+\label{eqn:nuclear-min-lagrangian}
+\end{equation}
+적절하게 선택된 $\lambda > 0$에 대해. 위의 프로그램을 효율적이고 효과적으로 해결할 수 있는 알고리즘을 개발하는 방법에 대해서는 \cite{Wright-Ma-2022}를 참조하라.
+\Cref{fig:matrix-completion}은 위의 프로그램을 해결하여 행렬 $\hat{\X}$가 실제로 복구된 실제 예를 보여준다.
+
+\paragraph{추가 확장.}
+이미지 (또는 더 정확하게는 텍스처) 및 3D 장면이 저계급 구조를 가질 때, 위의 종류의 최적화 프로그램을 해결함으로써 매우 효과적으로 완성될 수 있음이 입증되었다. 추가적인 손상 및 왜곡이 있더라도 \cite{Zhang2010TILTTI,Liang-ECCV2012,Yi_2023_ICCV}:
+\begin{equation}
+    \Y \circ \tau = \X_o + \boldsymbol{E},
+\end{equation}
+여기서 $\tau$는 이미지의 알려지지 않은 비선형 왜곡이고 $\boldsymbol{E}$는 일부 (희소한) 가림 및 손상을 모델링하는 알려지지 않은 행렬이다. 다시 한번, 더 자세한 내용은 \cite{Wright-Ma-2022}를 참조하라.
 
 \section{학습된 데이터 표현을 사용한 조건부 추론}
+이전 하위 섹션에서, 부분 관측치 $\y$로부터 $\x$를 추론할 수 있는 이유는 $\X$ 분포의 (지지 집합)이 저계급 행렬 집합으로 알려져 있거나 {\em 사전에} 지정되었기 때문이다. 많은 실제 데이터셋의 경우, 저계급 행렬과 같은 분석적 형태로 분포를 가지고 있지 않다 (예: 모든 자연 이미지 집합). 그럼에도 불구하고, $\x$의 충분한 샘플이 있다면, 먼저 저차원 분포를 학습하고 관측치 $\y = h(\x) + \vw$를 기반으로 미래 추론 작업에 활용할 수 있어야 한다. 이 섹션에서는 관측 모델 $h(\cdot)$가 주어지고 알려져 있다고 가정한다. 다음 섹션에서는 $h(\cdot)$가 명시적으로 주어지지 않는 경우를 연구할 것이다.
 
 \subsection{마스크 오토인코딩을 통한 이미지 완성}
+\Cref{fig:crate_mae_pipeline} 왼쪽 그림에 보이는 것과 같은 일반적인 이미지 $\vX$는 더 이상 저계급 행렬로 볼 수 없다. 그러나 인간은 심한 가림에도 불구하고 장면을 완성하고 친숙한 객체를 인식하는 놀라운 능력을 계속 보여준다. 이는 우리의 뇌가 자연 이미지의 저차원 분포를 학습했으며 이를 완성하고 인식을 수행하는 데 사용할 수 있음을 시사한다. 그러나 모든 자연 이미지의 분포는 저차원 선형 부분 공간처럼 간단하지 않다. 따라서 자연 이미지의 더 정교한 분포를 학습하고 이를 이미지 완성을 수행하는 데 사용할 수 있는지 여부가 자연스러운 질문이다.
 
-% TODO: 번역 예정
+\begin{figure}[t!]
+\begin{center}
+  \includegraphics[width=0.99\textwidth]{\toplevelprefix/chapters/chapter6/figs/crate_mae_pipeline.png}
+\end{center}
+\caption{\small \textbf{전체 (마스크) 오토인코딩 과정의 다이어그램.} (이미지) 토큰 표현은 각 인코더 계층 $\(f^{\ell}\)$에 의해 간결한 (예: 압축되고 희소한) 표현으로 반복적으로 변환된다. 더욱이, 이러한 표현은 디코더 계층 $\(g^{\ell}\)$에 의해 원래 이미지로 다시 변환된다. 각 인코더 계층 $\(f^{\ell}\)$은 해당 디코더 계층 $\(g^{L - \ell}\)$에 의해 (부분적으로) 역전되도록 의도되었다.}
+\label{fig:crate_mae_pipeline}
+\end{figure}
+
+이미지 완성 작업에 대한 경험적 접근 방식 중 하나는 재구성 손실을 최소화하는 다음 {\em 마스크 오토인코딩}(MAE) 프로그램을 해결하여 인코딩 및 디코딩 체계를 찾는 것이다:
+\begin{equation}\label{eq:mae_loss}
+\min_{f, g} L_{\mathrm{MAE}}(f, g) \doteq \mathbb{E}[\norm{(g \circ f)(\mathcal{P}_{\Omega}(\vX)) - \vX}_{2}^{2}].
+\end{equation}
+간단한 기본 구조를 가진 행렬 완성 문제와 달리, 인코딩 및 디코딩 매핑이 간단한 닫힌 형식을 가지거나 프로그램이 명시적 알고리즘으로 해결될 수 있다고 더 이상 기대해서는 안 된다.
+
+일반적인 자연 이미지의 경우, 더 이상 그 열이나 행이 저차원 부분 공간이나 저계급 가우시안에서 샘플링되었다고 가정할 수 없다. 그러나 이미지가 여러 영역으로 구성되어 있다고 가정하는 것이 합리적이다. 각 영역의 이미지 패치는 유사하며 하나의 (저계급) 가우시안 또는 부분 공간으로 모델링될 수 있다. 따라서 분포의 저차원성을 활용하기 위해, 인코더 $f$의 목표는 $\X$를 표현 $\Z$로 변환하는 것이다:
+\begin{equation}
+    f: \X \mapsto \Z
+\end{equation}
+$\\Z$의 분포가 부분 공간의 혼합, 예를 들어 $\{\vU_{[K]}\}$으로 잘 모델링될 수 있도록 하여, 희소성이 최소화되는 동안 레이트 감소가 최대화되는가:
+\begin{equation}\label{eq:sparse_rr}
+\mathbb{E}_{\vZ = f(\vX)}[\Delta R_{\epsilon}(\vZ \mid \vU_{[K]}) - \lambda
+\norm{\vZ}_{0}] = \mathbb{E}_{\vZ = f(\vX)}[R_\epsilon(\vZ) - R^{c}_\epsilon(\vZ \mid
+\vU_{[K]}) - \lambda \norm{\vZ}_{0}],
+\end{equation}
+여기서 함수 $R_\epsilon(\cdot)$와 $R^c_\epsilon(\cdot)$는 각각 \eqref{eq:coding_rate}와 \eqref{eq:def-mcr-Rc}에 정의되어 있다.
+
+이전 \Cref{ch:representation}에서 보여주었듯이, 위 목표를 최소화하는 인코더 $f$는 트랜스포머와 유사한 연산자 시퀀스로 구성될 수 있다. \cite{Pai2024masked}의 연구에서 보여주듯이, 디코더 $g$는 인코더 $f$의 역 과정으로 볼 수 있으며 따라서 명시적으로 구성될 수 있다.
+\Cref{fig:crate_mae_layers}는 인코더와 해당 디코더의 전체 아키텍처를 각 계층에서 보여준다. 인코더 $f$와 디코더 $g$의 매개변수는 경사 하강을 통해 재구성 손실 \eqref{eq:mae_loss}을 최적화하여 학습할 수 있다.
+
+\begin{figure}[t!]
+\centering
+\includegraphics[width=0.99\textwidth]{\toplevelprefix/chapters/chapter6/figs/crate_mae_layers.png}
+\caption{\small \textbf{각 인코더 계층(\textit{상단}) 및 디코더 계층(\textit{하단})의 다이어그램.} 두 계층은 서로에게 매우 반대 방향으로 작용하도록 구성되어 있음에 주목하라. 즉, 디코더 계층 $\(g^{\ell}\)$에서 $\(f^{L - \ell}\)$의 $\ISTA$ 블록은 선형 계층을 사용하여 부분적으로 먼저 역전되고, 그 다음 $\(f^{L - \ell}\)$의 $\MSSA$ 블록이 역전된다; 이 순서는 $\(f^{L - \ell}\)$에서 수행된 변환을 되돌린다.}
+\label{fig:crate_mae_layers}
+\end{figure}
+
+\Cref{fig:mae_autoencoding-small}은 이렇게 설계된 마스크 오토인코더의 몇 가지 대표적인 결과를 보여준다. 자연 이미지 완성에 대한 마스크 오토인코더의 더 많은 구현 세부 사항과 결과는 \Cref{ch:applications}에서 찾을 수 있다.
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\textwidth]{\toplevelprefix/chapters/chapter6/figs/crate_mae_autoencoding_small.pdf}
+\caption{\small \textbf{75% 패치 마스킹된 CRATE-Base 및 ViT-MAE-Base \cite{he2022masked}의 오토인코딩 시각화.} 
+  우리는 CRATE-Base의 재구성이 ViT-MAE-Base의 재구성과 동등함을 관찰하며, 이는 매개변수의 \(< 1/3\)만 사용했음에도 불구하고 그렇다.
+}
+\label{fig:mae_autoencoding-small}
+\end{figure}
+
 
 \subsection{측정 매칭을 통한 조건부 샘플링}
+\label{sec:conditioned-decoding}
+위의 (마스크) 오토인코딩 문제는 특정 관측치 또는 조건과 일관된 샘플 이미지를 생성하는 것을 목표로 한다. 그러나 접근 방식을 더 자세히 살펴보자: 이미지의 시각적 부분 $\X_v = \mathcal{P}_{\Omega}(\X)$가 주어졌을 때, 우리는 마스킹된 부분 $\X_m = \mathcal{P}_{\Omega^c}(\X)$을 추정하려고 한다. 랜덤 변수 $\vX=(\vX_v, \vX_m)$의 실현 $(\vXi_v, \vXi_m)$에 대해, $\vXi_v$가 주어졌을 때 $\X_m$의 조건부 분포를 \[
+p{p}_{\X_m \mid \X_v}(\vXi_m\mid \vXi_v)\]라고 하자. MAE 공식 \eqref{eq:mae_loss}에 대한 최적 해가 조건부 기댓값으로 주어짐을 보이기 쉽다:
+\begin{equation}
+  \argmin_{h = g \circ f}\ L_{\mathrm{MAE}}(h)
+  = \vXi_v \mapsto \vXi_v + \mathbb{E}[\X_m \mid \X_v=\vXi_v].
+\end{equation}
+그러나 일반적으로 이 기댓값은 자연 이미지의 저차원 분포에 놓여 있지 않을 수도 있다! 이는 \Cref{fig:mae_autoencoding-small}의 복구된 패치 중 일부가 약간 흐릿한 이유를 부분적으로 설명한다.
 
-% TODO: 번역 예정
+많은 실용적인 목적을 위해, 우리는 조건부 분포 $p_{\X_m \mid \X_v}$, 또는 동등하게 $p_{\X \mid \X_v}$를 학습하고 (표현으로) 이 분포에서 직접 명확한 (가장 가능성이 높은) 샘플을 얻고자 한다. $\X$의 분포가 저차원일 때, $\X$의 충분한 부분, $\X_v$가 관측되면, 이는 $\X$를 완전히 결정하고 따라서 누락된 부분 $\X_m$을 결정할 수도 있다는 점에 주목하라. 즉, 분포 $p_{\X \mid \X_v}$는 일반화된 함수이다—만약 $\vX$가 $\vX_v$에 의해 완전히 결정된다면 이는 델타 함수이고, 더 일반적으로는 그 이국적인 사촌 중 하나이다.
+
+따라서 조건부 추정 문제로 완성 작업을 해결하는 대신, 조건부 샘플링 문제로 다루어야 한다. 이를 위해, 먼저 모든 자연 이미지 $\X$의 (저차원) 분포를 학습해야 한다. 충분한 자연 이미지 샘플이 있다면, \Cref{ch:compression}에서 설명한 잡음 제거 과정 $\X_t$를 통해 분포를 학습할 수 있다. 그러면 부분 관측치 $\Y = \mathcal{P}_\Omega(\x) +\vw$로부터 $\X$를 복구하는 문제는 조건부 생성 문제가 된다—관측치에 조건화된 분포를 샘플링하는 것이다.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1.0\textwidth]{\toplevelprefix/chapters/chapter6/figs/ambient_diffusion.png}
+  \caption{\small \textbf{픽셀의 80%가 마스킹된 상태로 앰비언트 확산 \cite{Daras-NIPS2023}을 통해 훈련된 모델의 샘플링 시각화.} \Cref{fig:mae_autoencoding-small}과 유사한 비율의 마스크된 픽셀을 사용하여, 앰비언트 확산 샘플링 알고리즘은 MAE 기반 방법으로 복구된 흐릿한 이미지보다 훨씬 선명한 이미지를 복구한다. 전자의 방법은 자연 이미지 분포에서 샘플링하는 반면, 후자는 관측치가 주어졌을 때 이 분포의 조건부 기댓값 (즉, 평균)을 근사한다; 이 평균화는 흐릿함을 유발한다.}
+  \label{fig:ambient_diffusion}
+\end{figure}
+
+
+\paragraph{일반적인 선형 측정.}
+실제로, 더 일반적인 선형 관측 모델로부터 $\X$를 복구하는 것을 고려할 수도 있다:
+\begin{equation}
+    \Y = \vA\X_0,  \quad \X_t = \X_0 + \sigma_t \vG,  
+\end{equation}
+여기서 $\vA$는 행렬 공간에 대한 선형 연산자이며\footnote{즉, $\vx$-공간을 긴 벡터로 펼쳐서 생각하면 $\vA$는 $\vx$-공간의 행렬 역할을 한다.}, $\vG \sim \mathcal{N}(\boldsymbol{0}, \vI)$이다. 이미지 완성 작업에서 마스킹 연산자 $\mathcal{P}_{\Omega}(\cdot)$는 이러한 선형 모델의 한 예시이다. 그러면 \cite{daras2023ambient}에 의해 다음이 입증되었다:
+\begin{equation}
+    \hat{\X}_* = \argmin_{\hat{\X}} \mathbb{E}[\|\vA(\hat{\X}(\vA\X_t, \vA) - \X_0)\|^2]
+\end{equation}
+다음 조건을 만족한다:
+\begin{equation}
+    \vA \hat{\X}_*(\vA(\X_t), \vA) = \vA \mathbb{E}[\X_0 \mid \vA \X_t, \vA].
+\end{equation} 특수한 경우, $\vA$가 완전 열 랭크를 가질 때, $ \mathbb{E}[\X_0 \mid \vA\X_t, \vA] = \mathbb{E}[\X_0 \mid \X_t]$임을 가진다는 점에 주목하라. 따라서 더 일반적인 경우, \cite{daras2023ambient}는 정상적인 $\X_t$ 잡음 제거 과정에서 위에서 얻은 $\mathbb{E}[\X_0 \mid \vA(\X_t), \vA]$를 $\mathbb{E}[\X_0 \mid \X_t]$를 대체하는 데 사용할 수 있다고 제안했다:
+\begin{equation}
+    \X_{t-s} = \gamma_t \X_t + (1-\gamma_t) \mathbb{E}[\X_0 \mid \vA\X_t, \vA].
+\end{equation}
+이는 \cite{daras2023ambient}에서 보여주듯이, 많은 이미지 복원 작업에서 매우 잘 작동한다. MAE에서 복구된 흐릿한 이미지와 비교하여, 위 방법으로 복구된 이미지는 자연 이미지의 학습된 분포를 활용하고 측정치와 일관된 (선명한) 이미지를 분포에서 샘플링하기 때문에 훨씬 선명하다. 이는 \Cref{fig:ambient_diffusion}에 나타나 있다(\Cref{fig:mae_autoencoding-small} 참조).
+
+\paragraph{일반적인 비선형 측정.}
+위 (이미지) 완성 문제를 일반화하고 더 엄밀하게 만들려면, 무작위 벡터 $\vx \sim p$가 더 일반적인 관측 함수를 통해 부분적으로 관측된다고 가정할 수 있다:
+\begin{equation}\label{eq:measurement-matching-observation}
+\vy = h(\vx) + \vw,
+\end{equation}
+여기서 $\vw$는 일반적으로 표준 가우시안 분포 $\vw \sim \mathcal{N}(\mathbf{0}, \sigma^2 \boldsymbol{I})$와 같은 무작위 측정 잡음을 나타낸다. $\x$와 $\y$가 그렇게 관련되어 있다면, 잡음 $\vw$가 작을 때 그들의 결합 분포 $p(\x, \y)$가 자연스럽게 거의 퇴화된다는 것을 쉽게 알 수 있다. 넓은 의미에서, 우리는 $p(\x, \y)$를 결합 공간 $(\x, \y)$에서 함수 $\y = h(\x)$에 의해 정의된 초곡면의 잡음이 있는 버전으로 볼 수 있다. 실제적으로, 우리는 순수한 행렬 완성보다는 마스크 오토인코딩에 더 가까운 설정을 고려할 것이다. 여기서 우리는 받는 모든 관측치 $\vy$에 대해 해당하는 깨끗한 샘플 $\vx$에 항상 접근할 수 있다.\footnote{특히 과학 이미징과 같은 일부 더 전문적인 응용 분야에서는 $\x$의 깨끗한/지상 진리 샘플에 접근할 수 없이 사후확률 $p_{\x \mid \y}$에서 샘플을 생성하는 방법을 학습하는 것이 중요하다. 이 설정에 대한 방법의 간략한 개요는 장 끝 부분의 참고 사항에서 제공한다.}
+
+이미지/행렬 완성처럼, 우리는 종종 $\vy$가 입력 $\vx$의 저하되거나 다른 방식으로 "손실된" 관측치를 나타내는 설정에 직면한다. 이는 매우 다른 형태로 나타날 수 있다. 예를 들어, 다양한 과학 또는 의료 이미징 문제에서 측정된 데이터 $\vy$는 기본 데이터 $\x$의 압축되고 손상된 관측치일 수 있다; 반면 3D 비전 작업에서 $\vy$는 알려지지 않은 (저차원) 자세 $\vx$를 가진 물리적 객체의 카메라에 의해 캡처된 이미지를 나타낼 수 있다.
+일반적으로, 수학적 모델링 (및 일부 경우, 측정 시스템의 공동 설계) 덕분에 우리는 $h$를 알고 임의의 입력에 대해 $h$를 평가할 수 있으며, 이 지식을 활용하여 $\x$를 재구성하고 샘플링하는 데 도움을 줄 수 있다.
+
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}{0.45\textwidth}
+    \vspace{0.75cm}
+    \centering
+    \begin{tikzcd}[column sep=1.5cm]
+      \vx \arrow[r, "h(\vx) + \vw"] & \vy \arrow[r, "p_{\vx \mid \vy}"]
+      & \posteriorsample \arrow[r, "\posteriorsample + t\vg"] & \posteriorsample_t
+    \end{tikzcd}
+    \vspace{0.75cm}
+    \caption{}
+    \label{fig:left}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzcd}[column sep=1.5cm, row sep=0.5cm]
+    & \vy \\
+    \vx \arrow[ur, "h(\vx) + \vw"] \arrow[dr, "\vx + t\vg"] & \\
+    & \vx_t
+    \end{tikzcd}
+    \caption{}
+    \label{fig:right}
+  \end{subfigure}
+  \caption{조건부 샘플링 과정에 대한 통계적 의존성 다이어그램.
+  \textbf{왼쪽:} \Cref{ch:compression}에서 개발한 확산-잡음 제거 방식을 조건부 샘플링에 직접 (개념적으로) 적용할 때, 사후확률 $p_{\vx \mid \vy}$에서 샘플을 사용하여 잡음 제거기를 다른 잡음 수준에서 사후확률에 직접 훈련한 다음, 이를 사용하여 새로운 샘플을 생성한다. 그러나 실제로 우리는 일반적으로 사후확률에서 직접 샘플을 얻을 수 없으며, 대신 결합 분포에서 쌍을 이룬 샘플 $(\vx, \vy)$만 얻을 수 있다.
+  \textbf{오른쪽:} $\vx$가 주어졌을 때 $\vx_t$와 $\vy$의 조건부 독립성으로부터 $\posteriorsample_t \mid \posteriorsample$에 해당하는 잡음 제거기를 실현하기 위해 $\vx$의 잡음이 있는 관측치만으로 충분하다는 것이 밝혀졌다. 이는 $\posteriorsample_t = p_{\vx_t \mid \vy}$를 의미하며, 이는 무조건부 스코어 함수와 측정 일관성을 강제하는 보정 항으로 구성된 잡음 제거를 위한 스코어 함수를 제공한다.}
+  \label{fig:posterior-sampling-cds}
+\end{figure}
+
+
+기술적 수준에서, 우리는 데이터의 학습된 표현이 조건부 분포 $p_{\vx\mid \vy}$(사후확률로도 알려져 있음)를 효과적이고 효율적으로 샘플링할 수 있도록 돕기를 원한다. 더 정확하게는, 랜덤 변수 $\vy$의 실현을 $\vnu$로 나타내자.
+우리는 다음과 같은 샘플 $\hat{\x}$를 생성하고자 한다:
+\begin{equation}\label{eq:goal-sample-posterior}
+  \hat{\x} \sim   p_{\vx \mid \y}(\spcdot \mid \vy=\vnu).
+\end{equation}
+
+\Cref{sub:compression_denoising}에서, 우리는 데이터 분포 $p$의 \textit{무조건부} 샘플을 생성하는 자연스럽고 효과적인 방법을 개발했음을 상기하라. 구성 요소는 잡음이 있는 관측치 $\x_t = \x + t \vg$ (및 그 실현에 대한 $\vxi$)의 다른 수준에 대한 잡음 제거기 $\bar{\x}^\ast(t, \vxi) = \bE[ \x \mid \vx_t=\vxi ]$ 또는 그 학습된 근사치 $\bar{\x}_{\theta}(t, \vxi)$이며, 가우시안 잡음 $\vg \sim \mathcal{N}(\mathbf{0}, \vI)$ 하에서, 그리고 시간 $t \in [0, T]$와 반복 잡음 제거를 수행할 시간 $0 = t_1 < \hdots < t_{L} = T$의 선택이며, $\hat{\vx}_{t_L} \sim \mathcal{N}(\mathbf{0}, T^2 \vI)$에서 시작한다(\Cref{ch:compression}의 \Cref{eq:denoising-iteration-basic} 참조).\footnote{\Cref{sub:sampling_denoising}의 논의에서 상기했듯이, 이 기본 반복 잡음 제거 방식에 대한 몇 가지 작은 개선은 경쟁력 있는 실제 성능을 가져오기에 충분하다. 조건부 샘플링을 개발할 때 명확성을 위해, 여기서는 가장 간단한 인스턴스에 초점을 맞출 것이다.} 우리는 이 방식을 사후확률 $p_{\vx \mid \vy}$에서 샘플을 생성하는 데 직접 적용할 수 있을 것이다. \textit{만약} 각 $\vy$의 실현 $\vnu$에 대해 샘플 집합 $\posteriorsample \sim p_{\vx \mid \y}(\spcdot \mid \vnu)$에 접근할 수 있다면 말이다. 이는 잡음이 있는 관측치 $\posteriorsample_t$를 생성하고 잡음 제거기를 훈련하여 $\bE[ \vx \mid \vx_t=\spcdot, \vy=\vnu ]$를 근사함으로써 가능하다. 이는 잡음이 있는 관측치 하의 사후확률의 평균이다(\Cref{fig:posterior-sampling-cds}(a) 참조).
+그러나, 결합 분포에서 쌍을 이룬 샘플 $(\vx, \vy)$만 주어졌을 때 (예를 들어, $\vy$ 값에 대한 샘플을 비닝함으로써) 이 재샘플링을 수행하는 것은 고차원 데이터에 대해 엄청나게 많은 샘플을 필요로 하며, 대안적인 접근 방식은 명시적으로 또는 암묵적으로 밀도 추정에 의존하며, 이는 유사하게 차원의 저주로 고통받는다.
+
+다행히도, 이것은 필요하지 않다는 것이 밝혀졌다.
+\Cref{fig:posterior-sampling-cds}(b)의 대안적인 통계적 의존성 다이어그램을 고려해보자. 이는 측정 $\vy$와 함께 일반적인 잡음 제거-확산 과정의 확률 변수에 해당한다.
+우리가 가정한 관측 모델 \eqref{eq:measurement-matching-observation}은 $\vx$가 주어졌을 때 $\vx_t$와 $\vy$가 독립임을 의미하므로, $\vy$의 임의의 실현 $\vnu$에 대해 다음이 성립한다.
+\begin{equation}\label{eq:conditional-denoising-conditioning-order-irrelevant}
+  \begin{split}
+  p_{\posteriorsample_t\mid \vy}(\spcdot \mid \vnu)
+  &= \int
+  \underbrace{p_{\posteriorsample_t \mid \posteriorsample}(\spcdot\mid \vxi)}_{= \mathcal{N}(\vxi, t^2 \vI)}
+  \cdot \underbrace{p_{\posteriorsample \mid \vy}}_{= p_{\vx\mid \vy}}(\vxi \mid \vnu)
+  \odif \vxi
+  \\
+  &= 
+  \int p_{\vx_t \mid \vx, \vy}(\spcdot\mid \vxi, \vnu) \cdot p_{\vx \mid \vy}(\vxi\mid \vnu) \odif \vxi
+  \\
+  &= p_{\vx_t \mid \vy}(\spcdot\mid \vnu).
+  \end{split}
+\end{equation}
+위에서, 첫 번째 줄은 \Cref{fig:posterior-sampling-cds} (a,b)에서 발생하는 분포들 간의 동등성을 인식한다; 두 번째 줄은 $\vx$가 주어졌을 때 $\vx_t$와 $\vy$의 조건부 독립성과 함께 이를 적용한다; 세 번째 줄은 조건부 확률의 정의를 사용한다; 마지막 줄은 $\vx$에 대해 주변화한다.
+따라서 개념적 사후확률 샘플링 과정의 잡음 제거기는 $\bE[\vx \mid \vx_t=\spcdot, \vy=\vnu]$와 같으며, 이는 쌍을 이룬 샘플 $(\vx, \vy)$에서만 학습할 수 있다.
+그리고 Tweedie의 공식 (\Cref{thm:tweedie})에 의해, 우리는 이러한 잡음 제거기를 $p_{\vx_t \mid \vy}$의 스코어 함수로 표현할 수 있으며, 이는 베이즈 규칙에 의해 다음을 만족한다:
+\begin{equation}
+  p_{\vx_t \mid \vy}(\vxi \mid \vnu)
+  = \frac{p_{\vy \mid \vx_t}(\vnu \mid \vxi) p_{\vx_t}(\vxi)}{p_{\vy}(\vnu)}.
+\end{equation}
+$\\vx_t$의 밀도는
+$p_t = \varphi_{t} \ast p$로 주어지며, 여기서 $\varphi_{t}$는 평균이 0이고 공분산 $t^2 \vI$인 표준 가우시안 밀도를 나타내고 $\ast$는 합성곱을 나타낸다. 이것은 \Cref{sub:compression_denoising}에서 개발한 표준 확산 훈련에서 얻은 \textit{무조건부 스코어} 함수에 불과하다!
+조건부 스코어 함수는 $(\vx_t, \vy)$의 임의의 실현 $(\vxi, \vnu)$에 대해 다음을 만족한다:
+\begin{equation}
+  \nabla_{\vxi} \log p_{\vx_t \mid \vy}(\vxi\mid \vnu)
+  = 
+  \underbrace{\nabla_{\vxi} \log p_t(\vxi)}_{\text{스코어 매칭}}
+  + 
+  \underbrace{\nabla_{\vxi} \log p_{\vy \mid \vx_t}(\vnu \mid \vxi)}_{\text{측정 매칭}},
+  \label{eqn:conditional-denoising-score}
+\end{equation}
+(Tweedie의 공식에 의해) 우리의 제안된 잡음 제거기는 다음과 같다:
+\begin{align*}
+  \bE[ \vx \mid \vx_t=\vxi, \vy=\vnu]
+  &= 
+  \vxi + t^2 \nabla_{\vxi}\log p_t(\vxi) + t^2 \nabla_{\vxi}\log p_{\vy \mid \vx_t}(\vnu \mid \vxi)
+  \\
+  &= 
+  \bE[\vx \mid \vx_t=\vxi] + t^2 \nabla_{\vxi}\log p_{\vy \mid \vx_t}(\vnu\mid \vxi).
+  \labelthis \label{eq:posterior-sampling-denoiser-decomposition}
+\end{align*} 
+
+이 절차를 계산 가능하게 만드는 데 남아 있는 핵심 문제는 $t=0$일 때를 제외하고는 일반적으로 우도 $p_{\vy \mid \vx_t}$에 대한 닫힌 형식 표현을 가지지 않으므로 측정 매칭 보정을 계산하는 방법을 규정하는 것이다. 이 문제를 다루기 전에, \Cref{sub:compression_denoising}에서 개발한 것들을 이어받아 전체 과정에 대한 설명적인 구체적인 예제를 논의한다.
+
+\begin{example}\label{example:denoising-conditional-gaussian}
+  평균이 $\vmu \in \bR^D$이고
+  공분산이 $\vSigma \in \bR^{D \times D}$인 가우시안 데이터 분포를 고려하자. 즉, $\vx \sim \mathcal{N}(\vmu, \vSigma)$이다.
+  $\\vSigma \succeq \Zero$가 0이 아니라고 가정하자.
+  더욱이, 측정 모델 \eqref{eq:measurement-matching-observation}에서, $\vx$의 선형 측정을 독립적인 가우시안 잡음과 함께 얻는다고 가정하자. 여기서 $\vA \in \bR^{d \times D}$이고 $\vy = \vA \vx + \sigma \vw$이며, $\vw \sim \mathcal{N}(\Zero, \vI)$는 $\vx$와 독립이다.
+  그러면 $\vx =_{d} \vSigma^{1/2} \vg + \vmu$이며, 여기서 $\vg \sim \mathcal{N}(\Zero, \vI)$는 $\vw$와 독립이고 $\vSigma^{1/2}$는 공분산 행렬 $\vSigma$의 고유한 양의 제곱근이다.
+  약간의 대수를 거치면, 다음을 쓸 수 있다.
+  \begin{equation*}
+    \begin{bmatrix}
+      \vx \\
+      \vy
+    \end{bmatrix}
+    =_{d}
+    \begin{bmatrix}
+      \vSigma^{1/2} & \Zero \\
+      \vA \vSigma^{1/2} & \sigma \vI
+    \end{bmatrix}
+    \begin{bmatrix}
+      \vg \\
+      \vw
+    \end{bmatrix}
+    + 
+    \begin{bmatrix}
+      \vmu \\
+      \vA\vmu
+    \end{bmatrix}.
+  \end{equation*}
+  독립성에 의해, $(\vg, \vw)$는 결합 가우시안이며, 이는 $(\vx, \vy)$도 결합 가우시안 벡터의 아핀 이미지이므로 결합 가우시안임을 의미한다.
+  그 공분산 행렬은 다음으로 주어진다.
+  \begin{equation*}
+    \begin{bmatrix}
+      \vSigma^{1/2} & t\vI & \Zero \\
+      \vA \vSigma^{1/2} & \Zero & \sigma \vI
+    \end{bmatrix}
+    \begin{bmatrix}
+      \vSigma^{1/2} & t\vI & \Zero \\
+      \vA \vSigma^{1/2} & \Zero & \sigma \vI
+    \end{bmatrix}^\top
+    = 
+    \begin{bmatrix}
+      \vSigma + t^2\vI & \vSigma\vA^\top \\
+      \vA\vSigma & \vA\vSigma\vA^\top + \sigma^2 \vI
+    \end{bmatrix}.
+  \end{equation*}
+  \Cref{exercise:conditional_gaussian}의 다른 적용은 다음을 제공한다.
+  \begin{equation}
+    p_{\y \mid \vx_t}(\spcdot \mid \vxi) = \mathcal{N}(
+      \underbrace{% 
+      \vA\vmu + \vA\vSigma\left( \vSigma + t^2 \vI \right)^{-1}
+      \left(
+        \vxi - \vmu
+      \right)
+      }_{\vmu_{\vy \mid \vx_t}(\vxi)}, 
+      \underbrace{% 
+      \vA\vSigma\vA^\top + \sigma^2 \vI - \vA\vSigma \left( \vSigma
+      + t^2 \vI\right)^{-1} \vSigma \vA^\top
+      }_{\vSigma_{\vy\mid \vx_t}}
+    ).
+  \end{equation}
+  이제 $\vmu_{\vy \mid \vx_t}(\vxi) = \vA \bE[\vx \mid \vx_t=\vxi]$임을 주목하자.
+  따라서 연쇄 법칙에 의해,
+  \begin{align*}
+    t^2 \nabla_{\vxi} \log p_{\vy \mid \vx_t}(\vnu \mid \vxi)
+    &= 
+    t^2 \nabla_{\vxi}\left[
+      -\frac{1}{2}
+      (\vnu - \vA \bE[\vx \mid \vx_t=\vxi])^\top
+      \vSigma_{\vy \mid \vx_t}^{-1}
+      (\vnu - \vA \bE[\vx \mid \vx_t=\vxi])
+    \right]
+    \\
+    &= t^2 (\vSigma+t^2 \vI)^{-1}\vSigma\vA^\top\vSigma_{\vy \mid \vx_t}^{-1}\left(
+    \vnu - \vA \bE[\vx \mid \vx_t=\vxi] \right).
+    \labelthis \label{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}
+  \end{align*} 
+
+이것은 조건부 사후확률 잡음 제거기 \eqref{eq:conditional-posterior-denoiser-gaussian-case}의 더 해석 가능한 분해를 제공한다:
+\Cref{eq:posterior-sampling-denoiser-decomposition}에 따라, 무조건부 사후확률 잡음 제거기 \eqref{eq:posterior-denoiser-gaussian-case}와 측정 매칭 항 \eqref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}의 합이다.
+측정 매칭 항을 더 분석할 수 있다. 다음을 주목하자:
+\begin{equation}
+    \vSigma_{\vy \mid \vx_t}
+    = 
+    \sigma^2 \vI + \vA\vSigma^{1/2} \left(
+      \vI - \vSigma^{1/2}\left(
+      \vSigma + t^2 \vI
+      \right)^{-1}
+      \vSigma^{1/2}
+    \right)\vSigma^{1/2}\vA^\top.
+\end{equation}
+\(\vSigma = \vV \vLambda \vV^\top\)를 $\vSigma$의 고유값 분해라고 하면, 여기서 $(\vv_i)$는 $\vV$의 열이다. 그러면 다음과 같이 쓸 수 있다.
+\begin{align}
+    \vSigma^{1/2}\left(
+    \vI - \vSigma^{1/2}\left(
+      \vSigma + t^2 \vI
+    \right)^{-1}
+    \vSigma^{1/2}
+    \right) \vSigma^{1/2}
+    &= 
+    t^2 \vV \vLambda^{1/2}\left(
+      \vLambda + t^2 \vI
+    \right)^{-1}
+    \vLambda^{1/2}
+    \vV^\top
+    \\
+    &= 
+    t^2 \sum_{i=1}^D
+    \frac{\lambda_i}{\lambda_i + t^2}
+    \vv_i \vv_i^\top.
+\end{align}
+그러면 $\vSigma$의 임의의 고유값이 0과 같으면 해당 합산 항은 0이다.
+그리고 $\vSigma$의 가장 작은 양의 고유값을 $\lambda_{\min}(\vSigma)$라고 하면 (가정에 의해 적어도 하나의 양의 고유값을 가짐), $t \ll \sqrt{\lambda_{\min}(\vSigma)}$일 때마다 (정량적으로 정확하게 만들 수 있는 의미에서) 다음이 성립한다.
+\begin{equation}
+    \frac{\lambda_i t^2}{\lambda_i + t^2} \approx 0.
+\end{equation}
+따라서, $t \ll \sqrt{\lambda_{\min}(\vSigma)}$일 때, 다음 근사가 성립한다.
+\begin{equation}
+    \vSigma_{\vy \mid \vx_t} \approx \sigma^2 \vI.
+\end{equation}
+이 근사의 우변은 $\vSigma_{\vy \mid \vx}$와 같다.
+따라서 우리는 차례로 다음을 가진다.
+\begin{equation}
+    \nabla_{\vxi} \log p_{\vy \mid \vx_t}(\vnu \mid \vxi)
+    \approx
+    \nabla_{\vxi} \log p_{\vy \mid \vx}(\vnu \mid \bE[\vx \mid \vx_t = \vxi]).
+    \label{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}
+\end{equation}
+
+  \begin{figure}[tbp]
+    \centering
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_000_t_100_largenoise.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_050_t_50_largenoise.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_100_t_0_largenoise.png}
+    \end{subfigure}
+
+    \vspace{2mm} %
+
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_000_t_100_smallnoise.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_010_t_90_smallnoise.png}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
+      \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/samples_step_100_t_0_smallnoise.png}
+    \end{subfigure}
+
+    \caption{가우시안 데이터, 선형 측정, 가우시안 잡음을 사용한 조건부 샘플링 설정 \eqref{eq:measurement-matching-observation}의 수치 시뮬레이션. $D=2$ 및 $d=1$을 시뮬레이션하며, $\vSigma = \ve_1 \ve_1^\top + \tfrac{1}{4} \ve_2 \ve_2^\top$, $\vmu = \Zero$, $\vA = \ve_1^\top$이다. 기본 신호 $\vx$는 검은색 별로 표시되고, 측정 $\vy$는 검은색 원으로 표시된다.
+    각 개별 플롯은 샘플러 시간 $t_{\ell}$의 다른 값에 해당하며, 다른 행은 다른 관측 잡음 수준 $\sigma^2$에 해당한다.
+    각 플롯에서 $\vx$의 공분산 행렬은 회색으로 플롯되고, 사후 공분산 행렬과 $p_{\vx \mid \vy}$의 사후 평균은 파란색으로 플롯된다 (사후 평균은 파란색 "x"로 표시됨). 그리고 $p_{\vx_{t_{\ell}} \mid \vy}$의 윤곽선은 녹색으로 그려진다. 샘플러 하이퍼파라미터는 $T=1$, $L=100$이며, 샘플러를 초기화하기 위해 100개의 독립적인 샘플을 추출한다. 샘플러는 \Cref{example:denoising-conditional-gaussian}에서 유도된 닫힌 형태 잡음 제거기로 구현되며, 근사 \eqref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}를 사용하는 것들은 빨간색 삼각형으로 표시되고, 정확한 조건부 사후확률 잡음 제거기를 사용하는 것들은 파란색 원으로 표시된다.
+    \textbf{상단:} 큰 관측 잡음 $\sigma = 0.5$의 경우, 정확한 조건부 사후확률 잡음 제거기와 근사 잡음 제거기 모두 사후확률 $p_{\vx \mid \vy}$로 수렴하는 데 좋은 역할을 한다. 샘플링 시간(이는 "순방향 과정"의 시간에 해당하므로, 시간이 클수록 잡음이 큼)은 왼쪽에서 오른쪽으로 감소한다. 정확한 측정 매칭 항과 근사 측정 매칭 항에 대한 수렴 동역학은 유사하다. \textbf{하단:} 더 작은 관측 잡음 $\sigma = 0.1$의 경우, 근사 측정 매칭 항은 샘플러(빨간색 삼각형)에서 극심한 편향을 유발한다: 샘플은 측정된 지상 진실과 일관된 (사후 평균 잡음 제거기에서 일부 축소를 제외하고) 점의 아핀 부분 공간으로 빠르게 수렴하며, 이후 샘플링 반복은 이 차원을 따라 손실된 사후 분산을 복구할 수 없다. 측정 차원을 따라 사후확률의 근사치가 빠르게 붕괴되는 것을 보여주기 위해 상단 행과 비교하여 하단 행에는 다른 시간 $t_{\ell}$이 플롯됨에 유의하라.
+    }
+    \label{fig:conditional_sampling_computational_gaussian}
+  \end{figure}
+
+
+\Cref{example:denoising-conditional-gaussian}은 측정 매칭 항 \eqref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}에 대한 편리한 근사를 제안하며, 이는 예제의 가우시안 설정을 넘어 더 일반적으로 만들 수 있다. 더 일반적으로 이 근사를 동기 부여하기 위해, $\vx$가 주어졌을 때 $\vy$와 $\vx_t$의 조건부 독립성에 의해, 다음을 쓸 수 있다는 점에 주목하라.
+\begin{equation}
+  p_{\vy \mid \vx_t}(\vnu \mid \vxi)
+  = 
+  \int p_{\vy \mid \vx}(\vnu \mid \vxi') p_{\vx \mid \vx_t}(\vxi' \mid \vxi)
+  \odif  \vxi'.
+\end{equation}
+형식적으로, 사후확률 $p_{\vx\mid \vx_t}$가 평균 $\bE[\vx \mid \vx_t=\vxi]$를 중심으로 하는 델타 함수일 때, 근사 \eqref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}는 정확하다. 더 일반적으로, 사후확률 $p_{\vx \mid \vx_t}$가 평균 주변에 고도로 집중될 때, 근사 \eqref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}는 정확하다. 이는 예를 들어, \Cref{example:denoising-conditional-gaussian}의 가우시안 설정에서 명시적으로 보았던 충분히 작은 $t$에 대해 성립한다.
+\Cref{fig:conditional_sampling_computational_gaussian}의 수치 시뮬레이션은 이 근사가 특정 레짐에서 단점이 없는 것은 아님을 시사하지만, Chung et al.이 "확산 사후 샘플링"(DPS) \cite{chung2023diffusion}으로 제안한 후 실제로 신뢰할 수 있는 기준선임이 입증되었다.
+또한, 사후확률 분산의 더 나은 추정치(이는 \Cref{example:denoising-conditional-gaussian}의 가우시안 설정에서 정확하다는 것이 밝혀짐)를 통합하여 이를 개선하기 위한 원칙적이고 일반화 가능한 접근법도 있으며, 이에 대해서는 장 끝 부분의 요약에서 더 논의한다.
+
+따라서 DPS 근사를 통해, 조건부 사후확률 잡음 제거기 $\bE[\vx \mid \vy, \vx_t]$에 대한 다음 근사에 도달한다. \Cref{eq:posterior-sampling-denoiser-decomposition}을 통해:
+\begin{equation}
+  \bE[ \vx \mid \vx_t=\vxi, \vy=\vnu]
+  = 
+  \bE[\vx \mid \vx_t=\vxi]
+  + t^2 \nabla_{\vxi} \log p_{\vy \mid \vx}(\vnu \mid \bE[\vx \mid \vx_t = \vxi]).
+  \label{eq:posterior-sampling-denoiser-decomposition-dps}
+\end{equation}
+그리고, \Cref{sub:compression_denoising}에서 개발한 잡음 제거기 $\bE[\vx \mid \vx_t = \vxi]$를 근사하기 위해 훈련된 신경망 또는 다른 모델 $\bar{\vx}_{\theta}(t, \vxi)$에 대해, 학습된 조건부 사후확률 잡음 제거기에 도달한다.
+\begin{equation}
+  \bar{\vx}_{\theta}(t, \vxi, \vnu)
+  = \bar{\vx}_{\theta}(t, \vxi)
+  + t^2 \nabla_{\vxi} \log p_{\vy \mid \vx}(\vnu \mid \bar{\vx}_{\theta}(t, \vxi)).
+  \label{eq:posterior-sampling-denoiser-learned-dps}
+\end{equation}
+근사 \eqref{eq:posterior-sampling-denoiser-decomposition-dps}는 비선형 $h$를 포함하여 관측 모델 \eqref{eq:measurement-matching-observation}의 임의의 순방향 모델 $h$에 대해 유효하며, 우도 $p_{\vy \mid \vx}$에 대한 깨끗한 표현식이 알려져 있는 임의의 잡음 모델에 대해서도 유효하다는 점에 주목하라. 실제로 가우시안 잡음의 경우, 다음이 성립한다.
+\begin{equation}
+  p_{\vy \mid \vx}(\vnu \mid \vxi)
+  \propto
+  \exp\left(
+    -\frac{1}{2\sigma^2} \norm*{ h(\vxi) - \vnu }_2^2
+  \right).
+\end{equation}
+따라서, \eqref{eq:posterior-sampling-denoiser-learned-dps}의 우변을 평가하려면 다음만 필요하다.
+\begin{enumerate}
+  \item \Cref{sub:compression_denoising}에서 \Cref{alg:learning_denoiser}를 통해 학습된 데이터 분포 $p$($\vx$)에 대한 사전 훈련된 잡음 제거기 $\bar{\vx}_{\theta}(t, \vxi)$;
+  \item 측정 \eqref{eq:measurement-matching-observation}에 대한 순방향 모델 $h$에 대한 순방향 및 역방향 전달 접근;
+  \item $\bar{\vx}_{\theta}(t, \vxi)$를 통한 순방향 및 역방향 전달로, (예를 들어) 역전파를 사용하여 효율적으로 평가할 수 있다.
+\end{enumerate}
+
+\begin{algorithm}
+  \caption{측정 \eqref{eq:measurement-matching-observation} 하의 조건부 샘플링, 무조건부 잡음 제거기 및 DPS 사용.}
+	\label{alg:iterative_denoising_conditional_DPS}
+	\begin{algorithmic}[1]
+		\Require{샘플링에 사용할 시간 단계의 정렬된 목록 $\(0 \leq t_{0} < \cdots < t_{L} \leq T\)$.}
+    \Require{$p_{\vx}$에 대한 무조건부 잡음 제거기 $\bar{\vx}_{\theta} \colon \{t_{\ell}\|_{\ell = 1}^{L} \times \R^{D} \to \R^{D}$.}
+    \Require{조건화할 측정의 실현 $\vnu$ ( \Cref{eq:measurement-matching-observation}).}
+    \Require{순방향 모델 $h : \bR^D \to \bR^d$ 및 측정 잡음 분산
+    $\sigma^2 > 0$.}
+		\Require{스케일 및 잡음 레벨 함수 $\alpha, \sigma \colon \{t_{\ell}\|_{\ell = 0}^{L} \to \R_{\geq 0}$.}
+    \Ensure{\(p_{\vx \mid \vy}\)로부터의 근사 샘플 $\hat{\vx}$.}
+    \Function{DDIMSamplerConditionalDPS}{$\bar{\vx}_{\theta}, \vnu, h, \sigma^2,
+    (t_{\ell})_{\ell = 0}^{L}$}
+		\State{\(\vx_{t_{L}}\)
+의 근사 분포로부터 $\hat{\vx}_{t_{L}} \sim$ 초기화} \Comment{VP $\implies \mathcal{N}(\vzero, \vI)$, VE $\implies \mathcal{N}(\vzero, t_{L}^{2}\vI)$.}
+		\For{\(\ell = L, L - 1, \dots, 1\)$}
+		\State{계산
+			\begin{equation*}
+				\hat{\vx}_{t_{\ell - 1}} \doteq \frac{\sigma_{t_{
+ - 1}}}{\sigma_{t_{\ell}}}\hat{\vx}_{t_{\ell}} + \bp{\alpha_{t_{
+ - 1}} - \frac{\sigma_{t_{
+ - 1}}}{\sigma_{t_{\ell}}}\alpha_{t_{\ell}}}\
+				\left(
+				\bar{\vx}_{\theta}(t_{\ell}, \hat{\vx}_{t_{\ell}})
+				- \frac{\sigma_{t_{
+}}^2}{2\alpha_{t_
+}\\sigma^2}
+				\nabla_{\vxi}\\[
+				\norm*{h( \bar{\vx}_{\theta}(t_{\ell}, \vxi) )
+				- \vnu }_2^2 
+				]
+				\biggl|_{\vxi = \hat{\vx}_{t_{\ell}}}
+				\right).
+			\end{equation*}
+		\EndFor
+		\State{\Return{\(\hat{\vx}_{t_{0}}\)}}
+	\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+이 방식을 \Cref{sub:compression_denoising}에서 개발한 무조건부 샘플링의 기본 구현과 결합하면, \eqref{eq:measurement-matching-observation}에 따른 측정이 주어졌을 때 사후확률 $p_{\vx \mid \vy}$의 조건부 샘플링을 위한 실용적인 알고리듬을 얻는다.
+\Cref{alg:iterative_denoising_conditional_DPS}는 \Cref{eq:gen_additive_gaussian_noise_model} 및 \Cref{ch:compression}의 주변 논의(\Cref{ch:compression}의 \Cref{eq:denoising-iteration-basic}에서처럼 $\alpha_t = 1$, $\sigma_t = t$, $t_{\ell} = T\ell / L$이라는 단순화된 선택을 함)에서와 같이 일반적인 잡음 추가 과정으로 확장하기 위한 약간의 수정과 함께, 알려진 표준 편차 $\sigma$를 가진 가우시안 관측 잡음의 경우 이 방식을 기록한다.
 
 \subsection{머리와 손에 조건화된 신체 자세 생성}\label{sub:ego-allo}
+이러한 유형의 조건부 추정 또는 생성 문제는 많은 실제 응용 분야에서 매우 자연스럽게 발생한다.
+이러한 유형의 전형적인 문제는 주어진 머리 자세와 자기중심적 이미지에 조건화된 신체 자세와 손 제스처를 추정하고 생성하는 방법이다. \Cref{fig:pose-teaser}에 설명되어 있다. 이는 Apple의 Vision Pro 또는 Meta의 Project Aria와 같은 머리 장착형 장치를 착용할 때 해결해야 하는 문제이다. 전체 신체 자세와 손 제스처를 추론해야 사람이 상호 작용하는 가상 객체를 제어하는 데 정보를 사용할 수 있다.
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/pose-teaser.pdf}
+    \caption{
+자기중심적 SLAM 자세 및 이미지(왼쪽)에 조건화된 인간 신체 높이, 자세 및 손 매개변수(중앙)를 추정하는 시스템. 출력은 장면의 할로세 중심 참조 프레임에서 착용자의 행동을 캡처하며, 여기서는 3D 재구성(오른쪽)으로 시각화한다.
+  }
+  \label{fig:pose-teaser}
 
-% TODO: 번역 예정
+\end{figure*}
+
+
+이 경우, 장치에서 제공하는 머리 자세와 손의 일부와 상지 부분에 대한 매우 제한된 시야만 가진다. 나머지 신체의 자세는 이러한 부분 정보에 기반하여 "추론"되거나 "완성"되어야 한다. 시간이 지남에 따라 신체 자세를 추정할 수 있는 유일한 방법은 머리와 신체 자세 시퀀스의 결합 분포를 미리 학습한 다음 실시간 부분 입력에 조건화된 이 사전 분포를 샘플링하는 것이다. \Cref{fig:pose-method}는 학습된 조건부 확산-잡음 제거 모델을 기반으로 이 문제를 해결하기 위한 EgoAllo \cite{yi2024egoallo}라는 시스템을 요약한다.
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/pose-method.pdf}
+\caption{
+    \textbf{EgoAllo \cite{yi2024egoallo}의 기술 구성 요소 개요.} 
+    국부 신체 매개변수(중앙)를 기반으로 신체 자세 시퀀스를 생성할 수 있는 확산 모델이 사전 훈련된다.
+    SLAM 자세의 불변 매개변수화 $g(\cdot)$ (왼쪽)는 확산 모델을 조건화하는 데 사용된다. 이들은 전역 정렬을 통해 입력 자세에 대한 전역 좌표 프레임에 배치될 수 있다.
+    사용 가능한 경우, 자기중심적 비디오는 HaMeR \cite{pavlakos2023reconstructing}를 통해 손 탐지(왼쪽)에 사용되며, 이는 생성된 제스처에 대한 안내를 통해 샘플에 통합될 수 있다.
+  }
+  \label{fig:pose-method}
+\end{figure*}
+
+
+\Cref{fig:comparison}은 EgoAllo에 의해 생성된 샘플 결과와 실제 모션 시퀀스를 비교한다. 그림은 각 입력 머리 자세 시퀀스에 대한 하나의 결과를 보여주지만, 다른 실행은 주어진 머리 자세와 일관된 다른 신체 자세 시퀀스를 생성할 수 있으며, 모두 자연적인 전신 모션 시퀀스 분포에서 추출된다.
+\begin{figure}[t]
+\centering
+\begin{subfigure}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/qual0_gt.png}
+  \caption{\centering 지상 진실}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/qual0_ours.png}
+  \caption{EgoAllo}
+\end{subfigure}
+
+\begin{subfigure}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/qual1_gt.png}
+  \caption{\centering 지상 진실}
+\end{subfigure>\hfill
+\begin{subfigure}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{\toplevelprefix/chapters/chapter6/figs/qual1_ours.png}
+  \caption{EgoAllo}
+\end{subfigure}
+
+\caption{
+\textbf{달리는(상단) 및 쪼그려 앉는(하단) 시퀀스에 대한 자기중심적 인간 움직임 추정.}
+지상 진실 움직임은 주어진 머리 자세 시퀀스와 일관된 EgoAllo의 한 출력과 비교된다.
+}
+\label{fig:comparison}
+</figure>
+
+
+엄밀히 말하면, EgoAllo \cite{yi2024egoallo}에서 제안된 해결책은 위에서 소개된 기술을 사용하여 측정 매칭을 강제하지 않는다. 대신, 트랜스포머 아키텍처의 교차-어텐션 메커니즘을 활용하여 조건을 휴리스틱하게 강제한다. \Cref{sub:text-cond}의 쌍을 이룬 데이터 설정에서 더 정확하게 설명하겠지만, 교차-어텐션 메커니즘이 잡음 제거 사후확률의 조건부 샘플링을 근사적으로 실현하고 있다고 믿을 만한 이유가 있다. 여기에 소개된 더 원칙적인 기술이 제대로 구현된다면, 신체 자세 및 손 제스처 추정을 더욱 개선하는 더 나은 방법으로 이어질 수 있다고 믿는다.
 
 \section{쌍을 이룬 데이터와 측정을 사용한 조건부 추론}
+이 마지막 섹션에서는, 우리가 데이터 $\x$의 관측된 샘플 집합 $\Y = \{\y_1,\ldots, \y_N\}$만 가지고 있지만, $\x$의 직접적인 샘플은 없는, 분포 학습에 대한 더 극단적이지만 실제로는 유비쿼터스한 경우를 고려한다! 일반적으로 관측치 $\y \in \mathbb{R}^d$는 $\x \in \mathbb{R}^D$보다 낮은 차원이다. 문제를 잘 정의하기 위해, $\y$와 $\x$ 사이의 관측 모델이 $\y = h(\x, \theta) +\vw$와 같은 특정 분석 모델 패밀리에 속하는 것으로 알려져 있다고 가정한다. 여기서 $\theta$는 알려져 있거나 알려져 있지 않을 수 있다.
 
-\subsection{클래스 조건화 이미지 생성}\label{sub:cfg}
-
-% TODO: 번역 예정
-
-\subsection{캡션 조건화 이미지 생성}\label{sub:text-cond}
-
-% TODO: 번역 예정
-
-\section{측정 자기 일관성을 사용한 조건부 추론}
+먼저 측정 함수 $h$가 알려져 있고 관측된 $\y = h(\x) + \vw$가 $\x$에 대한 정보를 제공하는 간단한 경우로 문제를 개념적으로 이해하려고 노력하자. 즉, $h$는 $\x$ 공간에서 $\y$ 공간으로의 전사이고 $\y_0 = h(\x_0)$ 분포의 지지 집합이 저차원이라고 가정한다. 이는 일반적으로 $\y$의 \textit{외재적} 차원 $d$가 $\x$ 분포의 지지 집합의 \textit{내재적} 차원보다 높아야 함을 요구한다. 일반성을 잃지 않고, 다음과 같은 함수가 존재한다고 가정할 수 있다:
+\begin{equation}
+F(\x) = \boldsymbol{0},\quad     G(\y) = \boldsymbol{0}.
+\end{equation}
+여기서 우리는 $G(\y)$는 알지만 $F(\x)$는 모른다고 가정할 수 있다는 점에 주목하라. $p(\y)$의 지지 집합을 $\mathcal{S}_{\y} \doteq \{\y \mid G(\y) = \boldsymbol{0}\}$라고 하자. 일반적으로, $h^{-1}(\mathcal{S}_{\y}) = \{\x \mid G(h(\x)) = \boldsymbol{0}\}$는 $\mathcal{S}_{\x} \doteq \{\x \mid F(\x) = \boldsymbol{0}\}$의 상위 집합이다. 즉, 우리는 $h(\\mathcal{S}_{\\x}) \subseteq \mathcal{S}_{\y}$를 가진다.
 
 \subsection{선형 측정 모델}
+먼저, 단순화를 위해, 측정이 관심 데이터 $\x$의 선형 함수라고 고려하자:
+\begin{equation}
+    \y = \vA\x.
+\end{equation}
+여기서 행렬 $\vA \in \mathbb{R}^{m\times n}$은 완전 행 랭크를 가지며 $m$은 일반적으로 $n$보다 작다. 현재는 $\vA$가 알려져 있다고 가정한다. 우리는 이러한 측정값으로부터 $\x$의 분포를 학습하는 방법에 관심이 있다. 더 이상 $\x$의 직접적인 샘플을 가지고 있지 않으므로, 관측치 $\y$를 사용하여 $\x$에 대한 잡음 제거기를 여전히 개발할 수 있는지 궁금하다. 다음 확산 과정을 고려하자:
+\begin{equation}
+    \y_t = \y_0 + t \vg, \quad \y_0 = \vA(\x_0),
+\end{equation}
+여기서 $\vg \sim \mathcal{N}(\Zero, \vI)$이다.
 
-% TODO: 번역 예정
+$\\y_t$의 잡음 제거 과정으로부터, 다음을 가진다:
+\begin{equation}
+    \y_{t-s} \approx  \y_t + st \nabla \log p_t(\y_t).
+\end{equation}
+그러면 다음을 가진다:
+\begin{equation}
+    \vA\x_{t-s} \approx   \vA\x_t + st \nabla \log p_t(\vA \x_t),
+\end{equation}
+작은 $s >0$에 대해. 따라서 $\x_{t-s}$와 $\x_t$는 다음을 만족해야 한다:
+\begin{equation}
+    \vA(\x_{t-s} - \x_t) \approx st \nabla \log p_t(\vA\x_t).
+\end{equation}
+위 제약을 만족하는 모든 $\x_{t_s}$ 중에서, 우리는 거리 $\|\x_{t-s} - \x_t\|_2^2$를 최소화하는 것을 임의로 선택한다. 따라서, $\x_t$에 대한 "잡음 제거" 과정을 얻는다:
+\begin{equation}
+    \x_{t-s}  \approx \x_t + st\vA^\dagger \nabla \log p_t(\vA\x_t).
+\label{eqn:denoising-projection}
+\end{equation}
+이 과정이 $\vx_t$의 분포에서 샘플링하지 않는다는 점에 주목하라. 특히, $\vA$의 널 공간/커널에 있는 $\vx$의 구성 요소는 관측치로부터 절대 복구할 수 없다. 따라서 $\vx$의 전체 분포를 복구하려면 더 많은 정보가 필요하다. 그러나 이것은 $\vA$의 널 공간에 직교하는 $\vx$의 구성 요소를 복구한다.
 
 \subsection{보정된 이미지로부터의 3D 시각 모델}
+실제로, 측정 모델은 종종 비선형이거나 부분적으로만 알려져 있다. 이러한 유형의 전형적인 문제는 우리가 인식하는 이미지, 예를 들어 눈, 망원경 또는 현미경을 통해 외부 세계의 작동 모델을 학습하는 방법 뒤에 실제로 있다. 특히, 인간과 동물은 2D 투영 시퀀스—2D 이미지 시퀀스(또는 스테레오 이미지 쌍)—를 통해 3D 세계(또는 동적 세계의 경우 4D) 모델을 구축할 수 있다. 투영의 수학적 또는 기하학적 모델은 일반적으로 알려져 있다:
+\begin{equation}
+    \y^i = h(\x, \theta^i) +\vw^{i},
+\end{equation}
+여기서 $h(\cdot)$는 특정 카메라 뷰에서 시간 $t_i$에 3D(또는 4D) 장면을 2D 이미지(또는 스테레오 쌍)로 투영하는 (원근) 투영을 나타내고 $\vw$는 일부 추가 작은 측정 잡음일 수 있다. \Cref{fig:projection-2D}는 이 관계를 구체적으로 설명하는 반면, \Cref{fig:inference_distributed}는 추상적으로 모델 문제를 설명한다. 3D 장면의 여러 2D 뷰와 관련된 기하학에 대한 완전한 설명은 이 책의 범위를 벗어난다. 관심 있는 독자는 \cite{MaY2003}를 참조할 수 있다. 현재 우리가 진행하는 데 필요한 것은 그러한 투영이 잘 이해되고 장면의 여러 이미지가 장면에 대한 충분한 정보를 포함한다는 것이다.
 
-% TODO: 번역 예정
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter6/figs/3D-2D-projection.png}
+    \caption{3D 객체/장면과 2D 투영 간의 관계. 여기서는 점 $\x$와 점을 가로지르는 선의 투영을 설명한다.}
+    \label{fig:projection-2D}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.7\linewidth]{\toplevelprefix/chapters/chapter6/figs/inference_distributed.pdf}
+  \caption{\small \textbf{분산 측정값을 사용한 추론.} 우리는 저차원 분포 $\vx$(여기서는 \Cref{fig:inference_roadmap}과 유사하게, $\R^{3}$에 있는 두 \(2\)-차원 다양체의 합집합으로 묘사됨)와 측정 모델 $\y^{i} = h^{i}(\vx) + \vw^{i}$를 가지고 있다. 이전과 마찬가지로, 모든 측정값 $\y^{i}$의 모음인 $\vy$가 주어졌을 때 $\vx$의 조건부 분포의 다양한 속성을 추론하고자 한다.}
+  \label{fig:inference_distributed}
+\end{figure}
+
+일반적으로, 우리는 지금까지 세상의 인식된 2D 이미지로부터 3D(또는 4D) 세계 장면 $\x$의 분포 $p(\x)$를 학습하고자 한다\footnote{여기서 표기법의 남용으로, $\x$를 3D의 한 점 또는 전체 3D 객체의 샘플 또는 여러 점으로 구성된 장면을 나타내는 데 사용한다.}. 그러한 (시각적) 세계 모델의 주요 기능은 이전에 있었던 장소를 인식하거나 새로운 시점에서 미래에 현재 장면이 어떻게 보일지 예측할 수 있도록 하는 것이다.
+
+먼저 스테레오 비전의 특별하지만 중요한 경우를 살펴보자. 이 경우, 우리는 3D 장면 $\x$의 두 가지 보정된 뷰를 가진다:
+\begin{equation}
+    \y^0 = h(\x, \theta^0) +\vw^0, \quad \y^1 = h(\x, \theta^1) +\vw^1,
+\end{equation}
+여기서 뷰 포즈에 대한 매개변수 $\theta_0$와 $\theta_1$는 알려져 있다고 가정할 수 있다. $\y^0$와 $\y^1$은 3D 장면 $\x$의 두 2D-투영이다. 또한 우리는 그들이 동일한 주변 분포 $p(\y)$를 가지고 있고, 이를 위한 확산 및 잡음 제거 모델을 학습했다고 가정할 수 있다. 즉, 우리는 잡음 제거기를 알고 있다:
+\begin{equation}
+  \bE[\vy \mid \vy_t=\vnu] = \y_0 + t^2 \nabla_{\y} \log p_t(\y).
+ \label{eq:y-posterior-sampling-denoiser}
+\end{equation}
+또는, 더 나아가, 우리는 충분한 수의 스테레오 쌍 $(\y^0, \y^1)$ 샘플을 가지고 있고, 쌍의 결합 분포도 학습했다고 가정할 수 있다. 표기법을 약간 남용하여, 우리는 $\y = h(\x)$를 쌍 $\y = (\y^0, \y^1)$과 $p(\y)$를 쌍의 학습된 확률 분포(위에서와 같이 잡음 제거기를 통해)를 나타내는 데 사용한다.
+
+이제 주요 질문은 다음과 같다: 알려진 관계를 가진 두 투영으로부터 3D 장면 $\x$의 분포를 (표현으로) 어떻게 학습할 것인가? 
+사람들은 이것을 하는 이유에 대해 의문을 가질 수 있다: 함수 $h(\cdot)$가 대체로 가역적이라면 왜 이것이 필요한가? 즉, 관측치 $\y$가 알려지지 않은 $\x$를 크게 결정할 수 있는데, 이는 스테레오의 경우와 비슷하다—일반적으로, 두 (보정된) 이미지는 주어진 관점에서 장면 깊이에 대한 충분한 정보를 포함한다. 그러나 2D 이미지는 동일한 장면이 무한히 많은 (고도로 상관된) 2D 이미지 또는 이미지 쌍을 생성할 수 있기 때문에 3D 장면의 가장 간결한 표현과는 거리가 멀다. 사실, 3D 장면의 좋은 표현은 시점 변화로 인한 변화를 포함한다. 즉, 동일한 3D 장면에 대해 시점을 변경하면 스테레오 이미지의 모습이 달라진다. 많은 실용적인 비전 작업 (예: 위치 파악 및 내비게이션)의 경우, 이러한 시점 변화를 3D 장면의 (분포) 불변 표현으로부터 분리할 수 있는 것이 중요하다.
+
+\begin{remark}위의 목표는 현대 기하학에 대한 클라인의 에를랑겐 프로그램과 잘 일치한다는 점에 주목하라. 이는 변환 그룹 하에서 다양체의 불변량을 연구하는 것이다. 여기서, 우리는 관심 다양체를 3D 장면의 자기 중심 표현 분포로 볼 수 있다. 우리는 그것이 작용하는 3차원 강체 운동 그룹을 가진다는 것을 배웠다. 우리의 뇌가 관측된 3D 세계로부터 그러한 변환을 효과적으로 분리하는 법을 배웠다는 것은 놀랍다.
+\end{remark}
+
+
+\Cref{ch:representation}의 제한된 설정에서 평행 이동 및 회전에 불변하는 표현 학습을 연구했음을 주목하라. 우리는 관련 압축 연산자가 (다중 채널) 합성곱의 필요한 형태를 취하며, 따라서 (심층) 합성곱 신경망으로 이어진다는 것을 알고 있다. 그럼에도 불구하고, 더 일반적인 변환 그룹에 불변하는 압축 또는 잡음 제거와 관련된 연산자는 여전히 특성화하기 어렵다 \cite{cohen2016group}.
+가장 일반적인 설정의 3D 비전 문제의 경우, 시점 변화가 강체 운동으로 잘 모델링될 수 있다는 것을 알고 있다. 그러나 다른 시점 간의 눈의 정확한 상대 운동은 일반적으로 알려져 있지 않다. 더 일반적으로, 장면에는 움직이는 객체 (예: 자동차, 인간, 손)가 있을 수 있으며 우리는 일반적으로 그들의 움직임도 알지 못한다. 보정된 스테레오 쌍을 가진 3D 장면의 분포 학습 문제를 이러한 더 일반적인 설정으로 어떻게 일반화할 수 있을까? 더 정확하게는, 우리는 시점 변화로 인한 변화에 불변하는 3D 장면의 간결한 표현 $\x$를 학습하고자 한다. 그러한 표현이 학습되면, 우리는 3D 장면을 샘플링하고 생성하며, 임의의 자세로부터 이미지 또는 스테레오 쌍을 렌더링할 수 있다.
+
+이를 위해, 우리는 스테레오 쌍 시퀀스를 다음과 같이 모델링할 수 있다는 점에 주목하라:
+\begin{equation}
+    \y^k = h(\x^k, \theta^k), \quad k=1, \ldots, K,
+\end{equation}
+여기서 $h(\cdot)$는 3D에서 2D로의 투영 맵을 나타낸다. $\theta^k$는 세계의 어떤 표준 프레임에 대한 $k$번째 뷰의 강체 운동 매개변수를 나타낸다. $\x^k$는 시간 $k$에서의 3D 장면을 나타낸다. 장면이 정적이면, $\x^k$는 모두 동일한 $\x^k = \x$여야 한다. 표기법을 단순화하기 위해, $k$개의 방정식 집합을 하나로 나타낼 수 있다:
+\begin{equation}
+    \Y = H(\x,\Theta).
+\end{equation}
+우리는 그러한 스테레오 이미지 시퀀스 $\{\Y_i\}$의 많은 샘플이 주어졌다고 가정할 수 있다. 문제는 관련된 모션 시퀀스 $\{\Theta_i\}$를 복구하고 (모션에 불변하는) 장면 $\x$의 분포를 학습하는 방법이다. 우리가 아는 한, 이것은 아마도 3D 비전 문제의 최종 프론티어로서 여전히 해결되지 않은 어려운 문제로 남아 있다.
 
 \section{요약 및 참고 사항}
+\paragraph{깨끗한 샘플이 없는 측정 매칭.} 조건부 샘플링 개발에서, 우리는 관측 모델 \eqref{eq:measurement-matching-observation} 하에서 측정 매칭을 고려했는데, 여기서 우리는 쌍을 이룬 데이터 $(\vx, \vy)$—즉, 각 관측치 $\vy$에 대한 지상 진리—를 가지고 있다고 가정한다.
+많은 실용적으로 관련 있는 역 문제에서는 그렇지 않다: 가장 근본적인 예 중 하나는 \Cref{ch:classic}에서 상기한 압축 감지의 맥락으로, $\x$에 대한 사전 지식 (즉, 희소성)을 사용하여 $\y$로부터 $\x$를 재구성해야 한다.
+잡음 제거-확산 설정에서, 우리는 학습된 잡음 제거기 $\bar{\vx}_{\theta}(t, \vxi)$를 통해 $\x$에 대한 암시적 사전에 접근할 수 있다. 깨끗한 지상 진리 샘플 $\x$에 접근할 수 없이도 조건부 샘플링을 수행할 수 있을까?
 
-% TODO: 번역 예정
+이것이 왜 가능할 수 있는지에 대한 직관을 얻기 위해, 우리는 Stein의 비편향 위험 추정기(SURE)로 알려진 통계학의 고전적인 예제를 상기한다.
+잡음 $\vg \sim \mathcal{N}(\Zero, \vI)$와 $t>0$를 가진 관측 모델 $\vx_t = \vx + t \vg$ 하에서, 임의의 약 미분 가능 함수 $f : \bR^D \to \bR^D$에 대해, 다음이 성립한다.
+\begin{equation}\label{eq:sure-risk}
+  \bE_{\vg}\[
+    \norm*{\vx - f(\vx + t \vg)}_2^2
+    \right]
+  = 
+  \bE_{\vg}\[
+    \norm*{\vx+t\vg - f(\vx + t \vg)}_2^2
+    + 2t^2 \nabla \cdot f(\vx + t\vg)
+    \right]
+    - t^2 D,
+\end{equation}
+여기서 $\nabla \cdot$는 발산 연산자를 나타낸다:
+\begin{equation*} \nabla \cdot f = \sum_{i=1}^D \partial_i f_i.
+\end{equation*} 
+\Cref{eq:sure-risk}의 RHS의 $\vx$-종속 부분은 Stein의 비편향 위험 추정기(SURE)라고 불린다. \Cref{eq:sure-risk}에서 $\vx$에 대한 기댓값을 취하면, RHS가 $\vx_t$에 대한 기댓값으로 쓸 수 있다는 점에 주목하자—특히, \textit{어떤 잡음 제거기 $f$}의 평균 제곱 오차는 \textit{잡음이 있는 샘플만으로도} 추정될 수 있다!
+이 놀라운 사실은 정제된 형태로, 잡음이 있는 데이터만 사용하여 이미지 복원, 잡음 제거-확산 등을 수행하는 많은 실제 기술의 기초를 이룬다: 주목할 만한 예로는 "noise2noise" 패러다임 \cite{pmlr-v80-lehtinen18a}과 앰비언트 확산 \cite{daras2023ambient}이 있다.
+
+재미있는 여담으로, \Cref{eq:sure-risk}가 트위디의 공식 (\Cref{thm:tweedie})의 다른 증명으로 이어진다는 점을 지적한다. 높은 수준에서, $\vx$에 대한 기댓값을 취하고, 부분 적분을 통해 \Cref{eq:sure-risk}의 RHS의 주요 부분을 동등하게 표현하면
+\begin{equation}
+  \bE_{\vx_t}\[
+    \norm*{\vx_t - f(\vx_t)}_2^2
+    + 2t^2 \nabla \cdot f(\vx_t)
+    \right]
+  = 
+  \bE_{\vx_t}\[
+    \norm*{\vx_t - f(\vx_t)}_2^2
+    \right]
+  - 2t^2 \int
+  \ip*{\nabla p_{\vx_t}(\vxi)}{f(\vxi)}
+  \odif \vxi.
+\end{equation}
+이것은 $f$의 이차 함수이며, 형식적으로 미분하면 최적의 $f$가 트위디의 공식 (\Cref{thm:tweedie})을 만족한다는 것을 알 수 있다. 이 주장은 변분 계산의 기본 아이디어를 사용하여 엄밀하게 만들 수 있다.
+
+\paragraph{확산 사후 샘플링(DPS) 근사에 대한 수정.}
+\Cref{example:denoising-conditional-gaussian} 및 특히 \Cref{fig:conditional_sampling_computational_gaussian}에서, 우리는 측정 잡음이 작은 수준에서 DPS 근사 \Cref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}의 한계를 지적했다.
+이러한 한계는 잘 이해되어 있으며, 이를 개선하기 위한 원칙적인 접근법이 Rozet et al. \cite{rozet2024learning}에 의해 제안되었다.
+이 접근법은 잡음이 있는 사후확률 $p_{\vx \mid \vx_t}$의 분산에 대한 추가 추정치를 \Ceref{eq:conditional-posterior-measurementmatching-gaussian-case-dps-approx}에 통합하는 것을 포함한다—자세한 내용은 논문을 참조하라.
+사후확률 분산에 대한 자연스러운 추정치는 DPS 자체보다 확장성이 약간 떨어지는데, 이는 사후확률 잡음 제거기 $\bE[\vx \mid \vx_t=\vxi]$의 야코비안 (큰 행렬)의 아핀 변환을 역전시킬 필요가 있기 때문이다. 이는 Rozet et al. \cite{rozet2024learning}에 의해 자동 미분과 켤레 기울기 기반 역행렬 근사를 사용하여 비교적 효율적으로 수행된다. 이 접근법을 추가로 개선하는 것이 가능할 것으로 보인다 (예: 2차 최적화의 고전적인 아이디어를 사용하여).
+
+\paragraph{역 문제에 대한 측정 매칭 및 확산 모델에 대한 추가 정보.}
+
+확산 모델은 과학 응용 분야에서 발생하는 역 문제를 해결하기 위한 매우 인기 있는 도구가 되었다. \Cref{alg:iterative_denoising_conditional_DPS}에서 제시한 단순한 DPS 알고리즘을 넘어 훨씬 더 많은 방법들이 개발되었고 계속 개발되고 있으며, 이 분야는 빠르게 발전하고 있다.
+우리가 일반성 때문에 제시한 DPS를 넘어서는 인기 있고 성능 좋은 접근 방식 클래스에는, DPS보다 특정 측정 제약을 훨씬 강력하게 강제할 수 있는 DAPS \cite{Zhang2024-ha}와 같은 변수 분할 접근 방식과, TDS \cite{wu2023practical}와 같은 DPS에서와 같은 근사치 사용을 피할 수 있는 정확한 접근 방식이 포함된다.
+이 분야에 대한 더 자세한 내용은 \cite{zheng2025inversebench}를 추천하며, 이는 특정 과학 역 문제 데이터셋에 대한 여러 인기 있는 방법의 조사 및 벤치마크 역할을 동시에 수행한다.
 
 \section{연습문제 및 확장}
 
-% TODO: 번역 예정
+
+\begin{exercise}[DPS에 대한 사후확률 분산 수정]
+
+  \begin{enumerate}
+    \item \Cref{fig:conditional_sampling_computational_gaussian} 구현을 위해 책의 GitHub에 제공된 코드를 사용하여 \textcite{rozet2024learning}가 제안한 사후확률 분산 수정을 구현하라.
+    \item \Cref{fig:conditional_sampling_computational_gaussian}에서 관찰된 낮은 잡음 분산 문제에서의 사후확률 붕괴 문제를 완화하는지 확인하라.
+    \item 수정된 방법이 확산 사후 샘플링(DPS)과 비교하여 유지하거나 도입하는 샘플링 정확성 문제 및 그 효율성에 대해 논의하라.
+  \end{enumerate}
+
+\end{exercise}
+
+\begin{exercise}[MNIST에 대한 조건부 샘플링]
+  \begin{enumerate}
+    \item 선택한 아키텍처를 사용하여 MNIST 데이터셋에 대한 간단한 분류기를 훈련하라. 또한 조건부 샘플링에 적합한 잡음 제거기를 훈련하라(\Cref{alg:iterative_denoising_conditional_CFG}, 이 잡음 제거기는 무조건부 잡음 제거에도 사용될 수 있기 때문).
+    \item \Cref{sub:cfg}의 첫 번째 부분에 설명된 대로, 분류기를 분류자 안내 기반 조건부 샘플러에 통합하라. 결과 샘플을 조건화 클래스에 대한 충실도 측면에서 평가하라 (시각적으로; 최근접 이웃 측면에서; 분류기 출력 측면에서).
+    \item \Cref{sub:cfg} 및 \Cref{alg:iterative_denoising_conditional_CFG}에 설명된 대로, 분류기를 분류자 없는 안내 기반 조건부 샘플러에 통합하라. 이전 단계와 동일한 평가를 수행하고 결과를 비교하라.
+    \item CIFAR-10 데이터셋에 대해 실험을 반복하라.
+  \end{enumerate}
+
+\end{exercise}
 
 \end{document}
