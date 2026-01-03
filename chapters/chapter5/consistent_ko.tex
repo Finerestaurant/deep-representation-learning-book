@@ -3,52 +3,742 @@
 
 \begin{document}
 
-\chapter{일관된 표현과 자기 일관 표현}
+\chapter{일관된 표현과 자기 일관된 표현}
+\label{ch:consistent}\label{ch:autoencoding}\label{ch:self-consistent}\label{ch:closed-loop}
+
+\begin{quote}
+\hfill  ``{\em 모든 것은 가능한 한 간단하게 만들어져야 하지만, 더 간단해서는 안 된다}.''
+
+$~$\hfill -- 알베르트 아인슈타인
+\end{quote}
+
+
+
+\vspace{5mm}
+
+
+지난 장들에서, 우리는 학습의 근본적인 목표가 저차원 지지 집합을 가진 데이터 분포를 학습하고 이를 간결하고 구조화된 표현으로 변환하는 것이라는 기본 사실을 확립했다. 이러한 표현은 데이터 분포의 고유한 저차원 구조를 드러내고 분류 및 생성과 같은 후속 작업을 용이하게 한다.
+
+이러한 분포의 좋은 표현을 학습하기 위한 근본적인 접근 방식은 {\em 압축}을 통하는 것이다. 압축의 목표를 측정 가능하고 계산 가능하게 만들기 위해, 코딩 레이트(엔트로피)를 최소화하거나 정보 이득(코딩 레이트 감소)을 최대화하는 코딩 체계를 학습함으로써 명시적으로 수행될 수 있다. 이 맥락에서, 심층 신경망의 근본적인 역할은 해당 척도 측면에서 학습된 표현을 점진적으로 최적화하는 특정 반복 최적화 알고리즘을 실현하는 것이다:
+\begin{equation}
+  f\colon \X
+  \xrightarrow{\hspace{1mm} f^0 \hspace{1mm}} \Z^0 \rightarrow \cdots
+  \rightarrow \Z^\ell \xrightarrow{\hspace{1mm} f^\ell \hspace{1mm}}
+  \Z^{\ell+1} \rightarrow  \cdots \to \Z^L = \Z.
+\end{equation}
+이전 장에서, 우리는 거의 모든 인기 있는 심층 네트워크(ResNet, CNN, Transformer)의 주요 아키텍처 특성이 이 관점에서 파생되고 해석될 수 있음을 보였다.
+
+그러나 최적화를 통해 특정 목표를 달성하려고 할 때, 점진적 최적화에 의해 최종적으로 찾아진 해 $\Z$가 올바른 해라는 보장은 없다. 사실, 최적화 과정이 전역 최적 해 $\Z^*$를 찾는 데 성공하더라도, 그 해가 데이터 분포의 완전한 표현에 해당한다는 보장은 없다.\footnote{이는 여러 가지 이유 때문일 수 있다: 예를 들어, 분포 학습에 사용할 수 있는 데이터가 충분하지 않거나, 최적화 프로그램의 공식화가 일부 추가 제약 조건이나 조건을 고려하지 못했을 수 있다.} 따라서, 뛰어난 질문은 다음과 같다: 학습된 데이터 분포의 표현이 올바른지 또는 충분히 좋은지 어떻게 보장할 수 있는가?
+
+물론, 이를 검증하는 유일한 방법은 학습된 표현을 디코딩하여 원래 데이터(분포)를 충분히 잘 재현할 수 있는 디코딩 맵, 예를 들어 $g$가 존재하는지 확인하는 것이다:
+\begin{equation}
+  \X
+  \xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \Z
+  \xrightarrow{\hspace{1mm} \mathcal{D} = g \hspace{1mm}} \hat{\X}
+\end{equation}
+어떤 유사성 척도에 따라:
+\begin{equation}
+  d(\X, \hat \X).
+\end{equation}
+이것은 {\em 일관된 표현}의 개념으로 이어진다. \Cref{ch:intro}(\Cref{fig:autoencoder} 참조)에서 간략하게 언급했듯이, 인코딩과 디코딩 과정을 통합하는 {\em 오토인코딩}은 그러한 표현을 학습하기 위한 자연스러운 프레임워크이다. 우리는 \Cref{ch:classic}에서 몇 가지 중요한 특별한 경우를 연구했다. 이 장의 \Cref{sec:consistent-representation}에서는 $\X$와 $\hat \X$ 사이의 일관성을 강제함으로써 오토인코딩을 더 일반적인 분포 클래스로 확장하는 방법을 연구할 것이다.
+
+많은 실용적이고 자연스러운 학습 시나리오에서, 데이터 $\X$와 $\hat \X$의 분포를 비교하는 것은 어렵거나 불가능할 수 있다. 우리는 인코더 $f$ 하에서 학습된 특징 $\Z$와 그 이미지 $\hat \Z$를 비교하는 유일한 옵션만 남게 된다:
+\begin{equation}
+ \X
+\xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \Z  \xrightarrow{\hspace{1mm} \mathcal{D} = g \hspace{1mm}} \hat{\X} \xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \hat \Z?
+\end{equation}
+이것은 {\em 자기 일관된 표현}의 개념으로 이어진다. \Cref{sec:self-consistency}에서는 폐루프 전사 프레임워크를 통해 $\Z$와 $\hat \Z$ 사이의 자기 일관성을 강제함으로써 언제 그리고 어떻게 일관된 표현을 학습할 수 있는지 연구할 것이다.
+
+더 나아가, 많은 실용적이고 자연스러운 학습 시나리오에서, 우리는 일반적으로 한 번에 데이터 분포의 충분한 샘플을 사용할 수 없다. 예를 들어, 동물과 인간은 평생 동안 관찰의 증분을 계속해서 받아들임으로써 시각적 기억을 발달시킨다. \Cref{sec:continuous}에서는 {\em 연속 학습} 설정에서 자기 일관된 표현을 학습하기 위해 폐루프 전사 프레임워크를 확장하는 방법을 연구할 것이다.
+
+물론, 우리가 데이터 분포에서 저차원 구조를 식별하고 좋은 표현을 찾고자 하는 근본적인 동기는 분류, 완성, 예측과 같은 다양한 지능 작업을 위해 데이터를 쉽게 사용할 수 있도록 하는 것이다.
+따라서 결과적인 결합 표현 $(\x, \z)$는 이러한 작업에 가장 적합한 방식으로 구조화되어야 한다. 다음 장에서는 조건부 완성 또는 생성 작업을 용이하게 하기 위해 학습된 표현을 어떻게 구조화할 수 있는지 볼 것이다.
 
 \section{일관된 표현 학습}\label{sec:consistent-representation}
 
-\subsection{PCA를 통한 선형 오토인코딩}
+여기서는 오토인코딩의 개념과 밀접하게 관련된 일관된 표현의 공식적인 정의를 제공한다. %
+\begin{definition}[일관된 표현]\label{def:bidirectional_rep}
+  데이터 $\vX$가 주어졌을 때, \textit{일관된 표현}은 함수 쌍 $(f \colon \cX \to \cZ, g \colon \cZ \to \cX)$이며, \textit{특징} $\vZ = f(\vX)$가 간결하고 구조화되어 있고, \textit{오토인코딩}
+  \begin{equation}
+    \hat{\vX} \doteq g(\vZ) = g(f(\vX))
+  \end{equation}
+  이 다음 두 가지 척도 중 하나에 따라 $\vX$에 \textit{가깝다}고 말한다:
+  \begin{enumerate}
+    	item $\vX \approx \hat{\vX}$가 높은 확률로 어떤 노름에서 성립하면, \textit{샘플별로} 일관성이 있다고 말한다.
+    	item 표현이 $\Law(\vX) \approx \Law(\hat{\vX})$이면, \textit{분포적으로 일관성}이 있다고 말한다.
+  \end{enumerate}
+\end{definition}
 
-% TODO: 번역 예정
+예리한 독자들은 우리가 추구하는 표현 $\Z$에 특정 요구 사항을 부과하지 않으면 위 문제가 자명한 해를 가진다는 것을 알아차렸을 것이다: 함수 $f$와 $g$를 항등 맵으로 간단히 선택할 수 있다! 따라서, 오토인코딩을 추구하는 진정한 목적은 그렇게 얻은 $\Z$가 $\X$보다 더 간결하고 더 구조화되도록 보장하는 것이다. 첫째, 간결성을 위해, $\Z$는 $\X$의 고유한 저차원성을 더 잘 드러내야 한다.
+따라서, 표현은 예를 들어 \Cref{subsec:MCR2}에서 소개된 레이트 감소로 측정되는 특정 정보 이득을 최대화해야 한다:
+\begin{equation}
+  \Delta R_{\epsilon}(\Z)
+\end{equation}
+둘째, 데이터 분포의 좋은 표현을 학습하는 주된 목적은 그 분포의 저차원성을 활용하는 작업을 용이하게 하는 것이다. 따라서, $\Z$의 분포는 더 잘 구조화되어야 한다. 예를 들어, $\Z$의 분포는 조각별 선형 또는 가우시안이며, 그 구성 요소는 대체로 비간섭적이거나 독립적이다. 이러한 독립적인 구성 요소는 다른 클러스터나 클래스를 나타낼 수 있으며, 해당 데이터 $\x$를 디코딩하기 위한 조건으로 쉽게 사용될 수도 있다.
+
+일관된 표현의 정의로부터, 표현 $\Z$가 원래 데이터 분포 $\X$를 어느 정도의 정확도로 복구하기에 충분해야 함이 요구된다. 샘플별 일관성의 경우, 일반적인 선택은 예상 재구성 오차를 최소화하는 것이다:
+\begin{equation}
+  d(\X, \hat \X) = \mathbb{E}[\|\X - \hat\X\|_2^2].
+\end{equation}
+분포의 일관성의 경우, 일반적인 선택은 KL 발산과 같은 특정 분포 거리를 최소화하는 것이다\footnote{퇴화 분포와 같이 공통 지지 집합이 없는 분포의 경우, KL 발산이 잘 정의되지 않을 수 있다는 점에 유의하라. 사실, 분포 학습 문헌의 상당 부분은 이를 잘 정의되고 효율적으로 계산 가능한 것으로 대체하거나 근사함으로써 이러한 기술적 어려움을 해결하려고 시도하고 있다.}: 
+\begin{equation}
+  d(\X, \hat \X) = \mathcal{D}_{KL}(\X\|\hat\X).
+\end{equation}
+
+따라서, 계산을 제외하고, 데이터 분포 $\X$에 대한 좋은 오토인코딩을 추구할 때, 개념적으로 우리는 다음과 같은 인코더 $f$와 디코더 $g$를 찾으려고 한다:
+\begin{equation}
+  \min_{f, g} [- \Delta R_{\epsilon}(\Z) + d(\X, \hat \X)].
+  \label{eqn:autoencode-objective-ch5}
+\end{equation}
+이 장의 나머지 부분에서는 간단하고 이상적인 경우에서부터 점점 더 도전적이고 현실적인 조건에 이르기까지 다양한 조건 하에서 이러한 오토인코딩 문제를 해결하는 방법을 연구할 것이다.
+
+\subsection{PCA를 통한 선형 오토인코딩}
+\cite{Baldi2011}에 따르면, ``오토인코더''라는 문구는 Hinton과 Rumelhart \cite{Rumelhart1986}에 의해 처음 도입되었는데, 이는 심층 표현이 자기 지도 방식으로 역전파(BP)를 통해 학습될 수 있도록 하기 위함이었다—원래 데이터를 재구성하는 것이 자기 지도 작업이다. 그러나 간결하고 일관된 표현을 추구하는 바로 그 개념은 많은 고전 연구에 뿌리를 두고 있다. \Cref{ch:classic}에서 이미 보았듯이, 고전적인 PCA, ICA, 희소 사전 학습은 모두 유사한 목표를 공유한다. 유일한 차이점은 기본 데이터 분포가 단순할 때(선형 및 독립), 인코딩 또는 디코딩 매핑이 표현하고 학습하기 쉬워진다는 것이다: 이들은 깊을 필요가 없으며 종종 닫힌 형태로 또는 명시적 알고리즘으로 계산될 수 있다.
+
+우리가 정의한 일관성 개념이 PCA의 간단한 경우에서 어떻게 작용하는지 보는 것은 유익하다: 여기서, 일관된 인코딩 및 디코딩 매핑은 단일 계층 선형 변환에 의해 주어진다:
+\begin{equation}
+  \X \xrightarrow{\hspace{2mm} \mathcal{E} = \vU^\top \hspace{2mm}}
+  \Z \xrightarrow{\hspace{2mm} \mathcal{D} = \vU \hspace{2mm}}   \hat{\X},
+  \label{eqn:autoencoding-PCA-2}
+\end{equation}
+여기서 $\vU \in \mathbb{R}^{D\times d}$이고 일반적으로 $d\ll D$이다. 따라서 $\vU^\top$는 \Cref{fig:AE}에 설명된 것처럼 더 높은 차원의 공간 $\mathbb{R}^{D}$에서 더 낮은 차원의 공간 $\mathbb{R}^{d}$으로의 투영을 나타낸다.
+
+\begin{figure}
+  \centering \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter5/figs/autoencoder.png}
+  \caption{고차원 데이터 $\vx$의 저차원 표현 $\bm{z}$를 찾는 PCA와 같은 일반적인 오토인코더의 예시.}
+  \label{fig:AE}
+\end{figure}
+
+\Cref{ch:classic}에서 보았듯이, $\vx$의 분포가 실제로 저차원 부분 공간 $\vU_o$에 지지될 때, $\mathcal{E}$에 의해 생성된 표현 $\vz$의 간결성은 이 부분 공간의 차원을 정확하게 추정하고(강제함으로써) 직접적인 결과이다. 마지막으로, 재구성 기준에 대한 경사 하강법이 정확히 이러한 샘플별 일관성 매핑을 산출함을 상기하라: 실제로, 문제
+\begin{equation}\label{eq:pca-reconstruction-ch5}
+  \min_{\vU^\top \vU = \vI}\; \bE_{\vx}[\|\vx - \vU\vU^\top \vx\|_2^2]
+\end{equation}
+의 최적 해는 표현의 차원이 충분히 클 때 정확히 $\vU_o$와 일치한다. 이 경우, $\vU_o\vU_o^\top \vx = \vx$를 보장하므로 샘플별 일관성을 무료로 얻는다.
+PCA의 경우, 추구하는 표현 $\Z$에 대한 정규화가 명시적이므로 \eqref{eqn:autoencode-objective-ch5}의 레이트 감소 항은 무효가 된다는 점에 주목하라: 그것은 더 낮은 차원의 전체 부분 공간을 스팬한다\footnote{이 경우 $\Delta R = 0$으로 볼 수 있다.}.
+
+\paragraph{온라인 PCA.} 위 구성에서 인코딩 및 디코딩에 사용되는 선형 변환 $\vU$는 모든 입력 데이터로부터 사전에 "오프라인"으로 계산된다는 점에 유의하라. 한 가지 질문은 입력 데이터가 순서대로 들어올 때 이 변환을 "온라인"으로 학습할 수 있는지 여부이다. 이 질문은 1982년 Oja의 연구 \cite{Oja1982SimplifiedNM}에 의해 답변되었다.
+
+\begin{example}[PCA를 위한 정규화된 헤비안 학습 방식] 공분산 $\boldsymbol{\Sigma} \in \mathbb{R}^{n\times n}$를 가진 i.i.d. 랜덤 벡터의 시퀀스 $\x_1, \ldots, \x_i, \ldots \in \mathbb{R}^n$를 고려하자. $\vu_0 \in \mathbb{R}^n$라 하고 가중치 벡터 $\vu_i$에 대한 입력 벡터 $\x_i$의 응답을 내적으로 정의하자:
+\begin{equation}
+  \eta_i = \vu_i^T \x_i
+\end{equation}
+그리고 다음 방식에 따라 가중치 벡터를 업데이트한다:
+\begin{equation}
+    \vu_{i+1} = \frac{\vu_i + \gamma \eta_i \x_i}{\|\vu_i + \gamma \eta_i \x_i\|_2}
+    \label{eqn:Hebbian}
+\end{equation}
+어떤 작은 이득 $\gamma >0$에 대해. 이 업데이트 방식은 정규화된 헤비안 방식으로 볼 수 있는데, 여기서 뉴런 간의 연결 가중치는 입력 $\x$과 출력 $\eta$ 모두의 (곱이) 강하면 더 강해진다. 가중치 벡터 $\vu$는 출력 $\eta$로부터의 피드백 형태를 기반으로 "학습"된다고 볼 수 있다.
+그러면 합리적인 가정 하에 Oja \cite{Oja1982SimplifiedNM}는 $\vu_i$가 $\boldsymbol{\Sigma}$의 가장 큰 고유값과 관련된 고유벡터로 수렴함을 보였다.
+\end{example}
+
+정규화된 헤비안 방식 \eqref{eqn:Hebbian}은 문제 \eqref{eq:pca-reconstruction-ch5}의 목적 함수에 대한 \textit{확률적} 투영 경사 하강 방식의 1차 근사로 해석될 수 있다 (배치 크기 $1$, $\vU$의 열 수 1). $\norm{\vu}_2 = 1$이 \eqref{eqn:Hebbian}의 투영 연산에 의해 유지되는 한 말이다.
+\eqref{eq:pca-reconstruction-ch5}와 같은 재구성 비용을 최적화하기 위한 확률적 경사 방법 사용에 대한 정확성 증명으로서, 그리고 \textit{(종단 간) 역전파보다 간단한 알고리즘이 일관된 오토인코더를 학습하는 데 성공할 수 있다}는 제안으로서, 그 존재를 염두에 두는 것이 가치가 있다.
+
+\begin{figure}[tb]
+  \centering
+  \begin{tikzpicture}
+    \draw (-0.1, -0.2) .. controls (1, 0.25) .. (2.1, -0.1);
+    \draw (2.1, -0.1) .. controls (1.75, 1) .. (2.1, 2);
+    \draw (2.1, 2) .. controls (1, 1.75) .. (-0.1, 2);
+    \draw (-0.1, 2) .. controls (0.25, 1) .. (-0.1, -0.2);
+
+    \draw (0.35, 0.5) .. controls (0.7, 0.75) .. (0.85, 1.2);
+    \draw (0.85, 1.2) .. controls (1.0, 1.4) .. (1.15, 1.2);
+    \draw (1.15, 1.2) .. controls (1.3, 0.75) .. (1.65, 0.5);
+
+    \node[fill, red, circle, inner sep=0.75pt] at (1, 0.9) {};
+    \node[fill, red, circle, inner sep=0.75pt] at (1.35, 0.45) {};
+
+    \node at (1, -0.5) {\(\x\)};
+
+    \draw[->] (2.25, 1) -- (3.75, 1);
+    \node at (3, 1.25) {\(\fl\и\)};
+
+    \draw (4.1, 0.1) -- (5.9, 0.1);
+    \draw (5.9, 0.1) -- (5.9, 1.9);
+    \draw (5.9, 1.9) -- (4.1, 1.9);
+    \draw (4.1, 1.9) -- (4.1, 0.1);
+
+    \node[fill, red, circle, inner sep=0.75pt] at (5, 1) {};
+    \node[fill, red, circle, inner sep=0.75pt] at (5.5, 0.5) {};
+
+    \draw[red] (5, 1) -- (5.5, 0.5);
+
+    \node at (5, -0.5) {\(\z\)};
+
+    \draw[->] (6.25, 1) -- (7.75, 1);
+    \node at (7, 1.25) {\(\re\и\)};
+
+    \draw (7.9, -0.2) .. controls (9, 0.25) .. (10.1, -0.1);
+    \draw (10.1, -0.1) .. controls (9.75, 1) .. (10.1, 2);
+    \draw (10.1, 2) .. controls (9, 1.75) .. (7.9, 2);
+    \draw (7.9, 2) .. controls (8.25, 1) .. (7.9, -0.2);
+
+    \draw (8.35, 0.5) .. controls (8.7, 0.75) .. (8.85, 1.2);
+    \draw (8.85, 1.2) .. controls (9.0, 1.4) .. (9.15, 1.2);
+    \draw (9.15, 1.2) .. controls (9.3, 0.75) .. (9.65, 0.5);
+
+    \node[fill, red, circle, inner sep=0.75pt] at (9, 0.9) {};
+    \node[fill, red, circle, inner sep=0.75pt] at (9.35, 0.45) {};
+
+    \draw[red] (9, 0.9) .. controls (9.1, 0.55) .. (9.35, 0.45);
+
+    \node at (9, -0.5) {\(\hat{\x}\)};
+  \end{tikzpicture}
+  \caption{차원 $d = 2$인 $\R^{3}$의 다양체에서 다양체 평탄화를 통한 보간 묘사. 데이터 다양체의 두 점을 보간하기 위해, 평탄화 맵 $\fl$을 통해 평탄화된 공간으로 매핑하고, 볼록 보간을 취한 다음, 재구성 맵 $\re$을 통해 데이터 다양체로 다시 매핑한다.}
+  \label{fig:idealized_interpolation}
+\end{figure}
 
 \subsection{비선형 PCA와 오토인코딩}\label{sub:nonlinear-pca}\label{sec:NLPCA}
+물론, 근본적인 저차원 구조가 비선형인 더 복잡한 분포를 다룰 때 더 이상 그렇게 간단하지 않을 것이라고 예상해야 한다.
 
-% TODO: 번역 예정
+\paragraph{비선형 부분다양체 상의 데이터.} 따라서 PCA가 다루는 선형 구조를 넘어서기 위해, 데이터 분포가 (매끄러운) 부분다양체 $\mathcal{M}$에 놓여 있다고 가정할 수 있다. 부분다양체의 내재적 차원, 예를 들어 $d$는 일반적으로 주변 공간 $\mathbb{R}^D$의 차원보다 훨씬 낮다. 이러한 기하학적 관점에서, 우리는 일반적으로 결과 다양체 $f(\mathcal{M})$가 \Cref{fig:idealized_interpolation}에 표시된 예제와 같이 평탄화되도록 하는 비선형 매핑 $f$를 찾고자 한다. 결과적인 특징 $\vz$-공간은 일반적으로 $\vx$-공간보다 더 간결하며(더 낮은 차원), 다양체는 평평하다.
+기하학적 관점과 보완적이지만 일반적으로 구별되는 통계적 관점에서, 우리는 또한 $\mathcal{M}$ 상의 데이터 분포가 $\vz$-공간에서 충분히 정칙적인 분포, 예를 들어 가우시안 또는 균일 분포(매우 저차원 지지집합을 가짐)로 매핑되도록 보장하고자 할 수 있다. 이러한 두 속성은 $\vz$-공간에서의 샘플링과 보간이 가능한 한 쉬워지도록 보장하며, 데이터 분포에 대한 저차원 다양체 모델에서 간결하고 구조화된 특징이라는 바람직한 개념의 수학적 형식화이다.
+일반적으로, 이러한 데이터 분포 클래스에 대한 오토인코딩 매핑을 학습하는 문제는 {\em 비선형 주성분 분석}(NLPCA)으로 알려져 있다.
+
+\paragraph{2계층 네트워크를 통한 고전적 시도.} 위에서 보았듯이, PCA의 경우 단일 계층 선형 신경망으로 충분하다. NLPCA의 경우 더 이상 그렇지 않을 것이다. 1991년 Kramer \cite{Kramer1991NonlinearPC}는 시그모이드 활성화를 가진 2계층 네트워크의 보편적 표현 속성을 기반으로 인코더 매핑 $f$(또는 그 역 $g$)를 표현하여 NLPCA를 해결할 것을 제안했다:
+\begin{equation}
+  \z = \vW_2 \sigma(\vW_1\vx +\vb),
+\end{equation}
+여기서 $\sigma(\spcdot)$는 시그모이드 함수이다:
+\begin{equation}
+  \sigma(x) = \frac{1}{1+ e^{-x}}.
+\end{equation}
+Cybenko \cite{Cybenko1989ApproximationBS}는 위의 형태를 가진 함수(충분한 은닉 노드를 가짐)가 임의의 부드러운 비선형 함수, 예를 들어 인코더 $f(\spcdot)$를 임의의 정밀도로 근사할 수 있음을 보였다. 특히, \Cref{fig:idealized_interpolation}에서와 같이 저차원 다양체의 합집합에 지지되는 데이터 분포에 대한 평탄화 및 재구성 맵을 나타낼 수 있다.
+Kramer가 제안한 원래 네트워크의 전체 아키텍처는 \Cref{fig:NLPCA}에 설명되어 있다.
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.6\linewidth]{\toplevelprefix/chapters/chapter5/figs/kramer1991nonlinearPCA.png}
+  \caption{Kramer \cite{Kramer1991NonlinearPC}가 제안한 인코딩 및 디코딩 매핑 모두에 대해 깊이 2의 자기연관 신경망에 의한 비선형 PCA.}
+  \label{fig:NLPCA}
+\end{figure}
+
+불행히도, 위의 PCA 경우와 비교하여, 일반적으로 이러한 네트워크의 매개변수 $\boldsymbol{\theta} = (\vW, \vb)$에 대한 닫힌 형태의 학습 방식은 없다. 따라서 재구성 오차의 감독 하에 역전파를 통해 네트워크를 훈련할 것을 제안되었다:
+\begin{equation}\label{eq:nonlinear-pca-ch5}
+  \min_{\boldsymbol{\theta}} \mathbb{E}[ \|\x - \hat{\x}(\boldsymbol{\theta})\|_2^2].
+\end{equation}
+PCA의 간단한 경우와 비교하여, 학습을 위해 동일한 재구성 목표를 활용하지만, 인코더와 디코더를 매개변수화하고 학습하기 위해 훨씬 더 복잡한 비선형 모델 클래스를 활용한다. Cybenko의 것과 같은 보편적 근사 속성은 \textit{원칙적으로} 이 프레임워크를 통해 일관된 오토인코더를 학습하는 것이 가능하다는 것을 시사하지만—임의의 데이터 샘플에 대해 충분한 매개변수가 주어지면 그러한 오토인코딩 쌍이 존재하기 때문에—경사 하강법을 사용하여 이를 찾는 것은 매우 자명하지 않은 것으로 종종 발견된다.
+더욱이, 이미지와 같은 고차원 실세계 데이터 분포에 대해 충분히 정보적인 재구성 목표와 모델을 얻으려면 필요한 샘플 및 은닉 노드의 수가 엄청날 수 있다.
+또한, 학습된 표현의 간결성 척도로서, 병목 계층에 대한 $\z$의 (더 낮은) 차원은 종종 휴리스틱하게 선택된다.\footnote{\cite{Hinton-1993}의 후속 연구에서, Hinton 등은 이 책에서 소개된 레이트 왜곡 척도와 매우 유사한 정신으로 학습된 코딩 체계의 간결성을 촉진하기 위해 최소 설명 길이(MDL) 원리를 사용할 것을 제안했다.}
+
+\paragraph{더 깊은 네트워크를 통한 다양체 평탄화.}
+심층 네트워크의 현대적 실무에 따르면, 이러한 고전적인 얕고 넓은 네트워크 아키텍처는 시그모이드 함수의 기울기 소실 문제 등으로 인해 역전파(BP)를 통해 효과적이고 효율적으로 훈련하기가 다소 어려운 것으로 알려져 있다. 따라서 현대 실무는 일반적으로 비선형 변환 $f$(또는 $g$)를 더 간단한 변환의 여러 계층으로 더 분해하여 더 깊은 네트워크 아키텍처를 만드는 것을 제안한다 \cite{Hinton504}. 이는 \Cref{fig:ccnet_layers}에 설명되어 있다.
+현대적 맥락에서, 이미지와 같은 복잡한 실세계 데이터 분포에서 좋은 성능을 달성하려면 기본 재구성 비용 \eqref{eq:nonlinear-pca-ch5}에 대한 추가적인 정교화도 필요한 것으로 입증되었다.
+
+\begin{figure}[htb]
+  \centering
+  \begin{tikzpicture}
+    \draw (-0.1, -0.2) .. controls (1, 0.25) .. (2.1, -0.1);
+    \draw (2.1, -0.1) .. controls (1.75, 1) .. (2.1, 2);
+    \draw (2.1, 2) .. controls (1, 1.75) .. (-0.1, 2);
+    \draw (-0.1, 2) .. controls (0.25, 1) .. (-0.1, -0.2);
+
+    \draw (0.35, 0.5) .. controls (0.7, 0.75) .. (0.85, 1.2);
+    \draw (0.85, 1.2) .. controls (1.0, 1.4) .. (1.15, 1.2);
+    \draw (1.15, 1.2) .. controls (1.3, 0.75) .. (1.65, 0.5);
+
+    \node at (1, -0.5) {\(\x\)};
+
+    \draw[->] (2.25, 1.25) -- (3.25, 1.25);
+    \node at (2.75, 1.5) {\(\fl_{1}\и\)};
+
+    \draw[->] (3.5, 1.25) -- (4.5, 1.25);
+    \node at (4, 1.5) {\(\fl_{2}\и\)};
+
+    \draw[->] (4.75, 1.25) -- (5.75, 1.25);
+    \node at (5.25, 1.5) {\(\cdots\и\)};
+
+    \draw[->] (6, 1.25) -- (7, 1.25);
+    \node at (6.5, 1.5) {\(\fl_{L}\и\)};
+
+    \draw[->] (7, 0.75) -- (6, 0.75);
+    \node at (6.5, 0.5) {\(\re_{L}\и\)};
+
+    \draw[->] (5.75, 0.75) -- (4.75, 0.75);
+    \node at (5.25, 0.5) {\(\cdots\и\)};
+
+    \draw[->] (4.5, 0.75) -- (3.5, 0.75);
+    \node at (4, 0.5) {\(\re_{2}\и\)};
+
+    \draw[->] (3.25, 0.75) -- (2.25, 0.75);
+    \node at (2.75, 0.5) {\(\re_{1}\и\)};
+
+    \draw (7.3, 0.1) -- (9.1, 0.1);
+    \draw (9.1, 0.1) -- (9.1, 1.9);
+    \draw (9.1, 1.9) -- (7.3, 1.9);
+    \draw (7.3, 1.9) -- (7.3, 0.1);
+
+    \node at (8.2, -0.5) {\(\z\и\и\и\)};
+
+  \end{tikzpicture}
+  \caption{평탄화 및 재구성 쌍 $(\fl, \re)$의 구성 과정 묘사. 여기서 인코더 $\fl = \fl_{L} \circ \fl_{L - 1} \circ \cdots \circ \fl_{1}$는 평탄화 계층들을 구성하여 구성되고, 디코더 $\re = \re_{1} \circ \re_{2} \circ \cdots \circ \re_{L}$는 각 $\fl_{\ell}$의 역으로 구성된다.}
+  \label{fig:ccnet_layers}
+\end{figure}
+
+Cybenko와 같은 보편적 근사 정리에 비추어 볼 때, 개념적으로 왜 얕은 오토인코더보다 깊은 오토인코더가 선호되어야 하는지 궁금할 수 있다.
+순수하게 표현력 관점에서, 우리는 가설적인 데이터 분포가 지지되는 비선형 다양체를 평탄화하는 작업과 관련된 기하학적 각도에서 이 현상을 이해할 수 있다. 다양체를 평탄화하는 순수 구성적 접근 방식은 \Cref{ch:compression,ch:representation}에서 확산, 잡음 제거, 압축 간의 상호 작용과 병행하여 점진적으로 진행된다. 기하학적 설정에서, $f_{\ell}$에 해당하는 점진적 \textit{평탄화 과정}은 다양체의 한 점의 이웃을 평평한 다양체(즉, 부분공간)에 더 가깝게 변환하고 나머지 데이터 샘플과의 국소적 일관성을 강제하는 형태를 취한다; 디코더의 해당 점진적 연산 $g_{\ell}$는 이 변환을 되돌린다. 이 절차는 데이터 샘플로부터 추정되는 기본 다양체에 대한 곡률 정보를 정확하게 통합한다. 다양체로부터 충분한 샘플이 주어지고 이 개념적 과정의 신중한 인스턴스화가 주어지면, 화이트박스 방식으로 비선형 다양체를 검증 가능하게 평탄화하는 계산 절차로 이 절차를 구현하는 것이 가능하다 \cite{Psenka-JMLR24}. 그러나 이 접근법은 이미지와 같은 고차원 데이터 분포에 대한 적용 가능성이 불리한 확장성으로 인해 제한되어, 점진적 오토인코딩에 대한 더 유연한 방법의 개발을 동기 부여한다.
 
 \subsection{희소 오토인코딩}
+위의 오토인코딩 체계에서, 학습된 표현이 저차원임을 명시적으로 강제하거나 촉진하기 위해 특징 공간의 차원 $d$는 일반적으로 원래 데이터 공간 $D$의 차원보다 훨씬 낮게 선택된다. 그러나 실제로 우리는 데이터 분포의 고유 차원을 정상적으로 알지 못한다. 따라서, 오토인코딩을 위한 특징 공간 차원의 선택은 종종 경험적으로 이루어진다. 더 일반적인 상황에서는 데이터 분포가 몇 개의 저차원 부분공간 또는 부분다양체의 혼합일 수 있다. 이러한 경우, 모든 특징에 대해 단일 저차원 공간을 강제하는 것은 더 이상 실현 가능하지 않다.
 
-% TODO: 번역 예정
+희소 오토인코더는 이러한 한계 중 일부를 해결하기 위한 것이다. 특히, \Cref{fig:SAE}에 설명된 것처럼 특징 공간의 차원은 데이터 공간의 차원과 같거나 심지어 더 높을 수 있다. 그러나 특징은 특징 공간에서 매우 희소해야 한다. 따라서 목표 \eqref{eqn:autoencode-objective-ch5}에서 레이트 감소 외에 간결성의 척도로 희소성을 부과하면, 희소 오토인코딩에 대한 새로운 목표를 얻는다:
+\begin{equation}
+  \min_{f, g}
+  [\|\Z\|_0 - \Delta R_{\epsilon}(\Z) + d(\X, \hat \X)],
+  \label{eqn:autoencode-sparse}
+\end{equation}
+여기서 $\ell^0$-``노름'' $\|\spcdot\|_0$는 희소성을 촉진하는 것으로 알려져 있다.
+이것은 이전 \Cref{ch:representation}에서 화이트박스 CRATE 아키텍처를 유도하는 데 사용한 희소 레이트 감소 목표 \eqref{eq:sparse-rr}와 매우 유사하다.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.5\linewidth]{\toplevelprefix/chapters/chapter5/figs/SAE_diagram.png}
+  \caption{\Cref{fig:AE}의 일반적인 오토인코더(AE)와 비교한 희소 오토인코더(SAE)의 그림.}
+  \label{fig:SAE}
+\end{figure}
+
+종단 간 방식으로 오토인코딩 쌍을 학습하는 방법으로서, 희소 오토인코딩은 과거에 실행되었다 \cite{Ranzato2006-oq,10.5555/3042573.3042641}. 그러나 거의 모든 현대 오토인코딩 프레임워크는 대신 다른 확률적 오토인코딩 프레임워크를 기반으로 하며, 이에 대해 지금부터 연구할 것이다.
 
 \subsection{변분 오토인코딩}\label{sec:vae}
 
-% TODO: 번역 예정
+Hinton과 Rumelhart \cite{Rumelhart1986}에 따른 오토인코딩의 고전적 개념에서, 데이터 분포는 궁극적으로 학습하는 표현의 중심성에도 불구하고 공식화에서 매우 미미한 역할을 한다. 실제로, 순진한 프레임워크에서는 심층 네트워크를 훈련하여 적절하게 구성된 병목 표현 $\vz$로 데이터 분포의 샘플을 재구성함으로써, 학습된 인코더 $f$와 $g$가 자연스럽게 데이터에 대한 간결하고 구조화된 특징 표현에 해당하게 되기를 바란다. 실제로는 거의 그렇지 않다.
+오늘날에도 여전히 중요한 응용 분야를 찾는 개선되고 더 현대적인 오토인코딩 방법론은 \textit{변분 오토인코딩}이다 \cite{Kingma2013-sb,Kingma2019-zh}.
+우리는 확률적 모델링 고려 사항을 통해 파생된 변분 오토인코더(VAE)를 훈련시키는 이 프레임워크가 고전적인 오토인코더 훈련(재구성 손실 최소화를 통해)을 일반화하고 적절한 정규화로 안정화하는 방법을 볼 것이다. 나중에, 인코딩 및 디코딩 매핑 $f$와 $g$를 나타내는 데 사용되는 심층 네트워크의 블랙박스 특성을 넘어서는 방법을 볼 것이다.
 
-\section{자기 일관 표현 학습}
+\subsubsection{오토인코딩에 대한 확률적 관점}
+데이터 분포에 대한 다양체 모델에서, 핵심적인 수학적 객체는 데이터 분포의 \textit{지지집합}, 즉 다양체 $\cM$과 지지집합 위의 데이터 밀도, 예를 들어 $p$이다. 확률적 관점에서 오토인코딩을 공식화할 때, 우리는 종종 고차원 입력 $\vx$가 $\R^D$ 위에 지지되는 밀도 $p$를 가진다고 생각한다; \Cref{ch:compression}의 잡음 제거-확산 구성과 일치하게, 다양체 $\cM$ 위에 지지되는 (퇴화) 분포에 매우 적은 양의 잡음을 추가하여 이 밀도 $p$를 얻는다고 생각할 수 있다.
+그런 다음 생성적 확률 모델링의 목표는 샘플 $\vx$로부터 밀도 $p$를, 예를 들어 $\vtheta$로 매개변수화된 모델 클래스 $p(\vx;\, \vtheta)$로부터 학습하는 것이다. \Cref{ch:compression}에서 상기했듯이, 이를 달성하기 위한 고전적인 접근 방식은 최대 우도 추정을 통하는 것이다:
+\begin{equation*}\label{eq:VAE-MLE}
+\max_{\vtheta}\; \bE_{\vx}[ \log p(\vx;\, \vtheta) ].
+\end{equation*}
+데이터 분포 $p$의 특정 대표 클래스 및 충분히 표현력 있는 모델 클래스 $p(\vx;\, \vtheta)$에 대해, 최대 우도 추정보다 더 간단한 학습 문제조차도 통계적으로 어렵다고 알려져 있다 \cite{Yang1999-wb}. 따라서 저차원 ``잠재'' 변수 모델 $\vz$에 따라 분포 $p(\vx ;\, \vtheta)$를 인수분해함으로써 $\vx$가 저차원 구조를 가지고 있다는 지식을 활용하는 것이 바람직하다. 실제로, 조건화를 통해 $p(\vx, \vz ;\, \vtheta) = p(\vz;\, \vtheta) p(\vx \mid \vz;\, \vtheta)$로 쓸 수 있으며,
+\begin{align*}
+p(\vx; \vtheta) &= \int p(\vz;\, \vtheta) p(\vx \mid \vz;\, \vtheta) \odif \vz
+\\
+&= E_{\vz \sim p(\,\cdot\,;\, \vtheta)}[ p(\vx \mid \vz;\, \vtheta) ].
+\end{align*}
+고전적으로, 데이터 분포 $p(\vx;\, \vtheta)$에 대한 우리의 모델은 잠재 분포 $p(\vz;\, \vtheta)$와 조건부 분포 $p(\vx \mid \vz;\, \vtheta)$의 선택에 해당한다.
+그럼에도 불구하고, \Cref{ch:classic}에서 연구한 특수한 경우를 제외하고, 이러한 잠재 분포로부터 데이터 분포에 대한 모델을 계산하는 것은 다루기 어렵다.
+마찬가지로, 데이터로부터 사후확률 $p(\vz \mid \vx;\, \vtheta)$를 계산하여 샘플을 해당 잠재변수로 \textit{인코딩}하는 것도 일반적으로 다루기 어렵다.
+따라서 우리의 생성 모델의 표현력, 계산적 다루기 쉬움, 그리고 계산적 다루기 쉬움을 위해 기본 확률 프레임워크에 대해 만드는 모든 근사의 정확성 사이에는 절충이 존재한다.
+이러한 절충을 탐색할 때, 최대 우도 목표와 유사하게 데이터로부터 모델 매개변수 $\vtheta$를 학습하기 위한 유연한 계산 접근 방식도 필요하다.
+
+변분 오토인코딩 프레임워크에서는 다음 세 가지 핵심 통찰력을 통해 이 절충을 탐색한다:
+\begin{enumerate}
+	
+\item 우리는 $\vz$와 $\vx$의 조건부 분포로 \textit{단순한} 분포를 가정하지만, (관련된 경우) 입력 데이터 $\vx$에 따라 매우 유연한 방식으로 그 매개변수가 심층 네트워크를 사용하여 의존하도록 만든다.
+	
+\item 우리는 $\vz$에 대한 모델링 선택에 의해 (베이즈 규칙에 의해) 암시되는 사후확률 $p(\vz \mid \vx;\, \vtheta)$를 자체 매개변수 $\veta$를 가진 다루기 쉬운 근사 $q(\vz \mid \vx;\, \veta)$로 대체한다.
+	
+\item 우리는 증거 하한(ELBO)으로 알려진, 우도 $p(\vx ;\, \vtheta)$에 대한 다루기 쉬운 하한을 최대화하여 $\vtheta$와 $\veta$를 공동으로 학습한다.
+\end{enumerate}
+우리는 실제로 VAE 프레임워크의 가장 유용한 사례, 즉 사전 $p(\vz ;\, \vtheta)$와 조건부 $p(\vx \mid \vz;\, \vtheta)$가 모두 가우시안인 경우에 초점을 맞출 것이다. 즉, 다음 가우시안 분포를 사용한다:
+\begin{align*}
+\vz &~ \mathcal{N}(\Zero, \vI), \\
+\vx \mid \vz &~ \mathcal{N}(g_1(\vz), \diag(e^{\tfrac{1}{2}g_2(\vz)}) \vI),
+\end{align*}
+여기서 $g = (g_1, g_2)$는 오토인코더의 \textit{디코더}에 해당하는 매개변수 $\vtheta$를 가진 심층 네트워크이다.
+유사하게, 근사 사후확률 $q(\vz \mid \vx;\, \veta)$에 대해, 매개변수 $\veta$를 가진 인코더 MLP $f = (f_1, f_2)$에 의해 매개변수가 주어지는 특수한 가우시안 분포를 사용한다:
+\begin{equation*}
+\vz \mid \vx \sim \mathcal{N}(f_1(\vx), \diag(e^{\tfrac{1}{2}f_2(\vx)}) \vI).
+\end{equation*}
+이것은 확률적 인코딩과 디코딩을 간단하게 만든다: 우리는 단순히 데이터를 인코딩하기 위해 가우시안 분포의 평균 및 분산 매개변수로 매핑하고, 디코딩을 위해 그 반대를 수행한다.
+인코더와 디코더를 학습하기 위해, 우리는 최대 우도 목표 \Cref{eq:VAE-MLE}에서 시작하여 증거 하한, 즉 ELBO로 알려진 편리한 하한을 유도한다. 간단한 대수 조작에서 시작하여
+\begin{align*}
+\log p(\vx;\, \vtheta) &= \log \frac{p(\vx, \vz;\, \vtheta)}{p(\vz \mid \vx;\, \vtheta)} \\
+&= \log \frac{p(\vx, \vz;\, \vtheta)}{q(\vz \mid \vx;\, \veta)}
+ + \log \frac{q(\vz \mid \vx;\, \veta)}{p(\vz \mid \vx;\, \vtheta)},
+\end{align*}
+$\\vz \sim q(\,\cdot\, \mid \vx ;\, \veta)$에 대한 기댓값을 취하고 깁스 부등식(\Cref{thm:information-inequality})을 사용하여 다음을 얻는다
+\begin{equation*}
+\log p(\vx;\, \vtheta) \geq \bE_{\vz \sim q(\,\cdot\, \mid \vx ;\, \veta)} \left[ \log \frac{p(\vx, \vz;\, \vtheta)}{q(\vz \mid \vx;\, \veta)}\right].
+\end{equation*}
+이 경계의 오른쪽은 ELBO이다; $p(\vx;\, \vtheta)$의 점별 로그 우도에 대한 하한으로서, 그 최대화는 최대 우도 목표와 계산적 다루기 쉬움 사이의 원칙적인 타협을 제공한다.
+흥미롭게도, 위의 유도는 그 엄밀함이 근사 사후확률 $q(\vz \mid \vx;\, \veta)$와 실제 사후확률 $p(\vz \mid \vx;\, \vtheta)$ 사이의 KL 발산에 의존함을 보여준다. 이는 우리의 근사 사후확률이 더 정확할수록 ELBO의 최대화가 관심 있는 기본 목표, 즉 데이터의 우도를 더 많이 최대화함을 의미한다. 따라서 VAE 목표는 다음과 같다:
+\begin{equation}\label{eq:elbo-objective}
+\max_{\vtheta, \veta}\, \bE_{\vx}
+\bE_{\vz \sim q(\,\cdot\, \mid \vx ;\, \veta)} \left[ \log \frac{p(\vx, \vz;\, \vtheta)}{q(\vz \mid \vx;\, \veta)}\right].
+\end{equation}
+우리의 유도에 의해, 이 목표의 최대화는 데이터의 우도 함수 최대화와 근사 사후확률과 실제 사후확률 사이의 KL 발산 최소화 사이의 절충에 해당하며, 이는 VAE 모델링 가정 하에서 매우 합리적인 목표이다.
+
+\subsubsection{오토인코딩으로서의 VAE 훈련}
+
+VAE는 일반적으로 실제 데이터 분포로부터의 개별 샘플 $\vx$와 $\vz \sim q(\,\cdot\, \mid \vx ;\, \veta)$가 주어졌을 때 ELBO 목표(\Cref{eq:elbo-for-gaussians})에 대한 교대 확률적 경사 상승법으로 훈련된다. 특히, 각 샘플 $\vx$에 대해 많은 독립적으로 생성된 샘플 $\vz^{i}$를 수집하여 훈련하는 것이 표준이다. 인코더 매개변수 $\veta$에 대한 \Cref{eq:elbo-for-gaussians}의 그래디언트를 취하기 위해, $\vz \sim q(\,\cdot\, \mid \vx ;\, \veta)$를 다음과 같이 쓰는 소위 재매개변수화 트릭을 사용한다
+\begin{equation*}
+\vz =_{\mathrm{d}} f_1(\vx) + \diag(e^{\tfrac{1}{2}f_2(\vx)}) \vg, \quad \vg \sim
+\mathcal{N}(0, \vI),
+\end{equation*}
+여기서 $=_{\mathrm{d}}$는 분포에서의 동등성을 나타낸다. 그런 다음 각 데이터 샘플 $\vx$에 대해 많은 독립적인 표준 가우시안 샘플 $\vg^{i}$를 취하고, 근사 사후확률로부터 해당 샘플 $\vz^i$를 생성하고, 아무 문제 없이 자동 미분을 사용하여 $\veta$에 대한 그래디언트를 계산할 수 있다.
+
+\section{자기 일관된 표현 학습}
+\label{sec:self-consistency}
+
+이전 장들에서, 우리는 (손실) 압축을 통해 저차원 분포를 학습하는 방법을 연구했다. \Cref{ch:intro}에서 간략하게 언급하고 이전 장들에서 입증했듯이, 기계 지능의 진보는 압축을 실현하기 위한 계산적으로 실현 가능하고 효율적인 해결책을 찾는 것에 크게 의존하며, 이론적으로 계산 가능하거나 다루기 쉬울 뿐만 아니라 실제적으로 확장 가능해야 한다:
+\begin{equation}
+\mbox{\textbf{계산 가능}} \;   \Longrightarrow \; \mbox{\textbf{다루기 쉬움}} \; \Longrightarrow \; \mbox{\textbf{확장 가능}}.
+\end{equation}
+첫째, 우리의 뇌가 예측을 개선하거나 수정하기 위해 전역적인 종단 간 역전파를 수행한다는 강력한 과학적 증거는 없다. 대신, 신경과학에서 오랫동안 알려진 바와 같이, 우리의 뇌는 예측 코딩과 같은 국소적인 폐루프 피드백으로 오류를 수정한다. 이것은 Norbert Wiener가 1940년대에 피드백 제어 이론과 사이버네틱스 프로그램을 개발하도록 영감을 준 과학적 기초였다.
+
+둘째, 이전 섹션에서 보았듯이, 일관된 표현을 학습하기 위해서는 양방향 오토인코딩을 학습해야 한다:
+\begin{equation}
+ \X
+\xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \Z  \xrightarrow{\hspace{1mm} \mathcal{D} = g \hspace{1mm}} \hat{\X}.
+\end{equation}
+이는 관찰된 입력 데이터 $\X$와 디코딩된 $\hat \X$가 어떤 유사성 척도 $d(\X, \hat \X)$에 의해 가깝도록 강제해야 한다. 자연에서 동물이나 인간은 실제 $\X$에 직접 접근할 수 있는 경우가 거의 없다. 예를 들어, 우리는 장면 속 객체의 실제 3D 모양, 거리 또는 동역학에 직접 접근할 수 없다. 그럼에도 불구하고, 우리는 모두 그것들을 매우 정확하고 효율적으로 추정하고 예측하는 법을 배웠다. 따라서, 뛰어난 질문은 다음과 같다: 비록 우리의 추정치 $\hat {\x}$를 실제 $\x$와 직접 비교할 수 없더라도, $\X$의 실제 분포를 어떻게 학습할 수 있는가? 이 장에서 보게 되겠지만, 그 해답은 데이터 분포의 저차원성뿐만 아니라 폐루프 피드백에도 있다.
 
 \subsection{스태클버그 게임을 통한 폐루프 전사}\label{sec:closed-loop-transcription}
 
-% TODO: 번역 예정
+어떤 표현이 일관성이 있도록 보장하기 위해, 생성된 $\hat \X \sim p(\hat\x)$와 원본 $\X \sim p(\x)$를 적어도 분포상으로 비교해야 한다는 것을 이전 장에서 알고 있다. $\X$와 $\hat \X$에 접근할 수 있더라도, 기술적으로 두 분포 간의 거리를 계산하고 최소화하는 것은 문제가 될 수 있는데, 특히 분포의 지지 집합이 저차원일 때 그렇다. \Cref{ch:compression}에서 소개된 KL-발산은 심지어 두 분포의 지지 집합이 겹치지 않는 경우 잘 정의되지도 않는다.
 
-\subsection{저차원 가우시안의 혼합}
+위의 어려움을 완화하기 위한 초기 시도로서, 사람들은 판별적 접근법을 통해 생성기/디코더 $g$를 학습할 것을 제안했다 \cite{Tu-2007}. 이러한 생각의 흐름은 {\em 생성적 적대 신경망(GAN)} \cite{goodfellow2014generative}의 아이디어로 이어졌다. 이는 일반적으로 심층 네트워크로 모델링되는 판별기 $d$를 도입하여 생성된 샘플 $\hat \X$와 실제 샘플 $\X$ 사이의 차이를 식별한다:
+\begin{equation}
+ \Z  \xrightarrow{\hspace{2mm} g(\z,\eta) \hspace{2mm}} \hat \X, \, \X  \xrightarrow{\hspace{2mm} d(\x, \theta)\hspace{2mm}} \{\mathbf 0, \mathbf 1\}}.
+ \label{eqn:GAN}
+\end{equation}
+생성기 $g$와 판별기 $d$ 사이의 {\em 스태클버그 게임}을 통해 $\hat {\x}$와 $\x$ 사이의 분포를 정렬하려고 시도할 수 있다고 제안된다:
+\begin{equation}
+\max_{\theta}\min_{\eta} \mathbb{E}_{p({\x})}[\log d(\x,\theta)] + \mathbb{E}_{p({\z})}[1 - \log d(\underbrace{g(\z,\eta)}_{\hat \x \sim p_g},\theta)].
+\end{equation}
+즉, 판별기 $d$는 실제 샘플 $\X$와 생성된 샘플 $\hat \X$ 사이의 교차 엔트로피를 최소화하려고 하는 반면, 생성기 $g$는 그 반대를 시도한다.
 
-% TODO: 번역 예정
+위의 스태클버그 게임에 대한 평형점을 찾는 것이 {\em Jensen-Shannon 발산}을 최소화하는 것과 동등함을 보일 수 있다:
+\begin{equation}
+    \mathcal{D}_{JS}(p(\x), p_g(\hat \x)) = \mathcal{D}_{KL}(p \| (p + p_g)/{2}) + \mathcal{D}_{KL}(p_g \| (p + p_g)/{2}).
+\end{equation}
+KL-발산과 비교하여, JS-발산은 두 분포의 지지 집합이 겹치지 않는 경우에도 잘 정의된다는 점에 유의하라. 그러나 JS-발산은 두 가우시안 분포 사이에서도 닫힌 형태의 표현을 가지지 않는 반면, KL-발산은 그렇다. 또한, 데이터 분포가 저차원이므로 JS-발산은 최적화하기에 매우 불안정할 수 있다.\footnote{\cite{arjovsky2017wasserstein}에서 보여준 바와 같이.} 이것이 많은 후속 GAN 변형에서 많은 추가적인 휴리스틱이 일반적으로 사용되는 이유를 설명할 수 있다.
+
+따라서 대신 JS-발산을 지구 이동(EM) 거리 또는 바서슈타인 거리로 대체하는 것이 제안되었다.\footnote{대략적으로 말하면, 잠재적으로 겹치지 않는 저차원 지지집합을 가진 분포에 대해, JS-발산은 $\ell^0$-노름처럼 행동하고, EM-거리는 $\ell^1$-노름처럼 행동한다.} 그러나 JS-발산과 바서슈타인 거리 모두 두 일반적인 분포 사이에서 근사적으로만 계산될 수 있다.\footnote{예를 들어, 바서슈타인 거리는 모든 1-립시츠 함수에 대한 두 분포의 기댓값 간의 최대 차이를 계산해야 한다.} 더욱이, JS-발산과 바서슈타인 거리 모두 가우시안 분포에 대해서도 닫힌 형태의 공식이 없다.\footnote{($\ell^1$-노름) 바서슈타인 거리는 닫힌 형태를 가진 ($\\ell^2$-노름) 바서슈타인 거리로 상한을 정할 수 있다 \cite{salmona2021gromovwasserstein}. 그러나 고차원 기하학에서 잘 알려져 있듯이, $\ell^1$-노름과 $\ell^2$ 노름은 차원이 높아짐에 따라 기하학적 및 통계적 속성 면에서 크게 벗어난다 \cite{Wright-Ma-2021}. 상한이 매우 느슨해질 수 있다.} 
+
+데이터 $\X$와 $\hat \X$의 분포를 비교하기 어렵다면, 인코더 $f$ 하에서 학습된 특징 $\Z$와 그 이미지 $\hat \Z$를 비교하는 것이 가능할까?:
+\begin{equation}
+ \X
+\xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \Z  \xrightarrow{\hspace{1mm} \mathcal{D} = g \hspace{1mm}} \hat{\X} \xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \hat \Z?
+\label{eqn:closed-autoencoding}
+\end{equation}
+이것은 {\em 자기 일관된 표현}의 개념으로 이어진다.
+
+\begin{definition}[자기 일관된 표현]\label{def:closed_loop}
+    데이터 $\vX$가 주어졌을 때, \textit{자기 일관된 표현}은 함수 쌍 $(f \colon \cX \to \cZ, g \colon \cZ \to \cX)$이며, 여기서 \textit{특징} $\vZ = f(\vX)$는 간결하고 구조화되어 있고, \textit{오토인코딩 특징} $\hat{\vZ} \doteq f \circ g(\vZ)$는 $\vZ$에 \textit{가깝다}.
+    \begin{enumerate}
+        	item 특정 노름에서 높은 확률로 $\vZ \approx \hat{\vZ}$이면 \textit{샘플별로} 자기 일관성이 있다고 말한다.
+        	
+\item 표현이 $\Law(\vZ) \approx \Law(\hat{\vZ})$이면 \textit{분포적으로 자기 일관성}이 있다고 말한다.
+    \end{enumerate}
+\end{definition}
+
+\subsection{가우시안의 저차원 혼합}
+
+위에서 우리는 데이터 분포를 학습하는 문제를 폐쇄 루프 오토인코딩 문제로 공식화하는 것이 가능하다고 주장했다. 또한 이러한 방식이 경험적으로 작동하는 것처럼 보인다는 것도 보았다. 남은 질문은 이러한 방식이 언제, 왜 작동해야 하는가이다. 임의의 데이터 분포를 가진 가장 일반적인 경우에 대해 이 질문에 답하기는 어렵다. 그럼에도 불구하고, 평소와 같이, 데이터 분포가 저차원 부분 공간 또는 저계급 가우시안의 혼합인 이상적인 경우에 대해 엄격한 정당성에 도달할 수 있는지 살펴보자. 이 중요한 특별한 경우에 대한 명확한 특성화와 이해는 더 일반적인 경우에 대한 통찰력을 줄 것이다.\footnote{저차원 구조를 가진 대부분의 분포는 이 분포 계열로 잘 근사될 수 있기 때문이다.} 
+
+이를 위해 먼저 $\vX$가 저차원 가우시안의 혼합에 따라 분포하고, $\vX$에 대한 레이블(즉, 부분 공간 할당)이 $\vy$에 의해 주어진다고 가정하자. 그런 다음, 예를 들어 $\vX$를 \textit{직교} 부분 공간의 혼합에 지원되는 표현 $\vZ$로 인코딩하고, $\vZ$를 다시 $\vX$로 디코딩하는 것을 학습함으로써 데이터 분포를 학습하기 위한 최소-최대 최적화 문제를 설정한다. 그러면 우리가 달성하고자 하는 표현은 이전에 논의된 정보 이득 버전, 즉 $ \Delta R_{\epsilon}(\vZ) = R_{\epsilon}(\vZ) - \sum_{k=1}^K R_{\epsilon}(\bm Z_k)$에 의해 최대화되며, 이는 각 클래스 $k$의 표현 $\vZ_{k}$가 다른 클래스의 지원 부분 공간과 직교하는 부분 공간을 확장하도록 강제한다. 디코딩의 일관성을 측정하는 방법은 이전과 같이 $\sum_{k = 1}^{K}\Delta R_{\epsilon}(\vZ_{k}, \hat{\vZ}_{k})$에 의해 주어지며, 이는 각 클래스 $k$에 대한 표현 $\vZ_{k}$와 그 자동 인코딩 $\hat{\vZ}_{k}$가 동일한 부분 공간을 확장하도록 강제한다. 따라서 다음과 같은 단순화된 스태클버그 게임을 설정할 수 있다:
+\begin{equation}\label{eq:ctrl_msp_game}
+    \max_{\bm \theta}\min_{\bm {\eta}}c{\Delta R_\epsilon(\vZ(\bm \theta)) + \sum_{k = 1}^{K}\Delta R_{\epsilon}(\vZ_{k}(\bm \theta), \hat{\vZ}_{k}(\bm \theta, \bm {\eta}))}
+\end{equation}
+이것은 실제 사용되는 것보다 더 간단한 설정이라는 점에 유의하라---예를 들어 \Cref{sec:sample-wise-incremental}의 항이 없고, 클래스 레이블이 있는 지도 설정에서 작업한다(다음 결과를 증명하는 데 사용된 기술은 비지도 공식으로 쉽게 확장할 수 있지만). 또한 표현의 일관성은 $\Delta R_{\epsilon}$를 통해 분포별 의미에서만 측정된다(원하는 경우 $\ell_{2}$ 노름과 같은 샘플별 거리 메트릭으로 대체할 수 있으며, \textit{mutatis mutandis}로 동등한 결론을 도출할 수 있지만).
+
+온화한 조건 하에서, 상관된 저차원 가우시안의 혼합에 따라 이미 분포된 데이터 소스 $\vX$로부터 $\vZ$를 실현하는 원하는 인코더와 디코더를 실현하기 위해, 우리는 가우시안을 풀고 희게 만들기 위해 선형 인코더와 디코더만 필요하다. 그런 다음 {\bm 	heta}와 {\bm {\eta}}가 연산자 노름이 제한된 행렬을 매개변수화하는 경우 이 설정을 연구한다.
+
+우리는 이 설정에서 어떤 종류의 최적해가 학습되는지 이해하고 싶다. 디코더의 최적 솔루션이 인코더에 대해서만 정의되고(특히 디코더의 다른 내재적 속성에 대해서는 정의되지 않음) 이러한 종류의 게임에 적합한 솔루션 개념 중 하나는 디코더가 인코더를 따르는 \textit{스태클버그 평형}이다. % 즉, 이러한 평형에서 디코더는 목적을 최적화해야 한다; 한편 인코더는 무엇을 선택하든 디코더가 최적의 응답을 선택할 것이라는 점을 감안할 때 목적을 최적화해야 한다(이는 인코더 목적에 영향을 줄 수 있음). 게임 이론 용어로, 디코더가 \textit{두 번째}로 가는 것과 같다: 인코더 이후에 가중치를 선택하고, 인코더와 디코더 모두 이러한 관점에서 목적을 최적화하려고 시도한다. \textit{교대 최적화}를 통해 경사 방법을 통해 순차적 평형을 학습하는 것은 계산적으로 다루기 쉽다. 여기서 각 측은 다른 학습률을 사용한다. 순차적 평형에 대한 자세한 설명은 이 책의 범위를 벗어나며 \Cref{sec:minimax}에서 더 많은 기술적 세부 사항을 제공한다. 이 설정에서 우리는 다음 결과를 가진다:
+\begin{theorem}[\cite{pai2022pursuit}, 요약됨]\label{thm:ctrl_theory}
+    $\vX$가 부분 공간의 혼합에 분포되어 있다고 가정하자. 특정 현실적이지만 기술적인 조건 하에서, \eqref{eq:ctrl_msp_game}의 모든 순차적 평형은 다음을 만족한다:
+    \begin{itemize}
+        	
+\item $\vZ_{k}$는 직교 부분 공간에 놓여 있고 해당 부분 공간에서 등방성이며, 즉 정보 이득을 최대화한다.
+        	
+\item 자동 인코딩은 자기 일관성이 있으며, 즉, 모든 $k$에 대해 $\vZ_{k}$와 $\hat{\vZ}_{k}$가 확장하는 부분 공간은 동일하다.
+    \end{itemize}
+\end{theorem}
+이 자기 일관성 개념은 데이터에 대한 기하학적 가정만 있는 경우, 즉 통계적 가정이 없는 경우 기대할 수 있는 최선이다. $\vX$의 열이 저계급 가우시안 혼합 모델에서 추출되었다고 가정하면, 이 정리의 유사 버전은 예를 들어 $\vZ_{k}$도 공분산이 등방성인 저계급 가우시안임을 인증한다. % 즉, 이 결과는 가우시안 혼합의 간단한 경우를 통해 정보 이득 및 자기 일관성을 최적화하기 위한 최소-최대 게임이 최적의 솔루션을 달성할 수 있음을 검증한다.
 
 \section{연속 학습 자기 일관 표현}
+\label{sec:continuous}
 
 \subsection{클래스별 점진적 학습}
+\label{sec:class-wise-incremental}
 
-% TODO: 번역 예정
+우리가 보았듯이, 심층 신경망은 판별적 및 생성적 맥락 모두에서 수백 또는 수천 클래스의 객체에 대한 표현을 학습하는 데 큰 능력을 보여주었다. 그러나 네트워크는 일반적으로 모든 클래스의 균일하게 샘플링된 데이터로 오프라인으로 훈련되어야 한다. (개방 루프) 네트워크가 이전 클래스의 데이터 없이 새로운 클래스를 학습하도록 업데이트되면 이전에 학습된 지식이 {\em 치명적인 망각} 문제의 희생양이 될 것이라는 사실이 알려져 있다 \cite{McCloskey1989catastrophic}. 이는 신경 과학에서 안정성-가소성 딜레마로 알려져 있다: 신경 시스템이 이전 환경에서 얻은 필수 지식을 유지하면서 새로운 환경에서 학습할 수 있도록 보장하는 과제 \cite{Grossberg1987CompetitiveLF}.
+
+대조적으로, 자연 신경 시스템(예: 동물 뇌)은 그러한 치명적인 망각으로 고통받지 않는 것 같다. 그들은 이전에 학습한 객체에 대한 기억을 유지하면서 새로운 객체에 대한 새로운 기억을 개발할 수 있다. 자연 또는 인공 신경 시스템에 대한 이 능력은 종종 {\em 점진적 학습, 연속 학습, 순차적 학습} 또는 {\em 평생 학습}이라고 불린다 \cite{controlled-forgetting}.
+
+많은 최근 연구가 인공 신경 시스템이 더 유연한 방식으로 훈련될 수 있는 방법을 강조했지만, 인공 신경망에 대한 안정성-가소성 딜레마에 답하기 위한 가장 강력한 기존 노력은 일반적으로 원시 예제 저장 \cite{icarl,chaudhry2019tiny} 또는 외부 메커니즘 제공 \cite{EWC}을 요구한다. 원시 예제, 특히 이미지와 같은 고차원 입력의 경우 비용이 많이 들고 확장이 어렵다. 반면 외부 메커니즘(일반적으로 생성적 재생을 위한 보조 네트워크 및 표현 공간, 네트워크 리소스의 점진적 할당, 네트워크 복제 또는 네트워크의 사용 및 미사용 부분의 명시적 격리를 포함)은 휴리스틱을 요구하고 숨겨진 비용을 발생시킨다.
+
+여기서 우리는 자연과 유사한 점진적 학습 설정에 관심이 있다. 두 가지 핵심적인 특성으로 기존의 관행에 대응한다.
+\begin{enumerate}
+    	
+\item 첫 번째는 \emph{기억 기반}이어야 한다는 것이다. 새로운 클래스를 학습할 때, 오래된 클래스의 원시 예제를 새로운 데이터와 함께 훈련할 수 없다. 이는 오래된 클래스에 대해 학습된 간결하고 구조화된 "기억", 예를 들어 오래된 클래스의 점진적으로 학습된 생성적 표현과 관련 인코딩 및 디코딩 매핑에 의존해야 함을 의미한다 \cite{fearnet}.
+    	
+\item 두 번째는 \emph{자기 완결적}이어야 한다는 것이다. 점진적 학습은 고정된 용량을 가진 단일 신경 시스템과 공통 표현 공간에서 일어난다. 망각을 최소화하는 능력은 외부 네트워크, 아키텍처 수정 또는 자원 할당 메커니즘 없이 전반적인 학습 목표를 최적화함으로써 암시된다.
+\end{enumerate}
+
+다른 클래스의 특징에 대한 비일관적인 선형 구조는 동물 뇌의 하측두엽 피질의 다른 영역에서 객체가 어떻게 인코딩되는지와 매우 유사하다 \cite{Chang-Cell-2017,Bao2020AMO}. 폐쇄 루프 전사 $\X \rightarrow \Z \rightarrow \hat{\X} \rightarrow \hat{\Z}$는 또한 기억 형성 \cite{2020Vandeven,Josselyn2020MemoryER}에 대해 널리 가정된 메커니즘과 유사하다. 이것은 다음과 같은 질문으로 이어진다: 뇌의 기억은 점진적인 방식으로 형성되므로, 위의 폐쇄 루프 전사 프레임워크도 점진적 학습을 지원할 수 있을까?
+
+\paragraph{LDR 메모리 샘플링 및 재생.} 간단한 선형 \textit{구조}의 LDR은 점진적 학습에 독특하게 적합하다: 이전에 학습된 각 클래스의 특징 $\Z_j$의 분포는 특징 공간의 주 부분공간 $\mathcal{S}_j$에 의해 명시적이고 간결하게 표현될 수 있다. 오래된 클래스 $j$의 기억을 보존하기 위해, 우리는 새로운 클래스를 학습하는 동안 부분공간을 보존하기만 하면 된다. 이를 위해, 우리는 상위 $r$개의 주성분을 따라 부분공간에 있는 $m$개의 대표적인 프로토타입 특징을 간단히 샘플링하고, 이러한 특징을 $\Z_{j,old}$로 표시한다. LDR의 간단한 선형 구조 때문에, 클래스 $j$를 학습한 후 $\Z_{j,old}$의 평균과 공분산을 계산하여 $\Z_{j,old}$에서 샘플링할 수 있다. 필요한 저장은 평균과 공분산만 저장하면 되므로 극히 작으며, 필요에 따라 샘플링된다. 지금까지 총 $t$개의 오래된 클래스가 학습되었다고 가정하자. 이러한 모든 클래스에 대한 프로토타입 특징, 즉 $\Z_{old} \doteq [\Z^1_{old},\ldots, \Z^t_{old}]$이 새로운 클래스를 학습할 때 보존될 수 있다면, 과거 기억을 나타내는 부분공간 ${\mathcal{S}_j}_{j=1}^t$도 보존될 것이다. 샘플링 및 평균 및 공분산 계산에 대한 자세한 내용은 \cite{tong2023incremental}의 연구에서 찾을 수 있다.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{\toplevelprefix/chapters/chapter5/figs/framework-v7.png}
+\caption{\textbf{전체 프레임워크} 구조화된 LDR 메모리에 대한 폐쇄 루프 전사 기반 점진적 학습. 단일의, 완전히 자기 완결적인 인코딩-디코딩 네트워크만 필요하다: 새로운 데이터 클래스 $\X_{new}$에 대해, 새로운 LDR 메모리 $\Z_{new}$는 인코더와 디코더 간의 최소-최대 게임으로 점진적으로 학습되며, 과거 클래스 $\Z_{old}$의 오래된 메모리가 폐쇄 루프 전사(또는 재생)를 통해 손상되지 않는다는 제약 조건 하에 학습된다: $\Z_{old} \approx \hat{\Z}_{ old} = f(g(\Z_{ old}))$.
+\vspace{-0.2in}}
+\label{fig:framework}
+\end{figure*}
+
+\paragraph{오래된 메모리 제약이 있는 점진적 학습 LDR.}
+\eqref{eqn:autoencoding-ch6} 학습된 오토인코딩을 사용하면, 새로운 클래스를 배우는 동안 망각을 피하기 위해 메모리 특징과 관련된 이미지, 예를 들어 $\hat\X_{old} = g(\Z_{old}, \bm \eta)$를 재생하고 사용할 수 있다는 점에 주목하라. 이것이 일반적으로 이전의 점진적 학습 방법에서 생성 모델이 사용된 방식이다. 그러나 폐쇄 루프 프레임워크를 사용하면 특징에서 이미지를 명시적으로 재생할 필요가 없다. 과거 기억은 특징 자체에 대한 최적화를 통해 효과적으로 보존될 수 있다.
+
+새로운 클래스의 객체를 점진적으로 학습하는 작업을 고려해보자.\footnote{물론, 심각한 수정 없이 작업에 새로운 클래스의 작은 배치가 포함된 더 일반적인 설정을 고려할 수도 있다.} 해당 새로운 샘플 집합을 $\X_{new}$로 나타낸다. $\X_{new}$의 특징은 $\Z_{new}(\bm 	heta) = f(\X_{new}, \bm 	heta)$로 표시된다. 우리는 그것들을 오래된 클래스 $\Z_{old}$의 프로토타입 특징과 함께 연결하고 $\Z = [\Z_{new}(\bm 	heta), \Z_{old}]$를 형성한다. 모든 특징으로부터 재생된 이미지를 $\hat{\X} = [{\hat{\X}_{new}(\bm 	heta,\bm {\eta})}, {\hat{\X}_{old}(\bm {\eta})}]$로 나타내지만, 실제로는 명시적으로 계산하거나 사용할 필요가 없다. 우리는 재생된 이미지의 특징, 즉 $\hat{\Z} = f(\hat{\X}, \bm 	heta) =  [{\hat{\Z}_{new}(\bm 	heta,\bm {\eta})}, {\hat{\Z}_{old}(\bm 	heta,\bm {\eta})}]$만 필요하다.
+
+다중 클래스 CTRL 목표 \eqref{eq:MCR2-GAN-objective}에 대한 동기를 반영하여, 우리는 새로운 클래스 $\Z_{new}$의 특징이 모든 오래된 클래스 $\Z_{old}$와 비간섭적이기를 원한다. $\Z_{new}$가 학습해야 할 유일한 새로운 클래스의 특징이므로, 목표 \eqref{eq:MCR2-GAN-objective}는 $k=1$인 경우로 축소된다:
+\begin{equation}
+\min_{\bm {\eta}} \max_{\bm 	heta} \Delta{R_{\epsilon}(\Z)} + \Delta{R_{\epsilon}(\hat{\Z})}+\Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})}.
+\label{eqn:unconstrained-minimax}
+\end{equation}
+그러나, 새로운 클래스에 대한 특징을 최적화하기 위해 네트워크 매개변수 $(\bm 	heta,\bm {\eta})$를 업데이트하면, 업데이트된 매핑 $f$와 $g$가 오래된 클래스의 특징도 변경할 것이다. 따라서, 오래된 클래스 표현의 왜곡을 최소화하기 위해, 우리는 $\mbox{Cov}(\Z_{j,old}) = \mbox{Cov}(\hat{\Z}_{j,old})$를 강제하려고 시도할 수 있다. 다시 말해, 새로운 클래스를 학습하는 동안, 우리는 오래된 클래스의 기억이 전사 루프를 통해 "자기 일관성"을 유지하도록 강제한다:
+\begin{equation}
+\Z_{old} \xrightarrow{\hspace{2mm} g(\z,\bm {\eta}) \hspace{2mm}} \hat \X_{old} \xrightarrow{\hspace{2mm} f(\x, \bm 	heta)\hspace{2mm}} {\hat \Z}_{old}.
+\end{equation}
+수학적으로, 이것은 다음과 같이 설정하는 것과 같다
+$$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{\epsilon}(\Z_{j,old},\hat{\Z}_{j,old}) = 0.$$
+따라서, 위의 최소-최대 프로그램 \eqref{eqn:unconstrained-minimax}은 {\em 제한된} 최소-최대 게임으로 수정되며, 이를 {\em 점진적 폐쇄 루프 전사}(i-CTRL)라고 한다.
+이 게임의 목표는 표준 다중 클래스 CTRL 목표 \eqref{eq:MCR2-GAN-objective}와 동일하지만, 단 하나의 추가 제약 조건만 포함한다:
+\begin{eqnarray}
+      \min_{\bm {\eta}} \max_{\bm 	heta}  &&\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} \nonumber\\
+      && \mbox{subject to} \quad  \Delta R(\Z_{old},\hat{\Z}_{old}) = 0.
+\label{eqn:constrained-minimax}
+\end{eqnarray}
+
+실제로, 위의 제약된 최소-최대 프로그램은 다음과 같이 인코더 $f(\cdot, \bm 	heta)$와 디코더 $g(\cdot, \bm {\eta})$ 사이에서 {\em 교대로} 최소화 및 최대화를 통해 해결될 수 있다:
+\begin{eqnarray}
+      &\max_{\bm 	heta}  &\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\lambda\cdot  \Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} - \gamma\cdot \Delta{R_{\epsilon}(\Z_{old},\hat{\Z}_{old})}, \label{eqn:relaxed-max} \\
+      &\min_{\bm {\eta}} &\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\lambda\cdot \Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} + \gamma\cdot \Delta{R_{\epsilon}(\Z_{old},\hat{\Z}_{old})}; \label{eqn:relaxed-min}
+\end{eqnarray}
+여기서 \eqref{eqn:constrained-minimax}의 제약 조건 $\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) = 0$는 해당 계수 $\gamma$와 부호를 가진 라그랑주 항으로 변환(및 완화)되었다. 우리는 또한 새로운 데이터와 관련된 레이트 감소 항에 가중치를 부여하기 위해 다른 계수 $\lambda$를 도입한다.
+
+\paragraph{점진적 복습을 통한 공동 최적 메모리.}
+기억 형성의 이 단계를 모방하기 위해, 전체 데이터셋을 점진적으로 학습한 후, 모든 클래스를 한 번에 한 클래스씩 다시 복습할 수 있다. 모든 클래스를 한 번 거치는 것을 하나의 복습 "주기"라고 부른다.\footnote{기존의 공동 학습 설정에서 사용되는 "에포크"라는 용어와 구별하기 위함이다.} 필요한 경우 여러 복습 주기를 수행할 수 있다. 복습이 학습된 (LDR) 기억을 향상시킬 수 있다는 것은 상당히 예상된다. 그러나 다소 놀랍게도, 폐쇄 루프 프레임워크는 심지어 ``{클래스 비지도}'' 방식으로 복습할 수 있게 해준다: 오래된 클래스의 데이터를 복습할 때, 예를 들어 $\X_j$, 시스템은 클래스 레이블이 필요 없으며 $\X_j$를 새로운 클래스 $\X_{new}$로 간단히 처리할 수 있다. 즉, 시스템은 수정 없이 동일한 제한된 최소-최대 프로그램 \eqref{eqn:constrained-minimax}을 최적화한다; 시스템이 최적화된 후, $\Z_{new}$에 의해 생성된 새로 학습된 부분공간을 식별하고, 이를 오래된 부분공간 $\mathcal{S}_j$를 대체하거나 병합하는 데 사용할 수 있다. 우리 실험에서 보여주듯이, 이러한 클래스 비지도 점진적 복습 과정은 LDR 기억의 판별 및 생성 성능을 점진적으로 향상시켜 결국 공동 학습된 기억의 성능으로 수렴할 수 있다.
+
+\paragraph{실험적 검증.}
+다음 데이터셋에 대한 일부 실험 결과를 보여준다: MNIST \cite{lecun1998gradient} 및 CIFAR-10 \cite{krizhevsky2014cifar}. 모든 실험은 더 어려운 클래스-IL 설정에 대해 수행된다. MNIST와 CIFAR-10 모두, 10개 클래스는 각각 2개의 클래스를 가진 5개의 작업 또는 각각 1개의 클래스를 가진 10개의 작업으로 분할된다. 인코더 $f$와 디코더 $g$에 대해, 우리는 DCGAN \cite{radford2016unsupervised}에서 수정한 매우 간단한 네트워크 아키텍처를 채택하는데, 이는 단지 {\em 4계층} 합성곱 네트워크이다. 여기서 우리는 일부 정성적 시각적 결과만 보여준다; 더 많은 실험과 분석적 분석은 \cite{tong2023incremental}의 연구에서 찾을 수 있다.
+
+\paragraph{오토인코딩 속성 시각화.} 먼저 MNIST와 CIFAR-10에서 일부 대표적인 이미지 $\X$와 해당 재생된 $\hat{\X}$를 정성적으로 시각화한다. 모델은 5개의 작업으로 분할된 데이터셋으로 점진적으로 학습된다. 결과는 \Cref{fig:justify_xhat_equals_x_incremental}에 표시되며, 재구성된 $\hat{\X}$가 모양과 질감을 포함하여 $\X$의 주요 시각적 특성을 보존함을 관찰한다. MNIST와 같은 더 간단한 데이터셋의 경우, 재생된 $\hat{\X}$는 입력 $\X$와 거의 동일하다! 이것은 다음을 고려할 때 다소 주목할 만하다: (1) 우리의 방법은 대부분의 오토인코딩 방법처럼 개별 샘플에 대해 $\hat{\x} \approx \x$를 명시적으로 강제하지 않는다, 그리고 (2) 모든 클래스를 점진적으로 학습한 후, 생성기는 0, 1, 2와 같이 이전에 학습한 숫자를 생성하는 방법을 잊지 않았다. CIFAR-10과 같은 더 복잡한 데이터셋의 경우에도, 각 이미지의 본질을 충실하게 포착하는 좋은 시각적 품질을 보여준다.
+
+\begin{figure}[t]
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/mnist_x.png}
+        \caption{MNIST $\X$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/mnist_recon_x.png}
+        \caption{MNIST $\hat{\X}$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/cifar10_x.png}
+        \caption{CIFAR-10 $\X$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/cifar10_x_recon.png}
+        \caption{CIFAR-10 $\hat{\X}$}
+    \end{subfigure}
+    \caption{\small 학습된 폐쇄 루프 전사($\hat{\X} = g\circ f(\X)$)의 오토인코딩 속성 시각화.}
+        \label{fig:justify_xhat_equals_x_incremental}
+\end{figure}
+
+\paragraph{학습된 특징의 주 부분 공간.} 대부분의 생성적 메모리 기반 방법은 재생 목적으로 오토인코더, VAE 또는 GAN을 활용한다. 각 클래스에 대해 학습된 특징 $\Z_j$의 구조 또는 분포는 특징 공간에서 불분명하다. 반면에 LDR 메모리의 특징 $\Z_j$는 명확한 선형 구조를 가진다. \Cref{fig:cifar_10_pca_sampling_main}는 모든 학습된 특징 $|{\Z}^	op {\Z}|$ 간의 상관관계를 시각화하며, 두 데이터셋 모두에서 명확한 블록 대각선 패턴을 관찰한다.\footnote{이러한 패턴은 \cite{Bao2020AMO}의 확장 데이터 그림 3에 표시된 바와 같이, 하측두엽 피질의 다른 영역에서 나온 객체 범주의 반응 프로필의 유사성 행렬과 매우 유사하다는 점에 주목하라.} 이것은 다른 클래스 $\Z_j$에 대한 특징이 실제로 서로 비일관적인 부분 공간에 놓여 있음을 나타낸다. 따라서 각 클래스의 특징은 특징 공간에서 주 부분 공간으로 잘 모델링될 수 있다. %
+
+\begin{figure}[tb]
+\centering
+\includegraphics[height=4.1cm]{\toplevelprefix/chapters/chapter5/figs/Heatmap_MNIST.jpg}
+\includegraphics[height=4cm]{\toplevelprefix/chapters/chapter5/figs/Heatmap_CIFAR10.png}
+\caption{\small MNIST(왼쪽)와 CIFAR-10(오른쪽)의 특징 공간에서 $|{\Z}^\top {\Z}|$의 블록 대각선 구조.}
+\label{fig:cifar_10_pca_sampling_main}
+\end{figure}
+
+\paragraph{주성분으로부터의 샘플 재생 이미지.} 각 클래스의 특징이 주 부분 공간으로 모델링될 수 있으므로, 각 부분 공간 내의 개별 주성분을 추가로 시각화한다. \Cref{fig:pca_sampling_main}은 MNIST와 CIFAR-10 각각에서 다른 클래스에 대한 상위 4개 주성분을 따라 샘플링된 특징에서 재생된 이미지를 보여준다. 각 행은 하나의 주성분을 따른 샘플을 나타내며, 명확하게 유사한 시각적 특성을 보이지만 다른 행의 것들과는 뚜렷하게 다르다. 모델이 나머지 모든 클래스를 학습한 후에도 '4'의 다른 자세를 기억하는 것을 볼 수 있다. CIFAR-10의 경우, 점진적으로 학습된 메모리는 말과 배의 대표적인 자세와 모양을 기억한다.
+
+\begin{figure}[t]
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/mnist_4.png}
+        \caption{`4'의 샘플링된 $\hat{\x}_{old}$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/mnist_7.png}
+        \caption{`7'의 샘플링된 $\hat{\x}_{old}$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/horse_z.jpg}
+        \caption{`말'의 샘플링된 $\hat{\x}_{old}$}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.20\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/ship_z.jpg}
+        \caption{`배'의 샘플링된 $\hat{\x}_{old}$}
+    \end{subfigure}
+    \caption{\small {MNIST}(클래스 '4'와 클래스 '7') 및 {CIFAR-10}(클래스 '말'과 '배')에 대해 학습된 특징의 (상위 4개) 주성분에 가장 가까운 거리를 가진 $\z$로부터 재구성된 5개의 $\hat {\x}=g(\z)$ 시각화.}
+    \label{fig:pca_sampling_main}
+\end{figure}
+
+\paragraph{점진적 복습의 효과.} 우리는 이전에 설명한 비지도 점진적 복습 단계로 점진적으로 학습된 LDR 메모리가 어떻게 더 강화될 수 있는지 검증한다. 실험은 CIFAR-10에서 10단계로 수행된다. \Cref{fig:memory_review} 왼쪽은 10개 클래스 전체의 점진적 학습이 끝날 때 첫 번째 클래스 '비행기'의 재생된 이미지를 보여주며, 상위 3개 주성분을 따라 샘플링되었다 - 매 두 행(16개 이미지)은 하나의 주성분 방향을 따른다. 그들의 시각적 품질은 매우 양호하게 유지된다 - 우리는 거의 망각을 관찰하지 않는다. 오른쪽 그림은 첫 번째 클래스를 한 번 복습한 후의 재생된 이미지를 보여준다. 복습 후 시각적 품질이 크게 향상되었음을 알 수 있으며, 부분 공간의 특징의 주성분은 동일한 클래스 내에서 뚜렷하게 다른 시각적 속성에 해당하기 시작한다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.41\textwidth]{\toplevelprefix/chapters/chapter5/figs/memory_before_review_clip.png}
+\includegraphics[width=0.4\textwidth]{\toplevelprefix/chapters/chapter5/figs/memory_after_review_clip.png}
+ \caption{\small CIFAR-10의 클래스 1-'비행기'의 재생된 이미지 $\hat{\x}_{old}$ 시각화, 복습 전(왼쪽)과 후(오른쪽).}
+\label{fig:memory_review}
+\end{figure}
 
 \subsection{샘플별 연속 비지도 학습}
+\label{sec:sample-wise-incremental}
 
-% TODO: 번역 예정
+우리가 알다시피, 폐쇄 루프 CTRL 공식은 CTRL-바이너리 프로그램을 통해 클래스 정보 없이도 이미 괜찮은 오토인코딩을 학습할 수 있다:
+\begin{align}
+      \max_{\bm 	heta}\min_{\bm {\eta}}  \quad \Delta R_{\epsilon}(\Z, \hat{\Z}) 
+ \label{eqn:CTRL-Binary}
+\end{align}
+그러나 \eqref{eqn:CTRL-Binary}는 데이터셋 $\X$와 재생성된 $\hat \X$를 분포 수준에서만 정렬하기 때문에 실질적으로 제한적이라는 점에 유의하라.
+각 샘플 $\x$가 디코딩된 $\hat \x = g(f(\x))$에 가깝다는 보장은 없다.
+
+\paragraph{비지도 전사를 위한 샘플별 제약 조건.}
+\label{sec:constraints}
+비지도 설정에서 학습된 표현의 판별적 및 생성적 속성을 향상시키기 위해, 위의 CTRL-바이너리 최소최대 게임 \eqref{eqn:CTRL-Binary}에 대해 두 가지 추가 메커니즘을 제안한다. 단순성과 균일성을 위해, 여기서는 이들을 레이트 감소 측정에 대한 등식 제약 조건으로 공식화하지만, 실제로는 최적화 중에 부드럽게 강제될 수 있다.
+
+\paragraph{폐쇄 루프 전사를 통한 샘플별 자기 일관성.} 첫째, CTRL-바이너리가 샘플별 일관된 오토인코딩을 학습하지 않는 문제를 해결하기 위해, 각 샘플에 대해 $\hat {\x}$가 $\x$에 가깝도록 촉진해야 한다. CTRL 프레임워크에서, 이것은 해당 특징 $\z=f(\x)$와 $\hat \z = f(\hat \x)$를 가깝게 강제함으로써 달성될 수 있다.
+샘플별 자기 일관성을 촉진하기 위해, 여기서 $\hat{\x} = g(f(\x))$는 $\x$에 가깝다, 우리는 모든 $N$개의 샘플에 대해 $\z$와 $\hat{\z}$ 사이의 거리가 0 또는 작기를 원한다.
+이 거리는 레이트 감소로 측정될 수 있다:
+\begin{align}
+\sum_{i\in N} \Delta R_{\epsilon}(\z^i,\hat{\z}^i) = 0.
+\label{eqn:sample-self-consistency}\vspace{-2mm}
+\end{align}
+이것은 다시 이미지 공간에서 차이를 측정하는 것을 피한다는 점에 주목하라.
+
+\paragraph{증강된 샘플 압축을 통한 자기 지도 학습.} 비지도 설정에서는 샘플 간의 클래스 레이블 정보를 알 수 없으므로, 우리가 할 수 있는 최선은 모든 샘플과 그 증강(예: 평행 이동, 회전, 폐색 등을 통해)을 하나의 "클래스"로 보는 것이다—이것이 거의 모든 자기 지도 학습 방법의 기본 아이디어이다. 레이트 감소 프레임워크에서, 각 샘플과 그 증강의 특징을 압축하는 것이 자연스럽다. 이 연구에서는 SimCLR \cite{chen2020simple}의 표준 변환을 채택하고 이러한 변환을 $\tau$로 나타낸다. 각 증강된 샘플을 $\x_a = \tau(\x)$로, 해당 특징을 $\z_a = f(\x_a, \bm 	heta)$로 나타낸다. 판별 목적으로, 우리는 분류기가 그러한 변환에 대해 \textit{불변}이기를 희망한다. 따라서 모든 증강의 특징 $\z_a$가 원래 샘플 $\x$의 특징 $\z$와 동일하도록 강제하는 것이 자연스럽다. 이것은 다시 레이트 감소 측면에서 측정된 $\z$와 $\z_a$ 사이의 거리가 모든 $N$개 샘플에 대해 0(또는 작음)이 되도록 요구하는 것과 같다:
+\begin{align}
+\sum_{i\in N} \Delta R_{\epsilon}(\z^i,\z_{a}^i) = 0.
+\label{eqn:sample-compression}\vspace{-3mm}
+\end{align}
+
+\paragraph{폐쇄 루프 전사를 통한 비지도 표현 학습.} 지금까지, 우리는 CTRL-바이너리 목표 $\Delta R_{\epsilon}(\Z, \hat{\Z})$(\eqref{eqn:CTRL-Binary})가 분포를 정렬하는 데 도움이 되는 반면, 샘플별 자기 일관성 \eqref{eqn:sample-self-consistency}과 샘플별 증강 \eqref{eqn:sample-compression}은 각 샘플과 관련된 특징을 정렬하고 압축하는 데 도움이 된다는 것을 알고 있다. 일관성 외에도, 우리는 또한 학습된 표현이 다른 샘플(여기서는 다른 "클래스"로 간주됨)에 대해 최대한 판별적이기를 원한다. 레이트 왜곡 항 $R_{\epsilon}(\Z)$는 모든 특징의 코딩 레이트(따라서 부피)를 측정한다는 점에 주목하라. %
+
+\paragraph{비지도 CTRL.} 이러한 요소들을 종합하여, 우리는 다음의 제한된 최대최소 프로그램을 통해 표현을 학습할 것을 제안하며, 이를 {\em 비지도 CTRL}(u-CTRL)이라고 한다:
+\begin{align}
+      \max_	heta {\min_{\eta}}  \quad & R_{\epsilon}(\Z) + \Delta R_{\epsilon}(\Z, \hat{\Z}) \label{eqn:constrained_maxmin}
+ \mbox{subject to} \quad & \sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) = 0, \;\; \mbox{and} \;\; \sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i) = 0. \nonumber
+\end{align}
+\Cref{fig:framework-uCTRL}는 이 프로그램과 관련된 폐쇄 루프 시스템의 전체 아키텍처를 보여준다.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{\toplevelprefix/chapters/chapter5/figs/uCTRLv3.png}
+\caption{\textbf{전체 프레임워크} 비지도 학습을 위한 폐쇄 루프 전사. 바이너리-CTRL 방법에 두 가지 추가 제약 조건이 부과된다: 1) 샘플별 특징 $\z^i$와 $\hat{\z}^i$에 대한 자기 일관성, 예를 들어 $\z^i \approx \hat{\z}^i$; 및 2) 증강된 샘플 $\z^i$와 $\z_{a}^i$의 특징 간의 불변성/유사성, 예를 들어 $\z^i \approx \z_{a}^i=f(\tau(\x^i), \bm 	heta)$, 여기서 $\x^i_a=\tau(\x^i)$는 일부 변환 $\tau(\cdot)$을 통한 샘플 $\x^i$의 증강이다.}
+\label{fig:framework-uCTRL}
+\end{figure}
+
+실제로, 위의 프로그램은 인코더 $f(\cdot,\bm 	heta)$와 디코더 $g(\cdot,\bm {\eta})$ 사이에서 교대로 최대화 및 최소화를 통해 최적화될 수 있다. 우리는 실제 이미지 데이터셋에 대한 모든 후속 실험에 사용되는, 실제로 잘 작동하는 다음 최적화 전략을 채택한다:
+\vspace{-1mm}
+\begin{align}
+  &  \max_{\theta}\; R_{\epsilon}(\Z) + \Delta{R_{\epsilon}(\Z, \hat{\Z})-\lambda_{1}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i)} -\lambda_{2}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) \label{eqn:constrained_max} \\
+   & \min_{\bm {\eta}}\; R_{\epsilon}(\Z) + \Delta{R_{\epsilon}(\Z, \hat{\Z})+\lambda_{1}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i)+ \lambda_{2}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) \label{eqn:constrained_min},
+\end{align}
+여기서 \eqref{eqn:constrained_maxmin}의 제약 조건 $\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) = 0$와 $\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i) = 0$은 해당 계수 $\lambda_{1}$과 $\lambda_{2}$를 가진 라그랑주 항으로 변환(및 완화)되었다.\footnote{모든 샘플 또는 샘플 배치에 대한 레이트 감소 항 $\Delta R$을 계산하려면 큰 행렬의 비싼 $\log\det$를 계산해야 한다는 점에 유의하라. 실제로, 두 벡터에 대한 $\Delta R$의 기하학적 의미로부터, $\Delta R$은 $\ell^2$ 노름 또는 두 벡터 사이의 코사인 거리로 근사될 수 있다.} 
+
+위의 표현은 클래스 정보 없이 학습된다. 판별적 또는 생성적 작업을 용이하게 하려면, 고도로 구조화되어야 한다. u-CTRL을 사용하여 학습된 표현에는 실제로 특정하고 독특한 구조가 자연스럽게 나타나는 것이 실험적으로 확인되었으며, u-CTRL은 다른 점진적 또는 비지도 학습 방법에 비해 상당한 이점을 보여준다 \cite{pmlr-v234-tong24a}. 여기서는 자기 지도 학습을 위한 표준 증강을 사용한 CIFAR-10 데이터셋 \cite{chen2020simple}에 대한 실험으로 일부 정성적 결과만 설명한다. 더 많고 더 큰 데이터셋에 대한 실험과 정량적 평가는 \cite{pmlr-v234-tong24a}를 참조할 수 있다.
+
+실험에서 볼 수 있듯이, u-CTRL을 사용하여 학습된 표현에는 특정하고 독특한 구조가 실제로 자연스럽게 나타난다: 전역적으로, 동일한 클래스의 이미지 특징은 \Cref{fig:heatmap_z}에서 보여주듯이 잘 함께 클러스터링되고 다른 클래스와 분리되는 경향이 있다; 국소적으로, 개별 샘플 주변의 특징은 \Cref{fig:tsne}에서 보여주듯이 근사적으로 조각별 선형 저차원 구조를 나타낸다.
+
+\begin{figure}[t]
+     \footnotesize
+     \centering
+    \includegraphics[width=0.5\textwidth]{\toplevelprefix/chapters/chapter5/figs/CIFAR10_cifar10_heatmap_zz.png}
+    \caption{\small CIFAR-10의 특징 공간에서 $|{\Z}^\top {\Z}|$의 블록 대각선 구조의 출현.}
+    \label{fig:heatmap_z}
+\end{figure}
+
+\begin{figure}[ht!]
+    \begin{subfigure}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/uCTRL-tsne2.png}
+        \caption{u-CTRL}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/MoCoV2-tsne3.png}
+        \caption{MoCoV2}
+    \end{subfigure}
+    \caption{\small 다른 모델로 CIFAR-10의 학습된 특징에 대한 t-SNE 시각화.}
+    \label{fig:tsne}
+\end{figure}
+
+\paragraph{레이트 감소를 통한 비지도 조건부 이미지 생성.} 고도로 구조화된 특징 분포는 또한 학습된 표현이 생성 목적에 매우 유용할 수 있음을 시사한다. 예를 들어, 샘플 특징을 의미 있는 클러스터로 구성하고, 이를 저차원 (가우시안) 분포 또는 부분 공간으로 모델링할 수 있다. 이러한 간결한 모델에서 샘플링함으로써, 계산된 클러스터로부터 의미 있는 샘플을 조건부로 재생성할 수 있다. 이것은 {\em 비지도 조건부 이미지 생성}으로 알려져 있다 \cite{hwang2021stein}.
+
+특징을 클러스터링하기 위해, 우리는 레이트 감소 프레임워크 \eqref{eqn:maximal-rate-reduction}이 압축을 통한 비지도 클러스터링 \cite{ma2007segmentation}에서 영감을 받았다는 사실을 활용하여 멤버십 $\bm {\Pi}$를 찾는 원칙적인 방법을 제공한다.
+구체적으로, 우리는 $\bm {\Pi}$에 대해 동일한 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}을 최대화하지만, 대신 학습된 표현 $\Z$를 고정한다. 우리는 단순히 멤버십 $\bm {\Pi}$를 특징 $\Z$의 비선형 함수, 예를 들어 매개변수 $\xi$를 가진 $h_{\bm {\pi}}(\cdot,\xi):\Z \mapsto \bm {\Pi}$로 본다. 실제로, 우리는 이 함수를 출력 특징 $\z$ 직후의 MLP 헤드와 같은 간단한 신경망으로 모델링한다.
+샘플의 ``의사'' 멤버십 $\hat{\bm {\Pi}}$를 추정하기 위해, 우리는 $\bm {\Pi}$에 대한 다음 최적화 문제를 푼다:
+\begin{align}
+    \hat{\bm {\Pi}} = \arg\max_{\xi} \Delta R_{\epsilon}(\Z| \bm {\Pi}(\xi)).
+\label{eqn:cluster_mcr}
+\end{align}
+\Cref{fig:vis_clustering}에서는 \eqref{eqn:cluster_mcr}의 10개 비지도 클러스터에서 생성된 이미지를 시각화한다. 각 블록은 하나의 클러스터를 나타내고 각 행은 각 클러스터에 대한 하나의 주성분을 나타낸다. 레이블 없이 학습하고 훈련했음에도 불구하고, 모델은 샘플을 올바른 클러스터로 구성할 뿐만 아니라 각 클러스터/클래스 내의 통계적 다양성을 보존할 수 있다. 우리는 다른 주성분을 계산한 다음 그에 따라 샘플링하고 생성함으로써 각 클러스터 내의 다양성을 쉽게 복구할 수 있다. 여기에 제시된 실험은 다소 규모가 제한적이지만, 다음 장에서는 조건부 생성 및 추정을 위해 학습된 데이터 분포와 표현을 활용하는 더 직접적이고 강력한 방법을 탐구할 것이다.
+
+\begin{figure}[t]
+    \footnotesize
+    \centering
+    \includegraphics[width=0.95\textwidth]{\toplevelprefix/chapters/chapter5/figs/CIFAR10_generatedfromcluster.png}
+    \caption{\small u-CTRL을 사용하여 CIFAR-10의 각 클러스터에서 비지도 조건부 이미지 생성. 다른 행의 이미지는 각 클러스터의 다른 주성분으로부터의 생성을 의미한다.}
+    \label{fig:vis_clustering}
+\end{figure}
 
 \section{요약 및 참고 사항}
+역사적으로, 오토인코딩은 학습을 위한 신경망 연구 혁신의 중요한 동인 중 하나였지만, 딥 러닝의 가장 실질적으로 인상적인 시연은 아마도 다른 영역(예: AlexNet \cite{krizhevsky2012imagenet}을 사용한 판별적 분류, 또는 GPT 아키텍처 \cite{brown2020language}를 사용한 생성 모델링)에 있었을 것이다.
+이 장 전반에 걸쳐 소개한 연구들, 특히 \cite{Hinton504}의 연구는 신경망이 기계 학습 연구 환경에서 그렇지 않을 때 연구 관심을 촉발시키는 촉매 역할을 했다.
+현대 실무에서, 오토인코더는 시각 데이터, 음성 데이터, 분자 데이터와 같은 고도로 구조화된 데이터를 생성하기 위한 많은 대규모 시스템의 핵심 구성 요소로 남아 있으며, 특히 \Cref{sec:vae}에서 논의한 변분 오토인코더 방법론을 기반으로 하는 VQ-VAE 접근법 \cite{van-den-Oord2017-jr}이 그렇다.
+오토인코딩의 핵심 문제는 표현 학습과의 긴밀한 연결 때문에 지적으로 가장 중요한 문제로 남아 있으며, 대규모 모델의 훈련 및 배포 효율성이 계속해서 더 중요해짐에 따라 미래에 실용적인 연구자들의 레이더에 다시 나타날 것으로 예상된다.
 
-% TODO: 번역 예정
+이 장의 후반부에 제시된 자료는 폐쇄 루프 전사 주제에 대한 일련의 최근 연구에 기반을 두고 있다: \cite{Dai-entropy-2022}, \cite{pai2022pursuit}, \cite{tong2023incremental}, \cite{pmlr-v234-tong24a}. 특히, \Cref{sec:closed-loop-transcription}은 \cite{Dai-entropy-2022}의 선구적인 연구에 기반을 두고 있다. 그 후, \cite{pai2022pursuit}의 연구는 적어도 이상적인 경우에 대해 폐쇄 루프 프레임워크에 대한 강력한 이론적 정당성을 제공했다. \Cref{sec:class-wise-incremental}과 \Cref{sec:sample-wise-incremental}은 각각 \cite{tong2023incremental}과 \cite{pmlr-v234-tong24a}의 연구에 기반을 두고 있다. 그들은 폐쇄 루프 프레임워크가 클래스별 또는 샘플별 설정에서 점진적 및 연속 학습을 자연스럽게 지원함을 보여준다. 독자는 더 많은 기술 및 실험적 세부 사항을 위해 이 논문들을 참조할 수 있다.
+
+\paragraph{얕은 신경망 대 깊은 신경망, 오토인코딩 등.} \Cref{sub:nonlinear-pca}에서, 우리는 Cybenko의 보편적 근사 정리를 논의했고, 원칙적으로 단일 은닉 계층(그리고 적절한 원소별 비선형성)을 가진 신경망이 적절하게 정칙적인 목표 함수를 근사하기에 충분함을 그것이 명시하는지 논의했다. 물론, 실제로 신경망이 실제로 우세한 주된 아키텍처 이유는 \textit{더 깊은} 신경망을 훈련하기 위한 기술의 정교화였다.
+깊이가 왜 필요한가?
+근본적인 관점에서, 깊이 분리 문제는 더 깊은 신경망이 얕은 신경망에 비해 기하급수적으로 우수한 효율성으로 주어진 목표 함수 클래스를 근사할 수 있는 설정을 구성하며, 이론 문헌에서 광범위하게 연구되었다: 예로는 \cite{Telgarsky2016-sn,Bresler2020-xy,Venturi2021-qc}가 있다.
+실제로 더 깊은 네트워크를 훈련하기 쉬운 것은 이론의 관점에서 만족스러운 답을 얻지 못했다.
+ResNets \cite{he2016deep}는 더 깊은 네트워크를 더 쉽게 훈련할 수 있도록 하는 선구적인 경험적 연구를 나타내며, 거의 모든 현대 아키텍처에서 어떤 형태로든 사용된다. 이론적 연구는 초기 신경 접선 커널 \cite{Buchanan2021-sj,Martens2021-cx}을 통해 매우 깊은 네트워크의 훈련 가능성에 크게 초점을 맞추었지만, 이러한 연구는 훈련의 중간 및 후기 단계에서 더 깊은 네트워크의 훈련 가능성 이점에 대한 중요한 통찰력을 제공하지 못했다(그러나 이를 해결하려는 연구 라인의 뿌리에 대해서는 \cite{Yang2021-gw} 참조).
 
 \section{연습문제 및 확장}
 
-% TODO: 번역 예정
+\begin{exercise}[다양체 평탄화의 개념적 이해]
+  \Cref{sub:nonlinear-pca}의 다양체 평탄화 하위 섹션에서 논의된 바와 같이, $\R^D$에 내장된 곡선 다양체 $\cM$에 놓인 데이터를 고려하자 (예: $3$차원 공간의 곡면).
+  이 연습문제에서는 \cite{Psenka-JMLR24}의 다양체 평탄화 알고리즘의 기본 요소를 설명할 것이다.
+  다양체는 유클리드 공간의 열린 집합(또는 더 일반적으로 부분공간의 열린 집합)이면 평평하다고 한다.
+
+  \begin{enumerate}
+    	
+\item 다양체 $\cM$이 \textit{그래프}라고 가정하자: 이는 $\cM
+      \subset \R^{D_1} \times \R^{D_2}$ (예를 들어)이고, $F
+      : \R^{D_1} \to \R^{D_2}$라는 함수가 존재하여
+      \begin{equation}
+        \cM = \set{(\x, F(\x) \mid \x \in \R^{D_1})}.
+      \end{equation}
+      정수 $D_3$와 $\cM$을 평탄화하는 맵 $f : \R^{D_1} \times \R^{D_2} \to \R^{D_3}$를 제공하고, 평탄화된 표현으로부터의 해당 (손실 없는) 재구성 절차를 설명하라.
+    	
+\item 이제 $\cM$이 일반적인 매끄러운 다양체라고 가정하자. 매끄러운 다양체는 각 점 근처에서 부분공간에 의해 국소적으로 잘 근사되는 속성을 가진다. 그래프와 관련하여 각 점에서 국소적으로 다양체 $\cM$을 평탄화하는 방법을 직관적으로 설명하라. (\cite{Psenka-JMLR24}의 알고리즘은 이 국소 평탄화 과정의 정제된 버전을 수행하여 전역 평탄화를 형성하도록 접착할 수 있도록 한다.)
+  \end{enumerate}
+\end{exercise}
+
+\begin{exercise}[폐쇄 루프 전사 재현]
+  \Cref{sec:closed-loop-transcription}의 방법론에 따라 CIFAR-10 데이터셋에 대한 표현 학습을 위한 폐쇄 루프 전사 파이프라인을 구현하라.
+  유용한 하이퍼파라미터 및 아키텍처 설정에 대해서는 \cite{Dai-entropy-2022}를 참조하라. \Cref{fig:justify_xhat_equals_x_incremental}의 결과를 재현하라.
+\end{exercise}
 
 \end{document}
