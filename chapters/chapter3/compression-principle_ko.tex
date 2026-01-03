@@ -1220,16 +1220,341 @@ $\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점�
 
 \vspace{-0.1in}
 
-\subsection{코딩 레이트 감소의 최적화 특성}
+\subsection{코딩 레이트 감소의 최적화 속성}
+\label{sec:MCR-landscape}
 
-% TODO: 번역 예정
+이 하위 섹션에서는 MCR$^2$ 함수의 최적화 속성을 최적 해와 최적화 지형의 구조를 분석하여 연구한다. 신경망에 의해 도입된 기술적 어려움을 피하기 위해, 다음과 같이 문제 \eqref{eqn:maximal-rate-reduction}의 단순화된 버전을 고려한다: 
+\begin{align}\label{eqn1:maximal-rate-reduction}
+    \max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z)\qquad \mathrm{s.t.}\quad \|\bm Z_k\|_F^2 = N_k,\ k =1,\dots,K. 
+\end{align}
+이론적으로, MCR$^2$ 원리 \eqref{eqn1:maximal-rate-reduction}는 분포에 대한 레이트 $R_\epsilon$과 $R^c_\epsilon$을 정확하고 효율적으로 평가할 수 있는 한, {\em 모든} 분포의 표현 $\Z$에 적용될 수 있는 뛰어난 일반화 가능성을 가진다. 최적 표현 $\Z^{\ast}$는 몇 가지 흥미로운 기하학적 및 통계적 속성을 가져야 한다. 여기서는 기계 학습에서 많은 중요한 사용 사례가 있는 부분 공간의 특별한 경우를 통해 최적 표현의 좋은 속성을 밝힌다. $\Z$에 대해 원하는 표현이 다중 부분 공간일 때, \eqref{eqn1:maximal-rate-reduction}의 레이트 $R_\epsilon$과 $R^c_\epsilon$는 각각 \eqref{chap4-eqn:coding-length-eval}과 \eqref{chap4-eqn:compress-loss-eval}에 의해 주어진다. 최대 코딩 레이트 감소에서, MCR$^2$는 $\rank{(\Z_{k}^*)}\le d_k$인 최적 표현 $\Z^{\ast} = [\Z_1^*,\dots,\Z_K^*]$을 달성한다. $\Z^{\ast}$가 다음과 같은 원하는 속성을 가지고 있음을 보일 수 있다(\cite{yu2020learning}에서 공식적인 설명과 자세한 증명 참조).
+
+\begin{theorem}[\bf 전역 최적 해의 특성화]
+\quad$\Z^{\ast} = [\Z_1^*,\dots,\Z_K^*]$가 문제~\eqref{eqn1:maximal-rate-reduction}의 전역 최적 해라고 가정하자. 다음 진술이 성립한다:
+\quad\begin{itemize}
+\quad\quad\item {\em 클래스 간 판별성}: 주변 공간이 충분히 크면($d \ge \sum_{k=1}^{K} d_k$), 부분 공간들은 모두 서로 직교한다. 즉, $k \not= l$에 대해 $(\Z_{k}^*)^{\top} \Z_{l}^* = \bm{0}$이다.
+\quad\quad\item {\em 최대한 다양한 표현}:
+\quad\quad\quad\quad코딩 정밀도가 충분히 높으면, 즉 $\epsilon ^4 < c\cdot \min_{k}\left\{ \frac{N_k}{N}\frac{d^2}{d_k^2}\right\}$(여기서 $c>0$는 상수)이면, 각 부분 공간은 최대 차원을 달성한다. 즉, $\mathrm{rank}{(\Z_{k}^*)}= d_k$이다. 또한, $\Z_{k}^*$의 가장 큰 $d_k-1$개의 특이값은 동일하다.
+\quad\quad\quad\label{thm:MCR2-properties}
+\quad\end{itemize}
+\end{theorem}
+
+
+이 정리는 MCR$^2$ 원리가 데이터를 여러 독립적인 부분 공간으로 임베딩하는 것을 촉진하며(\Cref{fig:mcr-global} 참조), 각 부분 공간의 특징은 (아마도 한 차원을 제외하고) {\em 등방성}으로 분포됨을 나타낸다. 특히, 이 정리는 MCR$^2$ 원리에 의해 학습된 특징이 \Cref{subsec:LDR}에서 논의된 원하는 저차원 판별 속성을 나타냄을 확인한다. 또한, 모든 이러한 판별 표현 중에서 주변 공간에서 가장 높은 차원을 가진 것을 선호한다. 이는 정보 병목 현상~\eqref{chap4-eqn:information-bottleneck}의 목표와는 실질적으로 다르다.
+
+
+
+\begin{example}[CIFAR-10 이미지 분류]
+\quad\quad여기서는 MCR$^2$ 목표가 이미지 분류를 위해 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}보다 더 나은 표현을 학습하는 데 어떻게 도움이 되는지 제시한다. 여기서는 특징 매핑 $\z = f(\x,\theta)$를 모델링하기 위해 인기 있는 신경망 아키텍처인 ResNet-18~\cite{he2016deep}을 채택한다. 우리는 코딩 레이트 감소를 최대화하기 위해 신경망 매개변수 $\theta$를 최적화한다. CIFAR10 이미지 분류 데이터셋~\cite{krizhevsky2009learning}으로 성능을 평가한다.
+
+\quad\quad\begin{figure}[t]
+\quad\quad\quad\begin{subfigure}[t]{0.42\textwidth}
+\quad\quad\quad\quad\centering
+\quad\quad\quad\quad\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/loss_log.pdf}
+\quad\quad\quad\quad\caption{훈련 과정 동안의 $R_\epsilon$, $R^c_\epsilon$, $\Delta R_\epsilon$의 변화.}
+\quad\quad\quad\quad\label{fig:train-test-loss-pca-1}
+\quad\quad\quad\end{subfigure}
+\quad\quad\quad\hfill
+\quad\quad\quad\begin{subfigure}[t]{0.42\textwidth}
+\quad\quad\quad\quad\centering
+\quad\quad\quad\quad\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/pca_mainline.pdf}
+\quad\quad\quad\quad\caption{PCA: {\small (\textbf{빨강}) 전체 데이터; (\textbf{파랑}) 개별 클래스}.}
+\quad\quad\quad\quad\label{fig:train-test-loss-pca-3}
+\quad\quad\quad\end{subfigure}
+\quad\quad\quad\caption{{\small 훈련 과정에서 MCR$^2$의 레이트 변화, 학습된 특징의 주성분.}}
+\quad\quad\quad\label{fig:train-test-loss-pca}
+\quad\quad\end{figure}
+
+
+\quad\quad\begin{figure*}[b]
+\quad\quad\quad\begin{center}
+
+\quad\quad\quad\quad\includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_mcr2.pdf}
+\quad\quad\quad\quad\hspace{0.25cm}
+\quad\quad\quad\quad\includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_ce.png}
+\quad\quad\quad\quad\caption{{\small MCR$^2$ 목표(\textbf{왼쪽})와 CE 손실(\textbf{오른쪽})을 사용하여 학습된 특징 간의 코사인 유사도.}}
+\quad\quad\quad\quad\label{fig:heatmap-plot}
+\quad\quad\quad\end{center}
+\quad\quad\quad\vskip -0.1in
+\quad\quad\end{figure*}
+
+\quad\quad\Cref{fig:train-test-loss-pca-1}은 훈련의 에포크에 걸쳐 두 레이트와 그 차이(훈련 및 테스트 데이터 모두)가 어떻게 변하는지 보여준다: 초기 단계를 거친 후, $R_\epsilon$은 점차 증가하는 반면 $R^c_\epsilon$은 감소하여, 전체 특징 $\bm Z$이 확장되는 동시에 각 클래스 $\bm Z_k$가 압축되고 있음을 나타낸다.
+\quad\quad\Cref{fig:train-test-loss-pca-3}은 $\Z_k$당 특이값 분포를 보여준다. \Cref{fig:heatmap-plot}은 클래스별로 정렬된 학습된 특징 간의 코사인 유사도를 보여준다. 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}와 MCR$^2$ 목표 \eqref{eqn:maximal-rate-reduction}를 사용하여 학습된 특징의 유사도를 비교한다. 플롯에서 MCR$^2$ 손실을 사용하여 학습된 표현이 교차 엔트로피 손실을 사용하여 학습된 표현보다 훨씬 더 다양하다는 것을 분명히 알 수 있다. 이 실험에 대한 자세한 내용은 \cite{chan2021redunet}에서 찾을 수 있다.
+\quad\quad\label{eg:Rate-Reduction-CIFAR10}
+\end{example}
+
+
+그러나 위 실험에서 사용된 네트워크 아키텍처에 대한 명백한 정당성이 부족했다. 여기에 채택된 네트워크(ResNet-18)가 왜 맵 $f(\x, \theta)$를 나타내는 데 적합한지, 내부에 학습된 계층 연산자 및 매개변수 $\theta$를 해석하는 것은 물론이고 아직 명확하지 않다. 다음 장에서는 {\em 원하는 목표(예: 레이트 감소)로부터 전적으로 "화이트박스"로 네트워크 아키텍처와 구성 요소를 유도하는 방법}을 보여줄 것이다.
+
+
+
+\paragraph{정규화된 MCR$^2$.}
+위 정리는 레이트 감소 목표의 전역 최적해의 속성을 특징짓는다. 다른 최적해, 예를 들어 지역 최적해는 어떨까? 프로베니우스 노름의 제약 조건 때문에, 최적화 이론적 관점에서 문제 \eqref{eqn1:maximal-rate-reduction}을 분석하는 것은 어려운 작업이다. 따라서, 우리는 \eqref{eqn1:maximal-rate-reduction}의 라그랑주 공식을 고려한다. 이는 정규화 매개변수의 특정 설정 하에서 최적 해가 일치하는 \eqref{eqn1:maximal-rate-reduction}의 엄격한 완화 또는 동등한 문제로 볼 수 있다; \cite[Proposition 1]{wang2024global} 참조.
+구체적으로, 우리가 연구하는 공식은 이하에서 \textit{정규화된 MCR$^2$ 문제}라고 하며, 다음과 같다:
+\begin{align}\label{eq:MCR-reg}
+\quad\quad\max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z) - \frac{\lambda}{2}\|\bm Z\|_F^2,
+\end{align}
+여기서 $\lambda > 0$는 정규화 매개변수이다. 프로그램 \eqref{eq:MCR-reg}은 매우 비볼록이고 그래디언트 계산에 행렬 역행렬을 포함하지만, 우리는 여전히 지역 및 전역 최적해를 다음과 같이 명시적으로 특징지을 수 있다.
+
+\begin{theorem}[\bf 지역 및 전역 최적해]\label{thm:mcr-global-opt}
+\quad\quad각 $k \in \{1,\dots,K\}$에 대해 $N_k$를 $k$-번째 클래스의 훈련 샘플 수, $N_{\max} \doteq \max\{N_1,\dots,N_K\}$, $\alpha=d/(N\epsilon^2)$, $\alpha_{k} = d/(N_k\epsilon^2)$라고 하자. 코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 다음을 만족하면
+\quad\quad\begin{align}\label{eq:lambda}
+\quad\quad\quad\quad\lambda \in \left(0, \frac{d(\sqrt{N/N_{\max}}-1)}{N(\sqrt{N/N_{\max}}+1)\epsilon^2} \right],
+\quad\quad\end{align}
+\quad\quad다음 진술이 성립한다: \\
+\quad\quad(i) (\textbf{지역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 지역 최대화자인 경우, $k$-번째 블록이 다음 분해를 허용하는 경우에만 그러하다.
+\quad\quad\begin{align}\label{eq:Zk opti}
+\quad\quad\quad\quad\bm Z_k^* = \left(\frac{ \eta_k + \sqrt{\eta_k^2 - 4\lambda^2N/N_k}}{2\lambda \alpha_{k}}\right)^{1/2} \bm U_k \bm V_k^\top,
+\quad\quad\end{align}
+\quad\quad여기서 (a) $r_k = \mathrm{rank}(\bm Z_k^*)$는 $r_k \in [0,\min\{N_k,d\})$를 만족하고 $\sum_{k=1}^K r_k \le \min\{N,d\}$이며, (b) $\bm U_k \in \mathcal{O}^{d \times r_k}$는 모든 $k \neq l$에 대해 $\bm U_k^{\top}\bm U_l = \bm 0$을 만족하고, $\bm V_k \in \mathcal{O}^{N_k \times r_k}$이며, (c) 각 $k\in \{1,\dots,K\}$에 대해 $\eta_k=(\alpha_k-\alpha) - \lambda(N/N_k+1)$이다.
+\quad\quad\\
+\quad\quad(ii) (\textbf{전역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\bm Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 전역 최대화자인 경우, (a) 위의 모든 조건을 만족하고 $\sum_{k=1}^K r_k = \min\{m,d\}$이며, (b) $N_k < N_l$이고 $r_l > 0$을 만족하는 모든 $k \neq l \in [K]$에 대해 $r_k = \min\{N_k,d\}$인 경우에만 그러하다.
+\end{theorem}
+
+\begin{figure}[t]
+\quad\quad\centering
+\quad\quad\includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/mcr2-global-local.png}
+\quad\quad\caption{{\bf 전역 최적화 지형:} \cite{sun2015nonconvex,lee2016gradient}, \Cref{thm:mcr-global-opt,thm:mcr-benign-opt-landscape}에 따르면, (정규화된) 레이트 감소 목표의 전역 및 지역 최대값은 모두 상호 비간섭 부분공간을 가진 솔루션에 해당한다. 다른 모든 임계점은 엄격한 안장점이다.}
+\quad\quad\label{fig:mcr-global-local}
+\end{figure}
+
+이 정리는 문제 \eqref{eq:MCR-reg}의 지역 및 전역 최적해를 명시적으로 특징짓는다. 직관적으로, 이는 문제 \eqref{eq:MCR-reg}의 각 지역 최대화자에 의해 표현된 특징이 저차원이고 판별적임을 보여준다. 정리~\ref{thm:mcr-global-opt}에서 지역 및 전역 최적 해를 특징지었지만, GD가 안장점과 같은 다른 임계점에 갇힐 수 있기 때문에 문제 \eqref{eq:MCR-reg}를 해결하기 위해 GD를 사용하여 이러한 해를 효율적으로 계산할 수 있는지 여부는 아직 알려지지 않았다.
+다행히도, \cite{sun2015nonconvex,lee2016gradient}는 함수가 두 번 연속적으로 미분 가능하고 {\em 엄격한 안장 속성}을 만족하면, 즉 각 임계점이 지역 최소화자이거나 엄격한 안장점\footnote{문제 \eqref{eq:MCR-reg}의 임계점이 엄격하게 양의 곡률을 가진 방향을 가지면 엄격한 안장점이라고 말한다~\cite{sun2015nonconvex}. 이는 엄격하게 양의 곡률을 가진 고전적인 안장점과 지역 최소화자를 포함한다.}이면, GD가 무작위 초기화로 거의 확실하게 지역 최소화자에 수렴함을 보였다. 우리는 다음과 같이 모든 임계점을 특징지음으로써 문제 \eqref{eq:MCR-reg}의 전역 최적화 지형을 조사한다.
+
+ \begin{theorem}[\bf 양성 전역 최적화 지형]\label{thm:mcr-benign-opt-landscape}
+\quad\quad코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 \eqref{eq:lambda}를 만족하면,
+\quad\quad문제 \eqref{eq:MCR-reg}의 임의의 임계점 $\bm Z$는 지역 최대화자이거나 엄격한 안장점이다.
+\end{theorem}
+함께, 위의 두 정리는 레이트
+감소 목표의 각 지역 최대화자와 관련된 학습된 특징이—전역 최대화자뿐만 아니라—비간섭적인 저차원 부분 공간으로 구조화됨을 보여준다. 더욱이, (정규화된) 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}은 \Cref{fig:mcr-global-local}에서 설명한 바와 같이 지역 최대값과 엄격한 안장점만을 임계점으로 갖는 매우 양성적인 지형을 가진다.
+\cite{sun2015nonconvex,lee2016gradient}에 따르면, \Cref{thm:mcr-global-opt,thm:mcr-benign-opt-landscape}는 무작위 초기화로부터 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}에 (확률적) 경사 하강법을 적용하여 저차원 및 판별적 표현(LDR)을 효율적으로 찾을 수 있음을 암시한다. 이러한 결과는 또한 \Cref{eg:Rate-Reduction-CIFAR10}에서 선택된 네트워크가 충분히 표현력이 있고 잘 훈련되면 결과 표현이 일반적으로 전역 최적 해에 해당할 가능성이 있는 비간섭적인 선형 표현을 제공하는 이유를 간접적으로 설명한다.
+관심 있는 독자는 증명을 위해 \cite{wang2024global}을 참조할 수 있다.
 
 \section{요약 및 참고 사항}
 
-% TODO: 번역 예정
+샘플링을 위한 잡음 제거 및 확산의 사용은 풍부한 역사를 가지고 있다. 확산 모델에 관한 명백한 첫 번째 연구는 아마도 \cite{Sohl-Dickstein2015}일 것이지만, 이 이전에도 잡음 제거를 계산 및 통계 문제로 다루는 많은 연구가 있었다. 이들 중 가장 관련성이 높은 것은 아마도 점수 함수를 명시적으로 사용하여 잡음 제거(및 독립 성분 분석 수행)를 하는 \cite{hyvarinen05a}일 것이다. 가장 인기 있는 후속 연구는 기본적으로 동시에 발생했다: \cite{ho2020denoising,song2019}. 그 이후로 수천 편의 논문이 확산 모델을 기반으로 구축되었다; 우리는 \Cref{ch:autoencoding}에서 이 주제를 다시 다룰 것이다.
+
+이러한 연구 중 다수는 단순한 선형 조합 \eqref{eq:gen_additive_gaussian_noise_model}과 다른 확률적 과정을 사용한다. 사실, 위에 나열된 모든 연구는 순방향 과정의 각 단계 시작 시 \textit{독립적인} 가우시안 잡음을 추가할 필요성을 강조한다. 이론 중심의 연구는 실제로 순방향 과정을 공식화하기 위해 브라운 운동이나 확률 미분 방정식을 사용한다 \cite{song2020score}. 그러나 가우시안의 선형 조합은 여전히 가우시안을 생성하므로, 이러한 과정의 \textit{주변 분포}는 여전히 \eqref{eq:gen_additive_gaussian_noise_model}의 형태를 취한다. 우리의 논의 대부분은 주변 분포가 무엇인지에만 의존하므로, 우리의 지나치게 단순화된 모델은 거의 모든 것에 충분하다. 사실, 주변 분포가 충분하지 않은 유일한 경우는 \(\Ex[\vx \mid \vx_{t}]\)에 대한 \(\Ex[\vx_{s} \mid \vx_{t}]\)의 표현식을 유도할 때이다. 다른 (잡음 추가) 과정은 다른 표현식을 제공하며, 이는 샘플링에 사용될 수 있다(물론, 계속해서 인기 있는 DDPM 샘플러와 같이 효율적인 샘플러를 유도하는 다른 방법도 있다). \eqref{eq:gen_additive_gaussian_noise_model}의 과정은 그러나 인기 있는 DDIM 알고리즘 \cite{song2020denoising}의 형태를 취하는 "자연스러운" 잡음 제거 반복을 가진 진짜 확률 과정이다. (이 등가성조차도 자명하지 않다; 우리는 정당화로 \cite{de2025distributional}를 인용한다.)
+
+
+
+\Cref{sec:denoising-intro}에서 다룬 이론적 연구 \citep{li2024d}와 데이터가 저차원 구조를 가질 때 확산 모델의 \textit{샘플링} 효율성을 연구하는 그 위에 구축된 연구 계보 외에도, 데이터가 저차원 구조를 가질 때 확산 모델의 \textit{훈련} 효율성을 연구하는 방대한 연구 본체가 있다. 구체적으로, \citet{chen2023score}과 \citep{wang2024diffusion}는 데이터가 저차원 가우시안 혼합에 속할 때 잡음 제거기의 근사 및 추정 오차를 특성화하여, 분포를 정확하게 학습하는 데 필요한 훈련 샘플 수가 주변 분포가 아닌 데이터의 내재적 차원에 따라 확장됨을 보여주었다. 확산 모델로 다양한 작업을 수행하기 위해 데이터의 저차원 구조를 활용하려는 상당한 \textit{방법론적} 연구가 있다. 여기서는 이미지 편집 \citep{chen2024exploring}, 워터마킹 \citep{li2024shallow}, 비학습 \citep{chen2025dual} 세 가지를 강조하지만, 항상 그렇듯이 이것은 완전한 목록은 아니다.
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \section{연습문제 및 확장}
 
-% TODO: 번역 예정
+\begin{exercise}
+    문제 \eqref{eq:denoising_loss}의 최적 해가 \eqref{eq:optimal_denoiser}임을 보여라.
+\end{exercise}
+
+\begin{exercise}\label{exercise:conditional_gaussian}
+  쌍 $(\vx, \vy) \in \bR^{D + d}$가 결합 가우시안인 확률 변수 $\vx \in \bR^D$와 $\vy \in \bR^d$를 고려하자. 이는 다음을 의미한다.
+  \begin{equation*}
+    \begin{bmatrix}
+      \vx \\
+      \vy
+    \end{bmatrix}
+    \sim
+    \cN \left(
+      \begin{bmatrix}
+        \vmu_{\vx} \\
+        \vmu_{\vy}
+      \end{bmatrix}
+      ,
+      \begin{bmatrix}
+        \vSigma_{\vx} & \vSigma_{\vx\vy} \\
+        \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
+      \end{bmatrix}
+    \right),
+  \end{equation*}
+  여기서 평균 및 공분산 매개변수는 다음과 같이 주어진다.
+  \begin{equation*}
+    \vmu_{\vx} = \bE[\vx],\quad \vmu_{\vy} = \bE[\vy],\quad
+    \begin{bmatrix}
+      \vSigma_{\vx} & \vSigma_{\vx\vy} \\
+      \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
+    \end{bmatrix}
+    =
+    \bE\left[
+      \begin{bmatrix}
+        \vx - \bE[\vx] \\
+        \vy - \bE[\vy]
+      \end{bmatrix}
+      \begin{bmatrix}
+        \vx - \bE[\vx] \\
+        \vy - \bE[\vy]
+      \end{bmatrix}^\top
+      \right]
+  \end{equation*}
+  $\vSigma_{\vy}$가 양의 정부호(따라서 가역)라고 가정하자; 그러면 공분산 행렬의 양의 준정부호성은 슈어 보수 조건 $\vSigma_{\vx} - \vSigma_{\vx\vy} \vSigma_{\vy}^{-1}
+  \vSigma_{\vx\vy}^\top \succeq \Zero$와 동치이다.
+
+  이 연습문제에서는 조건부 분포 $p_{\vx \mid
+  \vy}$가 가우시안임을 증명할 것이다: 즉,
+  \begin{equation}\label{eq:gaussian-conditional-eqn}
+    p_{\vx \mid \vy} \sim \cN\left(
+      \vmu_{\vx} + \vSigma_{\vx\vy} \vSigma_{\vy}^{-1} (\vy - \vmu_{\vy}),
+      \vSigma_{\vx} - \vSigma_{\vx\vy} \vSigma_{\vy}^{-1}
+      \vSigma_{\vx\vy}^{\top}
+    \right).
+  \end{equation}
+  이 결과를 증명하는 직접적인 경로는 밀도 비율 $p_{\vx, \vy} / p_{\vy}$를 조작하는 것이다. 아래에 이 형태의 대수적으로 간결한 주장을 스케치한다.
+
+  \begin{enumerate}
+    \item 공분산에 대한 다음 행렬 항등식을 확인하라:
+      \begin{equation}\label{eq:gaussian-conditional-covariance-block}
+        \begin{bmatrix}
+          \vSigma_{\vx} & \vSigma_{\vx\vy} \\
+          \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+          \vI_D & \vSigma_{\vx\vy}\vSigma_{\vy}^{-1} \\
+          \Zero & \vI_d
+        \end{bmatrix}
+        \begin{bmatrix}
+          \vSigma_{\vx} - \vSigma_{\vx\vy} \vSigma_{\vy}^{-1}
+          \vSigma_{\vx\vy}^{\top} & \Zero \\
+          \Zero & \vSigma_{\vy}
+        \end{bmatrix}
+        \begin{bmatrix}
+          \vI_D & \Zero\\
+          \vSigma_{\vy}^{-1}\vSigma_{\vx\vy}^\top & \vI_d
+        \end{bmatrix}.
+      \end{equation}
+      이 항등식은 공분산 행렬에 대해 (블록) 가우스 소거를 두 번 수행하여 얻을 수 있다.
+    \item 이전 항등식을 기반으로, 다음을 보여라.
+      \begin{equation}\label{eq:gaussian-conditional-covariance-inverse-block}
+        \begin{bmatrix}
+          \vSigma_{\vx} & \vSigma_{\vx\vy} \\
+          \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
+        \end{bmatrix}^{-1}
+        =
+        \begin{bmatrix}
+          \vI_D & \Zero\\
+          -\vSigma_{\vy}^{-1}\vSigma_{\vx\vy}^\top & \vI_d
+        \end{bmatrix}
+        \begin{bmatrix}
+          \left(\vSigma_{\vx} - \vSigma_{\vx\vy} \vSigma_{\vy}^{-1}
+          \vSigma_{\vx\vy}^{\top}\right)^{-1} & \Zero \\
+          \Zero & \vSigma_{\vy}^{-1}
+        \end{bmatrix}
+        \begin{bmatrix}
+          \vI_D & -\vSigma_{\vx\vy}\vSigma_{\vy}^{-1} \\
+          \Zero & \vI_d
+        \end{bmatrix}
+      \end{equation}
+      관련 역행렬이 정의될 때마다.\footnote{슈어 보수 항이 가역이 아닌 경우, 동일한 결과가 역행렬을 무어-펜로즈 유사 역행렬로 대체하여 성립한다. 특히, 조건부 분포 \eqref{eq:gaussian-conditional-eqn}는 퇴화 가우시안 분포가 된다.}
+      다음과 같이 결론지어라.
+      \begin{align}
+        &\begin{bmatrix}
+          \vx-\vmu_{\vx} \\
+          \vy-\vmu_{\vy}
+        \end{bmatrix}^{\top}
+        \begin{bmatrix}
+          \vSigma_{\vx} & \vSigma_{\vx\vy} \\
+          \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
+        \end{bmatrix}^{-1}
+        \begin{bmatrix}
+          \vx-\vmu_{\vx} \\
+          \vy-\vmu_{\vy}
+        \end{bmatrix}
+        \\
+        &\qquad=
+        \begin{bmatrix}
+          \vx - \left(\vmu_{\vx} + \vSigma_{\vx\vy}\vSigma_{\vy}^{-1}(\vy
+          - \vmu_{\vy})\right) \\
+          \vy - \vmu_{\vy}
+        \end{bmatrix}^\top
+        \begin{bmatrix}
+          \left(\vSigma_{\vx} - \vSigma_{\vx\vy} \vSigma_{\vy}^{-1}
+          \vSigma_{\vx\vy}^{\top}\right)^{-1} & \Zero \\
+          \Zero & \vSigma_{\vy}^{-1}
+        \end{bmatrix}
+        \begin{bmatrix}
+          \vx - \left(\vmu_{\vx} + \vSigma_{\vx\vy}\vSigma_{\vy}^{-1}(\vy
+          - \vmu_{\vy})\right) \\
+          \vy - \vmu_{\vy}
+        \end{bmatrix}.
+      \end{align}
+      (\textit{힌트: 대수적 조작을 절약하기 위해,
+      \Cref{eq:gaussian-conditional-covariance-block}의 RHS에 있는 첫 번째
+      행렬과 마지막 행렬은 서로의 전치 행렬임에 유의하라.})
+    \item $p_{\vx, \vy} / p_{\vy}$를 나누어
+      \Cref{eq:gaussian-conditional-eqn}을 증명하라. (\textit{힌트: 이전
+      항등식을 사용하면 최소한의 대수만 필요하다. 정규화
+      상수에 대해서는 \Cref{eq:gaussian-conditional-covariance-inverse-block}을 사용하여
+      행렬식을 유사하게 인수분해하라.})
+
+  \end{enumerate}
+
+
+\end{exercise}
+
+\begin{exercise}\label{exercise:sherman_morrison_woodbury_identity}
+    셔먼-모리슨-우드버리 항등식을 보여라. 즉, 행렬 \(\vA\), \(\vC\), \(\vU\), \(\vV\)가 \(\vA\), \(\vC\), \(\vA + \vU\vC\vV\)가 가역이라고 할 때,
+    \begin{equation}
+        (\vA + \vU\vC\vV)^{-1} = \vA^{-1} - \vA^{-1}\vU(\vC^{-1} + \vV\vA^{-1}\vU)^{-1}\vV\vA^{-1}
+    \end{equation}
+\end{exercise}
+
+\begin{exercise}\label{exercise:generalizing_results_to_different_noise_models}
+    일반화된 잡음 모델 \eqref{eq:gen_additive_gaussian_noise_model}을 따르는 \(\vx_{t}\)를 가정하고 다음을 다시 유도하라.
+    \begin{itemize}
+        \item 트위디 공식: \eqref{eq:gen_tweedie}.
+        \item DDIM 반복: \eqref{eq:gen_denoising_iteration}.
+        \item 가우시안 혼합 모델에 대한 베이즈 최적 잡음 제거기: \eqref{eq:gen_gmm_bayes_optimal_denoiser}.
+    \end{itemize}
+\end{exercise}
+
+\begin{exercise}\label{exercise:implement_denoising_processes}
+\begin{enumerate}
+    \item \Cref{exercise:generalizing_results_to_different_noise_models}에서 유도된 공식을 구현하여 가우시안 혼합에 대한 샘플러를 구축하라.
+    \item \Cref{fig:ve_forward_denoising}과 \Cref{fig:vp_gmm_denoising}를 재현하라.
+    \item 이제 다음과 같이 \textit{흐름 매칭(Flow Matching, FM)}이라는 별도의 프로세스를 소개한다:
+    \begin{equation}
+        \alpha_{t} = 1 - t, \qquad \sigma_{t} = t.
+    \end{equation}
+    동일한 프레임워크를 사용하여 이 프로세스를 구현하고, 고차원에서의 샘플링에 대해 테스트하라. 어떤 프로세스가 더 좋거나 더 안정적인 결과를 주는가?
+\end{enumerate}
+\end{exercise}
+
+
+\begin{exercise}
+	$\log\det(\cdot)$ 함수의 다음 속성을 보여라.
+	\begin{enumerate}
+		\item 다음을 보여라.
+		      \begin{align*}
+			      f(\vX) = \log\det\left(\vX\right)
+		      \end{align*}
+		      는 오목 함수이다. ({\bf 힌트:} 함수 $f(\vx)$가 볼록인 것은 모든 $\vx$와 $\vh$에 대해 함수 $f(\vx+t\vh)$가 볼록인 것과 동치이다.)
+
+		\item 다음을 보여라:
+		      \begin{align*}
+			      \log\det(\vI + \vX^\top\vX) = \log\det(\vI + \vX\vX^\top)
+		      \end{align*}
+
+		\item $\vA \in \R^{n\times n}$이 양의 정부호 행렬이라고 하자. 다음을 보여라:
+		      \begin{align}
+			      \log\det\left(\vA \right) = \sum_{i=1}^n \log(\lambda_i),
+		      \end{align}
+		      여기서 $\lambda_1,\lambda_2,\dots,\lambda_n$는 $\vA$의 고유값이다.
+	\end{enumerate}
+
+\end{exercise}
 
 \end{document}
