@@ -3,8 +3,941 @@
 
 \begin{document}
 
-\chapter{최적화}
+\chapter{최적화 방법}
+\label{app:optimization}
 
-% 한국어 번역 예정
+\begin{quote}
+``{\em 모든 우주의 건물은 완벽하고 지혜로운 창조주에 의해 만들어졌기 때문에, 우주에는 어떤 최대 또는 최소의 의미를 볼 수 없는 것은 아무것도 발생하지 않는다.}''
+
+$~$\hfill -- L. Euler
+ \end{quote}
+\vspace{5mm}
+
+이 장에서는 이 책에서 사용되는 가장 기본적이면서도 중요한 최적화 알고리즘 몇 가지를 간략하게 소개합니다. 목적은 독자가 이 책에서 연구된 문제에 이러한 알고리즘을 적용하는 것을 돕기 위한 것일 뿐, 이러한 알고리즘에 대한 깊은 이해를 얻기 위한 것은 아닙니다. 따라서, 성능 보장 측면에서 소개된 알고리즘에 대한 철저한 정당화는 제공하지 않을 것입니다.
+
+\section{최대 경사 하강법}
+
+
+최적화는 함수, 예를 들어 \(\cL(\theta)\)가 최소값에 도달하는 지점을 찾는 방법에 관한 문제입니다. 수학적으로 이것은 다음과 같은 문제로 표현됩니다:
+\begin{equation}
+    \argmin_{\theta \in \Theta} \cL(\theta),
+\end{equation}
+여기서 \(\Theta\)는 인수 \(\theta\)가 제한되는 영역을 나타냅니다. 종종 (그리고 이 장에서 달리 언급되지 않는 한) \(\Theta\)는 단순히 \(\R^{n}\)입니다. 일반성을 잃지 않고, 여기서 함수 \(\cL(\theta)\)는 매끄럽다고 가정합니다\footnote{함수 \(\cL\)이 매끄럽지 않은 경우, 그 그래디언트를 소위 \textit{서브그래디언트}로 대체합니다.}. 
+
+
+(전역) 최소값을 찾는 효율성은 함수 \(\cL\)에 대해 우리가 어떤 정보를 가지고 있는지에 따라 달라집니다. 이 책에서 고려되는 대부분의 최적화 문제에서, \(\theta\)의 차원, 예를 들어 \(n\)은 매우 큽니다. 이는 \(\cL\)에 대한 지역 정보를 계산하거나 접근하는 것을 비싸게 만듭니다. 특히, 그래디언트 \(\nabla \cL\)은 \(n\)개의 항목을 가지므로 종종 계산하기에 합리적입니다; 그러나 헤시안 \(\nabla^{2} \cL\)은 \(n^{2}\)개의 항목을 가지므로 종종 계산하기가 매우 비현실적입니다 (그리고 고차 도함수에 대해서도 마찬가지입니다). 따라서, 우리가 0차 정보, 즉 \(\cL(\theta)\)를 평가할 수 있고, 1차 정보, 즉 \(\nabla \cL(\theta)\)를 평가할 수 있다고 가정하는 것이 일반적입니다. 최적화 이론가들은 이것을 우리가 "1차 \textit{오라클}"을 가지고 있다고 다시 표현할 수 있습니다. 이 섹션에서 소개하는 모든 최적화 알고리즘은 1차 오라클만 사용합니다.\footnote{고차원 공간에서의 최적화 알고리즘에 대한 보다 체계적인 소개, 고차 오라클을 가정하는 알고리즘을 포함하여 \cite{Wright-Ma-2022}의 책을 독자들에게 참조하도록 합니다.}
+
+\subsection{매끄러운 문제에 대한 바닐라 경사 하강법}
+
+최적화를 위한 가장 간단하고 널리 사용되는 방법은 \textit{경사 하강법}(GD)입니다. 이것은 1847년 코시(Cauchy)에 의해 처음 소개되었습니다. 아이디어는 매우 간단합니다: 초기 상태에서 시작하여, 각 단계가 함수 \(\cL(\theta)\)의 값을 감소시키도록 작은 단계들을 반복적으로 수행합니다. 
+
+현재 상태가 \(\theta\)라고 가정해 봅시다. 우리는 함수 값이 감소하도록, 즉 \(\cL(\theta + h\vv) \leq \cL(\theta)\)가 되도록, 벡터 \(\vv\)로 표시되는 방향으로 거리 \(h\)만큼 작은 단계를 밟아 새로운 상태 \(\theta + h\vv\)에 도달하고자 합니다.
+\begin{equation}
+    \cL(\theta + h\vv) \leq \cL(\theta).
+\end{equation}
+이러한 방향 \(\vv\)를 찾기 위해, 우리는 \(h = 0\) 주변에서 테일러 전개를 통해 \(\cL(\theta + h\vv)\)를 근사할 수 있습니다:
+\begin{equation}
+    \cL(\theta + h\vv) = \cL(\theta) + h\ip{\nabla \cL(\theta)}{\vv} + o(h),
+\end{equation}
+여기서 내적(그리고 이 장에서)은 \(\ell^{2}\) 내적, 즉 \(\ip{\vx}{\vy} = \vx^{\top}\vy\)입니다. \textit{최대 경사 하강} 방향을 찾기 위해, 우리는 단위 벡터 \(\vv\) 중에서 이 테일러 전개를 최소화하려고 합니다. 만약 \(\nabla \cL(\theta) = \vzero\)이면, 위 식의 두 번째 항은 \(\vv\)의 값에 관계없이 \(0\)이므로, 우리는 더 이상 진행할 수 없습니다. 즉, 알고리즘이 수렴했습니다. 반면에 \(\nabla \cL(\theta) \neq \vzero\)이면 다음이 성립합니다.
+\begin{equation}\label{eq:steepest_descent_l2_norm}
+    \argmin_{\substack{\vv \in \R^{d} \\ \norm{\vv}_{2} = 1}} [\cL(\theta) + h\ip{\nabla \cL(\theta)}{\vv}] = \argmin_{\substack{\vv \in \R^{d} \\ \norm{\vv}_{2} = 1}} \ip{\nabla \cL(\theta)}{\vv} = -\frac{\nabla \cL(\theta)}{\norm{\nabla \cL(\theta)}_{2}},
+\end{equation}
+즉, 충분히 작은 \(h\)에 대해 \(\cL(\theta + h\vv)\)의 값은 \(\vv = -\nabla \cL(\theta) / \norm{\nabla \cL(\theta)}_{2}\) 방향을 따라 가장 빠르게 감소합니다. 이는 경사 하강법으로 이어집니다: 현재 상태 \(\theta_{k}\) (\(k=0, 1, \ldots\))에서 음의 그래디언트 방향으로 크기 \(h\)만큼 단계를 밟아 다음 반복을 얻습니다.
+\begin{equation}
+    \theta_{k+1} = \theta_{k} - h \nabla \cL(\theta_{k}). 
+\end{equation}
+단계 크기 \(h\)는 기계 학습 맥락에서 \textit{학습률}이라고도 불립니다.
+
+\subsubsection{단계 크기 선택}
+
+남은 질문은 단계 크기 \(h\)는 무엇이어야 하는가입니다. \(h\)를 너무 작게 선택하면, \Cref{fig:step-size}의 중간 그림에서 보여주듯이 함수의 값이 매우 느리게 감소할 수 있습니다. \(h\)가 너무 크면, \Cref{fig:step-size}의 오른쪽 그림에서 보여주듯이 값이 전혀 감소하지 않을 수도 있습니다.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[height=3.5cm]{\toplevelprefix/chapters/appendixA/figs/GD-1.png}
+    \hspace{3mm}
+    \includegraphics[height=3.5cm]{\toplevelprefix/chapters/appendixA/figs/GD-2.png}
+    \hspace{3mm}
+    \includegraphics[height=3.5cm]{\toplevelprefix/chapters/appendixA/figs/GD-3.png}
+    \caption{경사 하강법 수렴에 대한 (상수) 단계 크기 \(h\)의 영향.}
+    \label{fig:step-size}
+\end{figure}
+
+따라서 단계 크기 \(h\)는 함수 \(\cL(\theta_{k})\)의 형상에 따라 선택되어야 합니다. 이상적으로는 최적의 단계 크기 \(h\)를 선택하기 위해 단일 변수 \(h\)에 대한 다음 최적화 문제를 풀 수 있습니다:
+\begin{equation}
+    h = \argmin_{h^{\prime} \geq 0} \cL(\theta_{k} - h^{\prime}\nabla \cL(\theta_{k})).
+\end{equation}
+이 단계 크기 선택 방법은 \textit{선 탐색}(line search)이라고 불립니다. 표기법에서 암시하듯이, 일반적으로 \textit{각 반복 \(k\)}에 대해 최적의 학습률을 얻는 데 사용됩니다. 그러나 \(\cL(\theta_{k})\) 함수가 복잡한 경우 (이는 일반적으로 심층 신경망 훈련의 경우임), 이 1차원 최적화는 매우 어렵습니다. 
+
+그렇다면 적절한 단계 크기 \(h\)는 어떻게 선택해야 할까요? 일반적이고 고전적인 접근 방식 중 하나는 함수 \(\cL(\theta)\)의 전체적인 형상에 대한 일부 지식을 기반으로 현재 상태 \(\theta\) 주변의 지역 형상에 대한 좋은 근사치를 얻으려고 시도하는 것입니다. 
+
+\begin{figure}
+    \centering 
+    \begin{tikzpicture}[scale=0.9]
+        \draw[->] (-0.5,0) -- (6.5,0) node[right] {$\theta$};
+        \draw[->] (0,-0.5) -- (0,5) node[above] {$\cL(\theta)$};
+        
+        \draw[thick, blue] plot[smooth, tension=0.7] coordinates {
+            (0,4) (1,3.2) (2,2.5) (3,3.2) (4,1.5) (5,2.2) (6,3)
+        } node[right] {$\cL(\theta)$};
+        
+        \draw[thick, red, dashed] plot[smooth, tension=0.5] coordinates {
+            (0,4.5) (1,3.7) (2,2.5) (3,3.7) (4,2) (5,3.2) (6,4)
+        } node[right] {$u(\theta)$};
+        
+        \filldraw[blue] (2,2.5) circle (2pt) node[below right] {$\theta$};
+        
+        \filldraw[red] (4,1.5) circle (2pt) node[below right] {$\theta^{\prime}$};
+        
+        \draw[dashed] (2,0) -- (2,2.5);
+        \draw[dashed] (4,0) -- (4,2);
+    \end{tikzpicture}
+    \caption{\small\textbf{최대화-최소화(Majorization-minimization) 계획과 직관.} 함수 \(\cL \colon \Theta \to \R\)는 하나 이상의 점 \(\theta\)에서 \(\cL\)을 만나는 전역 상한 \(u \colon \Theta \to \R\)을 가집니다. 그러면 \(u\)를 최소화하는 \(\theta^{\prime}\)를 찾는 것은 \(\cL(\theta)\)에서 \(\cL\)의 값을 향상시킬 것입니다. 지역 상한에 대해서도 유사한 결과를 보일 수 있습니다.}
+    \label{fig:majorization_minimization}
+\end{figure}
+
+\(\cL(\theta)\)의 형상에 대한 일반적인 조건은 다음과 같습니다:
+\begin{itemize}
+    \item \(\alpha\)-강볼록성(Strong Convexity). \(\cL\)이 \textit{\(\alpha\)-강볼록}하다는 것은 그 그래프가 기울기 \(\alpha\)의 전역 2차 하한 위에 놓여 있다는 것을 의미합니다. 즉,
+    \begin{equation}
+        \cL(\theta^{\prime}) \geq l_{\theta, \alpha}(\theta^{\prime}) \doteq \cL(\theta) + \ip{\nabla \cL(\theta)}{\theta^{\prime} - \theta} + \frac{\alpha}{2}\norm{\theta^{\prime} - \theta}_{2}^{2}
+    \end{equation}
+    모든 "기준점" \(\theta\)에 대해 성립합니다. \(\cL\)이 \textit{볼록}하다는 것은 \(0\)-강볼록하다는 것, 즉 그 그래프가 접선 위에 놓여 있다는 것을 의미합니다. 강볼록 함수는 고유한 전역 최소값을 가짐을 쉽게 보일 수 있습니다 (연습 문제). 또 다른 중요한 사실 (연습 문제)은 \(\alpha\)-강볼록한 두 번 미분 가능한 함수 \(\cL\)는 최소 고유값이 \(\geq \alpha\)인 (대칭) 헤시안 \(\nabla^{2}\cL\)을 가진다는 것입니다. \(\alpha > 0\)인 경우 이는 헤시안이 대칭 양의 정부호임을 의미하며, \(\alpha = 0\)인 경우 (즉, \(\cL\)이 볼록한 경우) 이는 헤시안이 대칭 양의 준정부호임을 의미합니다.
+    \item \(\beta\)-립시츠 그래디언트 (\(\beta\)-매끄러움이라고도 함). \(\cL\)이 \textit{\(\beta\)-립시츠 그래디언트}를 가진다는 것은 \(\nabla \cL\)이 존재하고 \(\beta\)-립시츠라는 것을 의미합니다. 즉,
+    \begin{equation}
+        \norm{\nabla \cL(\theta^{\prime}) - \nabla \cL(\theta)}_{2} \leq \beta \norm{\theta^{\prime} - \theta}_{2}.
+    \end{equation}
+    모든 "기준점" \(\theta\)에 대해 성립합니다. 이는 \(\cL\)이 기울기 \(\beta\)의 전역 2차 상한을 가진다는 것과 동등함을 쉽게 보일 수 있습니다 (연습 문제). 즉,
+    \begin{equation}
+        \cL(\theta^{\prime}) \leq u_{\theta, \beta}(\theta^{\prime}) \doteq \cL(\theta) + \ip{\nabla \cL(\theta)}{\theta^{\prime} - \theta} + \frac{\beta}{2}\norm{\theta^{\prime} - \theta}_{2}^{2}.
+    \end{equation}
+    모든 "기준점" \(\theta\)에 대해 성립합니다. 또 다른 중요한 사실 (연습 문제)은 볼록한 \(\beta\)-립시츠 그래디언트 두 번 미분 가능한 함수는 최대 고유값이 \(\leq \beta\)인 (대칭) 헤시안 \(\nabla^{2}\cL\)을 가진다는 것입니다.
+\end{itemize}
+먼저, \(\cL\)이 \(\beta\)-립시츠 그래디언트를 가진다고 가정합시다 (그러나 반드시 볼록할 필요는 없습니다). 우리는 이 기회를 빌어 일반적인 최적화 주제를 소개할 것입니다: \textit{\(\cL\)을 최소화하기 위해, 우리는 \(\cL\)의 상한을 최소화할 수 있습니다}. 이는 \Cref{fig:majorization_minimization}에 시각화된 다음 보조정리에 의해 정당화됩니다.
+\begin{lemma}[최대화-최소화(Majorization-Minimization)]\label{lem:majorization_minimization}
+    \(u \colon \Theta \to \R\)가 \(\cL\)에 대한 전역 상한, 즉 모든 \(\theta \in \Theta\)에 대해 \(\cL(\theta) \leq u(\theta)\)라고 가정합시다. 그리고 \(\theta\)에서 등호가 성립한다고 가정합시다. 즉, \(\cL(\theta) = u(\theta)\). 그러면
+    \begin{equation}
+        \theta^{+} \in \argmin_{\theta^{\prime} \in \Theta}u(\theta^{\prime}) \implies \cL(\theta^{+}) \leq u(\theta^{+}) \leq u(\theta) = \cL(\theta).
+    \end{equation}
+\end{lemma}
+
+우리는 이 보조정리를 사용하여 리프시츠 그래디언트 속성을 사용하여 각 그래디언트 단계가 \(\cL\)의 값을 악화시키지 않도록 보장할 수 있음을 보일 것입니다. 실제로, 모든 기준점 \(\theta\)에서 \(u_{\theta, \beta}\)는 \(\cL\)에 대한 전역 상한이며, \(u_{\theta, \beta}(\theta) = \cL(\theta)\)입니다. 따라서 \Cref{lem:majorization_minimization}에 의해
+\begin{equation}
+    \text{만약 \(\theta^{+}\)가 \(u_{\theta, \beta}\)를 최소화한다면} \quad \cL(\theta^{+}) \leq u_{\theta, \beta}(\theta^{+}) \leq u_{\theta, \beta}(\theta) = \cL(\theta).
+\end{equation}
+이는 \(\theta_{k}\)로부터 \(\theta_{k + 1}\)을 얻기 위한 업데이트를 찾을 때, 대신 \(\theta\)에 대한 상한 \(u_{\theta_{k}, \beta}\)를 최소화하고 그것을 \(\theta_{k + 1}\)로 설정할 수 있음을 동기 부여합니다. \(u_{\theta_{k}, \beta}\)를 최소화하면 (연습 문제) 다음과 같습니다.
+\begin{equation}\label{eq:GD}
+    \theta_{k + 1} = \theta_{k} - \frac{1}{\beta}\nabla \cL(\theta_{k}) \implies \cL(\theta_{k + 1}) \leq \cL(\theta_{k}).
+\end{equation}
+이는 단계 크기 \(h = 1/\beta\)가 유용한 학습률이지만, 수렴 속도를 제공하거나 \(L(\theta_{k})\)가 실제로 \(\min_{\theta}\cL(\theta)\)로 수렴함을 보장하지는 않는다는 것을 의미합니다. 이를 위해서는 좀 더 엄밀한 증명이 필요하며, 이제 이를 추구할 것입니다.
+
+이제 \(\cL\)이 \(\alpha\)-강볼록하고, \(\beta\)-립시츠 그래디언트를 가지며, 전역 최적해 \(\theta^{\star}\)를 가진다고 가정합시다. 우리는 \(\theta_{k}\)가 고유한 전역 최적해 \(\theta^{\star}\)로 직접 수렴함을 보일 것입니다. 이는 매우 강력한 형태의 수렴입니다. 특히, 우리는 \(\cL\)의 그래디언트의 강볼록성과 립시츠성을 모두 사용하여 \(\norm{\theta^{\star} - \theta_{k}}_{2}\)를 제한할 것입니다. 즉, \(\theta_{k}\) 주변의 이웃을 살펴보면:\footnote{이 증명에서 \(\beta\)-립시츠 그래디언트 호출 단계는 다소 비자명합니다. 우리는 이 단계도 연습 문제로 남겨두며, \(\theta = \theta_{0} - h\nabla \cL(\theta_{0})\)를 립시츠 그래디언트 항등식에 대입하는 힌트를 제공합니다.}
+\begin{align}
+    \norm{\theta^{\star} - \theta_{k + 1}}_{2}^{2}
+    &\leq \norm{\theta^{\star} - \theta_{k} + h\nabla \cL(\theta_{k})}_{2}^{2} \\ 
+    &= \norm{\theta^{\star} - \theta_{k}}_{2}^{2} + 2h\ip{\nabla \cL(\theta_{k})}{\theta^{\star} - \theta_{k}} + h^{2}\norm{\nabla \cL(\theta_{k})}_{2}^{2} \\ 
+    &\leq \norm{\theta^{\star} - \theta_{k}}_{2}^{2} + 2h\bp{\cL(\theta^{\star}) - \cL(\theta_{k}) - \frac{\alpha}{2}\norm{\theta^{\star} - \theta_{k}}_{2}^{2}} + h^{2}\norm{\nabla \cL(\theta_{k})}_{2}^{2} \quad \text{(\(\alpha\)-SC)} \\
+    &= \bp{1 - \alpha h}\norm{\theta^{\star} - \theta_{k}}_{2}^{2} + 2h(\cL(\theta^{\star}) - L(\theta_{k})) + h^{2}\norm{\nabla \cL(\theta_{k})}_{2}^{2} \\
+    &\leq \bp{1 - \alpha h}\norm{\theta^{\star} - \theta_{k}}_{2}^{2} + 2h(\cL(\theta^{k}) - \cL(\theta^{\star})) + 2h^{2}\beta(\cL(\theta_{k}) - \cL(\theta^{\star})) \quad \text{(\(\beta\)-LG)} \\
+    &= \bp{1 - \alpha h}\norm{\theta^{\star} - \theta_{k}}_{2}^{2} - 2h(1 - \beta h)(\cL(\theta_{k}) - \cL(\theta^{\star})).
+\end{align}
+경사 하강 반복이 진행되도록 보장하기 위해 우리는 단계 크기를 \(1 - \beta h \geq 0\), 즉 \(h \leq 1/\beta\)가 되도록 선택해야 합니다. 이러한 설정이 발생하면
+\begin{align}
+    \norm{\theta^{\star} - \theta_{k + 1}}_{2}^{2} 
+    &\leq (1 - \alpha h)\norm{\theta^{\star} - \theta_{k}}_{2}^{2} \leq (1 - \alpha h)^{2}\norm{\theta^{\star} - \theta_{k - 1}}_{2}^{2} \leq \cdots \\ 
+    &\leq (1 - \alpha h)^{k + 1}\norm{\theta^{\star} - \theta_{0}}_{2}^{2}.
+\end{align}
+우변을 최소화하기 위해 \(h = 1/\beta\)로 설정할 수 있으며, 이는 다음과 같습니다.
+\begin{equation}
+    \norm{\theta^{\star} - \theta_{k + 1}}_{2}^{2} \leq (1 - \alpha/\beta)^{k + 1}\norm{\theta^{\star} - \theta_{0}}_{2}^{2},
+\end{equation}
+지수적으로 감소하는 오차로 전역 최적해로의 수렴을 보여줍니다. 여기서 우리는 유리한 \textit{단계 크기} \(h = 1/\beta\)를 얻기 위해 수렴 속도를 사용했다는 점에 유의하십시오. 이 모티프는 이 섹션에서 다시 나타날 것입니다.
+
+이 섹션을 경고로 마무리합니다: 전역 최적해를 찾는 것은 (일반적으로) 비현실적으로 어렵습니다. 특정 조건에서는 경사 하강 반복이 \textit{지역 최적해}로 수렴하도록 보장할 수 있습니다. 또한, 더 완화된 조건에서는 \textit{지역} 수렴을 보장할 수 있습니다. 즉, 반복이 최적해에 충분히 가깝게 초기화되면 (전역 또는 지역) 최적해로 수렴합니다.
+
+
+
+\subsection{불량 조건 문제에 대한 사전 조건부 경사 하강법 (Preconditioned Gradient Descent for Badly-Conditioned Problems)}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/appendixA/figs/hessian_geometry.png}
+    \caption{\small\textbf{음의 경사도 \(-\nabla \cL_{\lambda}\)와 사전 조건부 (뉴턴 방법 단계) 벡터 필드 \(-[\nabla^{2}\cL_{\lambda}]^{-1}[\nabla \cL_{\lambda}]\)}, 여기서 \(\lambda = 19\). 경사도를 희게(whiten)하기 때문에, 음의 경사도 벡터 필드를 따르는 것이 최소값을 찾는 데 거의 진전이 없는 공간의 일부가 있지만, 모든 경우에 뉴턴 방법 벡터 필드를 따르면 최적값으로 동일한 속도의 진전을 이룬다. 여기서 헤세 행렬(Hessian)은 대각 행렬이므로, 적응형 학습률 알고리즘(예: 이 섹션에서 나중에 논의할 Adam)은 뉴턴 방법과 유사한 진전을 이룰 수 있지만, 축에 정렬되지 않은 헤세 행렬은 Adam조차도 빠르게 성공하지 못하게 할 수 있다.}
+    \label{fig:hessian_geometry}
+\end{figure}
+
+\subsubsection{뉴턴 방법 (Newton's Method)}
+
+경사 하강법이 그럼에도 불구하고 상당히 저조한 성능을 보이는 일부 매끄러운 문제와 강한 볼록 문제가 있다. 예를 들어, \(\lambda \geq 0\)이고 \(\cL_{\lambda} \colon \R^{2} \to \R\)가 다음과 같은 형태라고 하자.
+\begin{equation}
+    \cL_{\lambda}(\theta) = \cL_{\lambda}\rp{\mat{\theta_{1} \\ \theta_{2}}} \doteq \frac{1}{2}\bc{(1 + \lambda) \theta_{1}^{2} + \theta_{2}^{2}} = \frac{1}{2}\theta^{\top}\mat{1 + \lambda & 0 \\ 0 & 1}\theta.
+\end{equation}
+이 문제는 \(1\)-강한 볼록이고 \((1 + \lambda)\)-립시츠 경사도를 가진다. 그러면 수렴률은 \(1 - 1/(1 + \lambda)\)의 비율로 기하학적이다. 큰 \(\lambda\)에 대해, 이것은 여전히 매우 빠르지 않다. 이 섹션에서는 이러한 불량 조건 함수를 성공적으로 최적화할 수 있는 최적화 문제의 한 종류를 소개할 것이다.
+
+핵심은 목적 함수의 \textit{곡률}에 있으며, 이는 헤세 행렬로 주어진다. 만약 (반사실적으로) \(\cL(\theta)\), \(\nabla \cL(\theta)\), \(\nabla^{2}\cL(\theta)\)를 계산할 수 있는 \textit{2차} 오라클이 있다고 가정해 보자. 그러면 \(\theta\) 주변의 1차 테일러 전개를 최적화하기 위해 하강 방향 \(\vv\)를 선택하는 대신, 2차 테일러 전개를 최적화할 수 있다. 직관적으로 이것은 곡률 정보를 업데이트에 통합할 수 있게 해준다.
+
+이 계산을 수행해 보자. \(h=0\) 근방에서 \(\cL(\theta + h\vv)\)의 2차 테일러 전개는 다음과 같다.
+\begin{equation}
+    \cL(\theta + h\vv) = \cL(\theta) + h\ip{\nabla \cL(\theta)}{\vv} + \frac{1}{2}h^{2}\ip{[\nabla^{2}\cL(\theta)]\vv}{\vv} + o(h^{2}).
+\end{equation}
+그러면 하강 방향을 계산할 수 있다:
+\begin{align}
+    \argmin_{\substack{\vv \in \R^{n} \\ \norm{\vv}_{2} = 1}}\bs{\cL(\theta) + h\ip{\nabla \cL(\theta)}{\vv} + \frac{1}{2}h^{2}\ip{[\nabla^{2}\cL(\theta)]\vv}{\vv}} 
+    &= \argmin_{\substack{\vv \in \R^{n} \\ \norm{\vv}_{2} = 1}}\bs{\ip{\nabla \cL(\theta)}{\vv} + \frac{1}{2}h\ip{[\nabla^{2}\cL(\theta)]\vv}{\vv}}.
+\end{align}
+이 최적화 문제는 \(\norm{\vv}_{2} = 1\) 제약 조건 때문에 풀기가 약간 어렵다. 하지만 실제로는 하강 방향 \(\vv\)를 정규화하지 않고 업데이트 크기를 제어하기 위해 스텝 크기 \(h\)를 사용한다. 따라서 모든 벡터 \(\vv \in \R^{n}\)에 대해 위의 문제를 풀어보자:\footnote{만약 \(\nabla^{2}\cL(\theta)\)가 역행렬을 갖지 않는다면, \([\nabla^{2}\cL(\theta)]^{-1}\)을 \(\nabla^{2}\cL(\theta)\)의 무어-펜로즈 유사역행렬로 대체할 수 있다.}
+\begin{equation}
+    \argmin_{\vv \in \R^{n}}\bs{\ip{\nabla \cL(\theta)}{\vv} + \frac{1}{2}h\ip{[\nabla^{2}\cL(\theta)]\vv}{\vv}} = -\frac{1}{h}[\nabla^{2}\cL(\theta)]^{-1}[\nabla \cL(\theta)].
+\end{equation}
+따라서 다음과 같은 가파른 하강 반복을 사용할 수 있다.
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} - [\nabla^{2}\cL(\theta_{k})]^{-1}[\nabla \cL(\theta_{k})],
+\end{equation}
+(이것이 바로 유명한 \textit{뉴턴 방법}이다), 또는
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} - h[\nabla^{2}\cL(\theta_{k})]^{-1}[\nabla \cL(\theta_{k})],
+\end{equation}
+(이것은 \textit{감쇠 뉴턴 방법(underdamped Newton's method)}이라고 불린다). 2차 2차 함수 \(\cL_{\lambda}\)는 2차 테일러 전개와 동일하므로, 뉴턴 방법을 \textit{한 단계} 실행하면 \(\lambda\)가 아무리 크더라도 \textit{한 단계}만에 전역 최소값에 도달할 것이다. \Cref{fig:hessian_geometry}는 불량 조건 함수와 경사 하강 단계 대 뉴턴 단계에 대한 직관을 제공한다.
+
+\subsubsection{PGD}
+
+실제로, \(\nabla^{2}\cL(\theta)\)를 계산할 수 있는 2차 오라클은 없다. 대신, \(\theta_{k}\)에서 \(\theta_{k + 1}\)로의 파라미터 업데이트와 함께 \textit{그것에 대한 근사치를 학습}하려고 시도할 수 있다.
+
+어떻게 그것에 대한 근사치를 학습할까? 헤세 행렬의 역행렬이 만족하는 몇 가지 방정식을 찾은 다음, 그 방정식을 만족하도록 근사치를 업데이트하려고 시도할 것이다. 즉, 점 \(\theta\) 주변에서 \(\nabla \cL(\theta + \delta_{\theta})\)의 테일러 급수를 취하면 다음을 얻는다.
+\begin{equation}
+    \underbrace{\nabla L(\theta + \delta_{\theta}) - \nabla \cL(\theta)}_{\doteq \delta_{\vg}} = [\nabla^{2} \cL(\theta)]\delta_{\theta} + o(\norm{\delta_{\theta}}_{2}).
+\end{equation}
+이 경우 우리는 다음을 가진다.
+\begin{equation}
+    \delta_{\vg} \approx [\nabla^{2}\cL(\theta)]\delta_{\theta} \implies \delta_{\theta} \approx [\nabla^{2}\cL(\theta)]^{-1}\delta_{\vg}
+\end{equation}
+이제 다음과 같은 대칭 양의 준정부호 사전 조건자 \(P \in \R^{n \times n}\)를 학습하려고 시도할 수 있다.
+\begin{equation}
+    \delta_{\theta} \approx P\delta_{\vg},
+\end{equation}
+\(\theta_{k}\)와 함께 각 반복에서 이를 업데이트한다. 즉, 우리는 \textit{PSGD} 반복을 가진다.
+\begin{align}
+    P_{k}
+    &= \mathrm{PreconditionerUpdate}(P_{k - 1}; \theta_{k}, \nabla \cL(\theta_{k})) \\ 
+    \theta_{k + 1}
+    &= \theta_{k} - hP_{k}\nabla \cL(\theta_{k}).
+\end{align}
+이 업데이트에는 두 가지 문제가 있다: \(P\)를 어떻게 사용할 수 있는가(\(n \times n\) 행렬을 저장할 수 없다고 이미 말했기 때문에) 그리고 각 반복에서 \(P\)를 어떻게 \textit{업데이트}할 수 있는가? 답은 매우 관련이 있다; 컴퓨터 메모리에서 \(P\)를 구체화할 수는 없지만, 저계급 인수분해(또는 심층 신경망 형태에 특히 적합한 \textit{크로네커 인수분해}와 같은 유사한 방법)를 사용하여 표현할 수 있다. 그런 다음 사전 조건자 업데이트 단계는 사전 조건자 표현의 구조를 활용하도록 설계된다.
+
+이 하위 섹션은 주의 사항으로 마무리한다: 예를 들어, 딥 러닝에서 \(\cL\)은 볼록 함수가 아니므로 뉴턴 방법(과 그 근사치)은 의미가 없다. 이 경우 볼록 함수에 대한 뉴턴 방법의 기하학적 직관, 예를 들어 \Cref{fig:hessian_geometry}에서 볼 수 있듯이, 역 헤세 행렬이 경사도를 \textit{희게(whitens)}한다는 점을 살펴본다. 따라서 헤세 행렬을 근사하는 사전 조건자 대신, 위의 절차를 조정하여 경사도에 대한 보다 일반적인 희게 변환을 학습할 수 있다. 이것이 PSGD의 원래 제안 \cite{li2017preconditioned}의 아이디어이며, 여기에는 사전 조건자를 저장하고 업데이트하는 방법에 대한 더 많은 정보와 Muon \cite{liu2025muon}과 같은 더 현대적인 최적화 프로그램이 포함되어 있다.
+
+\subsection{비매끄러운 문제에 대한 근접 경사 하강법 (Proximal Gradient Descent for Non-Smooth Problems)}\label{subsec:pgd}
+
+심지어 LASSO나 사전 학습과 같은 매우 간단한 문제에서도, 문제는 강한 볼록이 아니라 단순히 볼록하며, 목적 함수는 더 이상 매끄러운 함수가 아니라 매끄러운 함수와 비매끄러운 정규화 항(예: \(\ell^{1}\) 노름)의 합입니다. 이러한 문제는 최급 경사 하강법을 비매끄러운 목적 함수로 일반화한 \textit{근접 최적화 알고리즘}으로 해결됩니다.
+
+공식적으로, 다음과 같이 말해봅시다.
+\begin{equation}
+    \cL(\theta) \doteq \cS(\theta) + \cR(\theta)
+\end{equation}
+여기서 \(\cS\)는 매끄럽고, 예를 들어 \(\beta\)-립시츠 그래디언트를 가지며, \(\cR\)은 비매끄럽습니다 (즉, 거칠다). 근접 경사 알고리즘은 최급 경사 알고리즘을 일반화하여, 다른 전역 상한을 가진 최대화-최소화 프레임워크 (즉, \Cref{lem:majorization_minimization})를 사용합니다. 즉, 우리는 다음과 같이 질문함으로써 그러한 상한을 구성합니다: 만약 우리가 \(S\)의 립시츠 그래디언트 상한을 취하고 \textit{\(R\)을 그대로 둔다면} 어떨까? 즉, 우리는 다음을 가집니다.
+\begin{equation}
+    \cL(\theta^{\prime}) = \cS(\theta^{\prime}) + \cR(\theta^{\prime}) \leq u_{\theta, \beta}(\theta^{\prime}) \doteq \cS(\theta) + \ip{\nabla \cS(\theta)}{\theta^{\prime} - \theta} + \frac{\beta}{2}\norm{\theta^{\prime} - \theta}_{2}^{2} + \cR(\theta^{\prime}).
+\end{equation}
+다음이 성립함을 주목하십시오 (연습 문제 증명).
+\begin{equation}
+    \argmin_{\theta^{\prime}}u_{\theta, \beta}(\theta^{\prime}) = \argmin_{\theta^{\prime}}\bs{\frac{\beta}{2}\norm*{\theta^{\prime} - \bp{\theta - \frac{1}{\beta}\nabla \cS(\theta)}}_{2}^{2} + \cR(\theta^{\prime})}.
+\end{equation}
+이제 상한 \(u_{\theta, \beta}\)를 최소화하려고 하면, 다음과 같은 \(\theta^{\prime}\)를 선택하게 됩니다:
+\begin{itemize}
+    \item 그래디언트 업데이트 \(\theta - \frac{1}{\beta}\nabla \cS(\theta)\)에 가깝고;
+    \item 정규화 항 \(\cR(\theta^{\prime})\)의 값이 작으며
+\end{itemize}
+이러한 속성을 매끄러움 매개변수 \(\beta\)에 따라 절충합니다. 따라서, 근접 연산자를 정의해 봅시다.
+\begin{equation}
+    \prox_{h, \cR}(\theta) \doteq \argmin_{\theta^{\prime}}\bs{\frac{1}{2h}\norm{\theta^{\prime} - \theta}_{2}^{2} + \cR(\theta^{\prime})}.
+\end{equation}
+그러면, 각 반복에서 상한 \(u_{\theta_{k}, h^{-1}}\)를 최소화하는 \textit{근접 경사 하강} 반복을 정의할 수 있습니다. 즉,
+\begin{equation}
+    \theta_{k + 1} = \prox_{h, \cR}(\theta_{k} - h\nabla \cS(\theta_{k})).
+\end{equation}
+\(h \leq 1/\beta\)일 때 수렴 증명이 가능하지만, 이 섹션에서는 다루지 않습니다.
+
+남은 질문은: 근접 연산자를 어떻게 계산할 수 있는가이다. 처음
+보기에는, 하나의 다루기 힘든 최소화 문제를 다른 문제로 바꾼 것처럼 보입니다. 지금까지 \(\cR\)에 대해 어떤 가정도 하지 않았으므로, 프레임워크는 \(\cR\)이 (신경망
+손실과 같은) 매우 복잡한 함수일 때도 작동합니다. 이 경우 단일 근접 연산자를 계산하기 위해 신경망 학습 문제를 풀어야 합니다. 하지만 실제로는, 이 원고에서 사용하는 것과 같은 간단한 정규화 항 \(\cR\)의 경우, 계산하기 쉽거나 심지어 닫힌 형태를 가지는 근접 연산자가 존재합니다. 아래에 몇 가지를 제시합니다 (증명은 연습 문제).
+
+\begin{example}\label{example:prox-of-characteristic-function}
+    \(\Gamma \subseteq \Theta\)를 집합이라 하고, \(\chi_{\Gamma}\)를 \(\Gamma\)에 대한 특성 함수라고 하자. 즉,
+    \begin{equation}
+        \chi_{\Gamma}(\theta) \doteq \casework{0, & \text{if}\ \theta \in \Gamma \\ +\infty, & \text{if}\ \theta \notin \Gamma.}
+    \end{equation}
+    그러면 \(\chi_{\Gamma}\)의 근접 연산자는 투영이다. 즉,
+    \begin{equation}
+        \prox_{h, \chi_{\Gamma}}(\theta) = \argmin_{\theta^{\prime} \in \Gamma}\frac{1}{2}\norm{\theta^{\prime} - \theta}_{2}^{2} = \argmin_{\theta^{\prime} \in \Gamma}\norm{\theta^{\prime} - \theta}_{2}.
+    \end{equation}
+\end{example}
+
+\begin{example}\label{example:prox-of-l1}
+    \(\ell^{1}\) 노름은 소프트 임계값(soft thresholding)을 수행하는 근접 연산자를 가진다:
+    \begin{equation}
+        S_{h}(\theta) \doteq \prox_{h, \lambda \norm{\cdot}_{1}}(\theta) = \argmin_{\theta^{\prime}}\bs{\frac{1}{2h}\norm{\theta^{\prime} - \theta}_{2}^{2} + \lambda\norm{\theta^{\prime}}_{1}}
+    \end{equation}
+    그러면 \(S_{h}(\theta)\)는 좌표별로 다음과 같이 정의된다.
+    \begin{equation}
+        S_{h}(\theta)_{i} = \casework{\theta_{i} - h\lambda, & \text{if}\ \theta_{i} \geq h\lambda \\ 0, & \text{if}\ \theta_{i} \in [-h\lambda, h\lambda] \\ \theta_{i} + h\lambda, & \text{if}\ \theta_{i} \leq -h\lambda} = \casework{\max\{\abs{\theta_{i}} - h\lambda, 0\}\sign(\theta_{i}), & \text{if}\ \abs{\theta_{i}} \geq h\lambda \\ 0, & \text{if}\ \abs{\theta_{i}} < h\lambda.}
+    \end{equation}
+    목적 함수의 매끄러운 부분이 최소 제곱이고 비매끄러운 부분이 \(\ell^{1}\) 노름인 경우 (따라서 이 소프트 임계값 근접 연산자를 사용하는 경우) 근접 경사 연산은 반복적 축소-임계값 알고리즘 (Iterative Shrinkage-Thresholding Algorithm, ISTA)이라고 불린다.
+\end{example}
+
+\begin{example}\label{example:prox-of-nonnegative-l1}
+    \Cref{ch:representation}에서는 양의 직교 공간 \(\R_{+}^{n} \doteq \{\vx \in \R^{n} \colon x_{i} \geq 0\ \forall i\}\)에 대한 특성 함수와 \(\ell^{1}\) 노름에 해당하는 근접 연산자를 사용한다. 즉,
+    \begin{equation}
+        T_{h}(\theta) \doteq \prox_{h, \lambda\norm{\cdot}_{1} + \chi_{\R_{+}^{n}}}(\theta) = \argmin_{\theta^{\prime} \in \R_{+}^{n}}\bs{\frac{1}{2h}\norm{\theta^{\prime} - \theta}_{2}^{2} + \lambda\norm{\theta^{\prime}}_{1}},
+    \end{equation}
+    그러면 \(T_{h}\)는 다음과 같이 정의된다.
+    \begin{equation}
+        T_{h}(\theta)_{i} \doteq \max\{\theta_{i} - h\lambda, 0\}.
+    \end{equation}
+    이 근접 연산자는 \Cref{ch:representation} 및 그 이후에 호출되는 음이 아닌 ISTA를 생성한다.
+\end{example}
+
+\subsection{대규모 문제에 대한 확률적 경사 하강법 (Stochastic Gradient Descent for Large-Scale Problems)}
+
+심층 학습에서 목적 함수 \(\cL\)은 일반적으로 정확하게 계산할 수 없으며, 대신 각 최적화 단계에서 유한한 샘플(예: 미니 배치 사용)을 사용하여 \textit{추정}됩니다. 이러한 상황을 모델링하는 일반적인 방법은 \(\omega\)가 어떤 "무작위성의 원천"인 \textit{확률적 손실 함수} \(\cL_{\omega}(\theta)\)를 정의하는 것입니다. 예를 들어, \(\omega\)는 손실을 계산할 미니 배치 내 샘플의 인덱스를 포함할 수 있습니다. 그러면 \(\theta\)에 대해 \(\cL(\theta) \doteq \Ex_{\omega}[\cL_{\omega}(\theta)]\)를 최소화하고자 합니다. 이때 \textit{확률적 1차 오라클}에 접근할 수 있습니다. 즉, \(\theta\)가 주어지면 \(\omega\)를 샘플링하고 \(\cL_{\omega}(\theta)\)와 \(\nabla_{\theta}\cL_{\omega}(\theta)\)를 계산할 수 있습니다. 이 최소화 문제는 \textit{확률적 최적화 문제}라고 불립니다.
+
+기본적인 1차 확률적 알고리즘은 \textit{확률적 경사 하강법}입니다: 각 반복 \(k\)에서 \(\omega_{k}\)를 샘플링하고, \(\cL_{k} \doteq \cL_{\omega_{k}}\)를 정의한 후, \(\cL_{k}\)에 대한 경사 하강 단계를 수행합니다. 즉,
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} - h\nabla \cL_{k}(\theta_{k}).
+\end{equation}
+그러나 매우 간단한 문제에서도 경사 하강법에서 얻은 것과 동일한 유형의 수렴을 기대할 수는 없습니다. 예를 들어, \(\omega \in \{1, \dots, m\}\)에 대해 \(m\)가지 가능한 값이 동일한 확률로 취해지고, \(m\)가지 가능한 타겟 \(\xi_{1}, \dots, \xi_{m}\)이 존재하여 손실 함수 \(\cL_{\omega}\)가 다음과 같다고 가정해 봅시다.
+\begin{equation}
+    \cL_{\omega}(\theta) \doteq \frac{1}{2}\norm{\theta - \xi_{\omega}}_{2}^{2}.
+\end{equation}
+그러면 \(\argmin_{\theta}\Ex[\cL_{\omega}(\theta)] = \frac{1}{m}\sum_{i = 1}\xi_{i}\)이지만, 확률적 경사 하강법은 \Cref{fig:sgd_nonconvergence}에서 시각화된 바와 같이 전역 최적값 주변을 "핀볼"처럼 맴돌며 수렴하지 않을 수 있습니다.
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{\toplevelprefix/chapters/appendixA/figs/sgd_vs_nesterov.png}
+    \centering 
+    \caption{\small\textbf{확률적 경사 하강법은 매우 온화한 목적 함수에 대해서도 수렴하지 않을 수 있지만, 네스테로프 경사는 수렴한다.} 간단한 이차 목적 함수에 대해서도 확률적 경사 하강법 반복은 전역 최적값 주변을 맴돌 수 있지만, 네스테로프 경사는 최적값으로 향하는 방향과 일치한다.}
+    \label{fig:sgd_nonconvergence}
+\end{figure}
+
+이를 해결하기 위해, 우리는 시간 경과에 따라 매개변수 \(\theta_{k}\)를 평균하거나 경사도 \(\nabla \cL_{k}(\theta_{k})\)를 평균할 수 있습니다. 만약 우리가 매개변수 \(\theta_{k}\)를 평균한다면 (정신 모델로 \Cref{fig:sgd_nonconvergence}를 사용하여), 핀볼링 문제는 평균 반복이 중심에 더 가까워지기 때문에 명확하게 불가능합니다. 따라서 대부분의 이론적 수렴 증명은 평균 반복 \(\frac{1}{k}\sum_{i = 0}^{k}\theta_{i}\)의 전역 최소값으로의 수렴을 고려합니다. 만약 우리가 경사도를 평균한다면, 우리는 결국 각 반복에서 크게 변하지 않고 따라서 핀볼링하지 않는 평균 경사도 \(\frac{1}{k}\sum_{i = 0}^{k}\nabla \cL_{k}(\theta_{k})\)를 학습하게 될 것입니다.
+
+실제로는 산술 평균을 사용하는 대신, 매개변수 (이것을 \textit{Polyak 모멘텀}이라고 부른다) 또는 그래디언트 (이것을 \textit{Nesterov 모멘텀}이라고 부른다)의 \textit{지수 이동 평균}(EMA)을 취합니다. Nesterov 모멘텀이 더 인기가 많으며, 여기에서 이를 연구할 것입니다.
+
+Nesterov 모멘텀을 사용한 확률적 경사 하강법 반복은 다음과 같습니다.
+\begin{align}
+    \vg_{k}
+    &= \beta\vg_{k - 1} + (1 - \beta)\nabla \cL_{k}(\theta_{k}) \\ 
+    \theta_{k + 1}
+    &= \theta_{k} - h\vg_{k}.
+\end{align}
+우리는 수렴 증명 과정을 다루지 않습니다 (예시는 \cite{garrigos2023handbook}의 7장을 참조). 그러나 Nesterov 모멘텀은 \Cref{fig:sgd_nonconvergence}의 장난감 사례를 쉽게 처리합니다 (오른쪽 그림 참조): 핀볼링이 멈추고 결국 전역 최적값으로 수렴합니다.
+
+주의 사항으로 마무리하자면, 특정 매개변수 설정 선택에 대해 Polyak 모멘텀과 Nesterov 모멘텀이 동등하다는 것을 보일 수 있습니다. 그런 다음 평범한 SGD (또는 PSGD)를 사용하는 감소하는 학습률 스케줄 (즉, 학습률 \(h\)가 반복 \(k\)에 따라 달라지며, \(k \to \infty\)일 때 \(h_{k} \to 0\))이 모멘텀의 효과를 모방할 수 있음을 보일 수도 있습니다. 즉, \cite{defazio2023optimal}는 SGD 알고리즘이 \(K\)번 반복되고, 그래디언트 노름이 \(\norm{\nabla \cL(\theta_{k})}_{2} \leq G\)로 제한되며, \(D \doteq \norm{\theta_{0} - \theta^{\star}}_{2}\)로 정의될 때, 평범한 SGD 반복 \(\theta_{k}\)가 \(\Ex[\cL(\theta_{k}) - \cL(\theta^{\star})] \leq DG/\sqrt{K}\)의 속도를 만족한다는 것을 보여줍니다. 그러나 이는 학습률 \(h_{k} = (D/[G\sqrt{K}])(1 - k/K)\)가 시간에 따라 \textit{선형적으로} 감소하는 경우에만 해당됩니다. 이는 실제로 사용되는 학습률 스케줄과 일치합니다. 실제로, 놀랍게도, 이러한 볼록 최적화 이론은 최악의 경우 심층 학습 최적화가 고도로 비볼록하고 비매끄럽더라도 심층 네트워크의 많은 경험적 현상을 예측할 수 있습니다 \cite{schaipp2025surprising}. 왜 이런 현상이 발생하는지는 아직 불분명합니다.
+
+\subsection{모든 것을 하나로: Adam}
+
+경사 하강 방식은 다음과 같은 형태의 반복을 제안합니다.
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} + h\vv_{k},
+\end{equation}
+여기서 (기억할 것) \(\vv_{k}\)는 유클리드 노름에서 최급 하강 벡터에 (비례하도록) 선택됩니다.
+\begin{equation}
+    \vv_{k} = -\frac{\nabla \cL(\theta_{k})}{\norm{\nabla \cL(\theta_{k})}_{2}} \in \argmin_{\substack{\vv \in \R^{n} \\ \norm{\vv}_{2} = 1}}\ip{\nabla \cL(\theta_{k})}{\vv}.
+\end{equation}
+그러나 심층 학습 최적화의 맥락에서 유클리드 노름을 사용해야 한다는 것을 암시하는 것은 전혀 없습니다. 실제로 매개변수 공간의 "자연스러운 기하학"은 유클리드 노름에 의해 잘 존중되지 않습니다. 왜냐하면 매개변수 공간의 작은 변화가 네트워크에 대한 특정 고정 입력에 대해 출력 공간에서 매우 큰 차이를 유발할 수 있기 때문입니다. 대신 매개변수 공간 \(\R^{n}\)에서 일반적인 노름 \(\norm{\cdot}\)을 사용한다면, 우리는 소위 \textit{쌍대 노름}에 해당하는 다른 양을 얻을 것입니다.
+\begin{equation}
+    \vv_{k} \in \argmin_{\substack{\vv \in \R^{n} \\ \norm{\vv} = 1}}\ip{\nabla \cL(\theta_{k})}{\vv}.
+\end{equation}
+예를 들어, \(\ell^{\infty}\)-노름을 사용한다면 다음을 보일 수 있습니다.
+\begin{equation}
+    \vv_{k} = -\sign(\nabla \cL(\theta_{k})) \in \argmin_{\substack{\vv \in \R^{n} \\ \norm{\vv}_{\infty} = 1}}\ip{\nabla \cL(\theta_{k})}{\vv},
+\end{equation}
+여기서 \(\sign(\vx)_{i} = \sign(x_{i}) \in \{-1, 0, 1\}\)입니다. 따라서 우리가 원한다면 소위 \textit{부호 경사 하강법}(sign-gradient descent)을 사용할 수 있습니다.
+\begin{equation}\label{eq:sign_gradient_descent}
+    \theta_{k + 1} = \theta_{k} - h\sign(\nabla \cL(\theta_{k})).
+\end{equation}
+부호 경사 하강법에서 우리는 유명한 Adam 최적화 알고리즘을 유도할 수 있습니다. 스칼라 \(x \in \R\)에 대해 다음과 같이 쓸 수 있음을 주목하십시오.
+\begin{equation}
+    \sign(x) = \frac{x}{\abs{x}} = \frac{x}{\sqrt{x^{2}}}.
+\end{equation}
+유사하게, 벡터 \(\vx \in \R^{n}\)에 대해 (여기서 \(\hada\)와 \(\haddiv\)는 원소별 곱셈과 나눗셈입니다)
+\begin{equation}
+    \sign(\vx) = \vx \haddiv [\vx^{\hada 2}]^{\hada (1/2)}.
+\end{equation}
+이 표현을 사용하여 \eqref{eq:sign_gradient_descent}를 다음과 같이 쓸 수 있습니다.
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} - h ([\nabla \cL(\theta_{k})] \haddiv [\nabla
+    \cL(\theta_{k})^{\hada 2}]^{\hada \frac{1}{2}}).
+\end{equation}
+이제 각 반복에서 다른 손실 \(L_{k}\)를 최적화하는 확률적 체제를 고려해 봅시다. SGD에서는 Nesterov 모멘텀을 사용하여 경사도를 "추적"했습니다 (즉, 평균을 취했습니다). 여기서는 모멘텀을 사용하여 경사도와 제곱 경사도를 모두 추적할 수 있습니다. 즉,
+\begin{align}
+    \vg_{k}
+    &= \beta^{1}\vg_{k - 1} + (1 - \beta^{1})\nabla \cL_{k}(\theta_{k}) \\ 
+    \vs_{k}
+    &= \beta^{2}\vs_{k - 1} + (1 - \beta^{2})[\nabla \cL_{k}(\theta_{k})]^{\hada 2}  \\
+    \theta_{k + 1}
+    &= \theta_{k} - h\vg_{k}\haddiv\vs_{k}^{\hada \frac{1}{2}},
+\end{align}
+여기서 \(\beta^{i} \in [0, 1]\)는 모멘텀 매개변수입니다. 이 반복으로 제시된 알고리즘은 유명한 \textit{Adam} 최적화기입니다.\footnote{0으로 나누는 오류를 피하기 위해, \(\eps\)가 작은 값, 예를 들어 \(10^{-8}\) 정도인 \(\vs_{k}^{\hada (1/2)} + \eps \vone_{n}\)으로 나눕니다.} 이는 딥 러닝에서 가장 많이 사용되는 최적화기입니다. Adam의 수렴 증명은 더 복잡하지만, 우리가 지금까지 사용한 최급 하강 원리에서 비롯된 것이므로, 충분히 작은 학습률이 주어지면 각 업데이트가 손실을 개선할 것이라고 예상할 수 있습니다.
+
+Adam을 해석하는 또 다른 방법은 (이는 부분적으로 그 경험적 성공을 설명합니다) 제곱 경사도를 기반으로 각 매개변수에 대한 학습률을 동적으로 업데이트한다는 것입니다. 특히, 다음을 쓸 수 있음을 주목하십시오.
+\begin{equation}
+    \theta_{k + 1} = \theta_{k} - \eta_{k} \hada \vg_{k} \qquad \text{where}
+    \qquad \eta_{k} = h \vs_{k}^{\hada (-\frac{1}{2})}
+\end{equation}
+여기서 \(\eta_{k}\)는 매개변수별로 적응적으로 설정된 학습률입니다. 이 방식은 특정 매개변수의 경사도가 반복 \(k\)까지 크다면, 이 매개변수에 대한 학습률이 보상하기 위해 작아지고, 그 반대도 마찬가지이므로 적응형이라고 불립니다. 이는 위 방정식에서 볼 수 있습니다.
+
+\section{자동 미분을 통한 그래디언트 계산 (Computing Gradients via Automatic Differentiation)}\label{sec:autodiff}
+
+위에서 우리는 \textit{1차 오라클}, 즉 \(\cL(\theta)\)와 \(\nabla \cL(\theta)\)를 계산할 수 있는 장치에 대한 접근을 가정하는 심층 네트워크를 위한 여러 최적화 알고리즘을 논의했습니다. 간단한 함수 \(\cL\)의 경우, 이를 수동으로 수행하는 것이 가능합니다. 그러나 심층 신경망의 경우, 이것은 빠르게 지루해지고 빠른 실험을 방해합니다. 따라서 우리는 임의의 (준)미분 가능한 네트워크 아키텍처의 그래디언트를 효율적으로 계산할 수 있는 일반적인 알고리즘이 필요합니다.
+
+이 섹션에서는 일반 함수 \(f: \R^{m} \to \R^{n}\)의 그래디언트와 야코비안을 계산하는 계산적으로 효율적인 방법인 \textit{자동 미분} (AD 또는 \textit{autodiff})의 기본을 소개합니다. 이것이 신경망과 관련된 손실 함수의 그래디언트를 계산하기 위한 역전파 알고리즘으로 어떻게 이어지는지 보여줄 것입니다. 이 섹션의 구조는 다음과 같습니다:
+\begin{enumerate}
+    \item 고차원 매개변수 공간(자체적으로 행렬, 텐서 등을 포함하는 다른 공간의 곱일 수도 있음) 간의 함수의 도함수를 계산하고 구성하기 위한 편리한 형식주의인 \textbf{미분}을 소개합니다.
+    \item 머신러닝 응용 프로그램에서 발생하는 다양한 종류의 함수에 대한 그래디언트/야코비안의 효율적인 계산에 중요한 고려 사항을 포함하는 \textbf{순방향 모드} 및 \textbf{역방향 모드} 자동 미분의 기본을 설명합니다.
+    \item 역방향 모드 자동 미분의 인스턴스화로서, 계층 스택 신경망에 적용된 손실 함수의 특별한 경우인 \textbf{역전파}를 설명합니다.
+\end{enumerate}
+
+우리의 설명은 독자에게 근본적인 수학에 대한 깊은 이해를 제공하기 위해 수학적 측면에 치우칠 것입니다. 독자는 이 이해를 심층 학습을 위한 자동 미분의 실용적인 측면에 대한 강력한 이해와 결합해야 합니다. 예를 들어, \textcite{karpathy-micrograd}의 뛰어난 튜토리얼에서 나타난 것처럼 말입니다.
+
+\subsection{미분 (Differentials)}
+
+이 하위 섹션의 완전한 설명은 훌륭한 가이드인 \cite{bright2025matrix}에 나와 있습니다. 미분을 설명하기 위해, 먼저 매개변수 \(\theta\)에 작용하는 미분 가능한 함수 \(\cL \colon \R \to \R\)의 간단한 예를 고려해 봅시다. 우리는 다음과 같이 쓸 수 있습니다.
+\begin{equation}
+    \cL(\theta^{+}) - \cL(\theta) = \cL^{\prime}(\theta)\cdot(\theta^{+} - \theta) + o(\abs{\theta^{+} - \theta}).
+\end{equation}
+만약 \(\delta\theta \doteq \theta^{+} - \theta\)와 \(\delta\cL \doteq \cL(\theta + \delta\theta) - \cL(\theta)\)라고 한다면, 다음과 같이 쓸 수 있습니다.
+\begin{equation}
+    \delta\cL = \cL^{\prime}(\theta)\cdot\delta\theta + o(\abs{\delta\theta}).
+\end{equation>
+우리는 (비정식적으로) \(\odif{\theta}\)와 \(\odif{\cL}\), 즉 \(\theta\)와 \(\cL\)의 \textit{미분}을 \textit{무한히 작은} \(\theta\)와 \(\cL\)의 변화로 정의할 것입니다.
+이들을 \(\delta\theta\) (따라서 \(\delta \cL\))가 극도로 작을 때 얻는 것으로 생각하십시오. 미분학의 목표는 어떤 의미에서 미분 \(\odif{\theta}\)와 \(\odif{\cL}\) 사이의 관계를 연구하는 것, 즉 함수의 입력의 작은 변화가 출력을 어떻게 변화시키는지를 보는 것입니다. 우리는 미분 \(\odif{\theta}\)가 \(\theta\)와 \textit{같은 모양}이며, 미분 \(\odif{\cL}\)이 \(\cL\)와 \textit{같은 모양}이라는 점에 유의해야 합니다. 특히, 우리는 다음과 같이 쓸 수 있습니다.
+\begin{equation}
+    \odif{\cL} = \cL^{\prime}(\theta)\cdot\odif{\theta},
+\end{equation}
+여기서 \(\abs{\odif{\theta}}\)의 모든 고차 항, 예를 들어 \((\odif{\theta})^{2}\)는 \(0\)입니다.
+
+고차원, 즉 \(\cL \colon \R^{n} \to \R\)의 경우 이것이 어떻게 작동하는지 봅시다. 그러면 여전히
+\begin{equation}
+    \odif{\cL} = \cL^{\prime}(\theta)\cdot\odif{\theta}
+\end{equation}
+어떤 도함수 \(\cL^{\prime}(\theta)\)의 개념에 대해 성립합니다. 여기서 \(\theta\) (따라서 \(\odif{\theta}\))는 열 벡터이고 \(\cL\) (따라서 \(\odif{\cL}\))는 스칼라이므로, \(\cL^{\prime}(\theta)\)는 행 벡터여야 합니다. 이 경우 \(\cL^{\prime}(\theta)\)는 \(\theta\)에 대한 \(\cL\)의 야코비안입니다. 여기서 우리는 \(\odif{\theta}\)의 좌표의 모든 고차 항과 곱을 \(0\)으로 설정했음을 주목하십시오. 요약하자면,
+\begin{quote>
+    \centering
+    \textit{미분의 모든 곱과 2 이상의 거듭제곱은 \(0\)이다.}
+</quote>
+
+이제 고차 텐서 함수 \(\cL \colon \R^{m \times n} \to \R^{p \times q}\)를 고려해 봅시다. 그러면 우리의 기본적인 선형화 방정식은 이 경우에 불충분합니다: \(\odif{\cL} = \cL^{\prime}(\theta) \cdot \odif{\theta}\)는 \(\theta\)가 \(m \times n\) 행렬이고 \(\odif{\cL}\)이 \(p \times q\) 행렬이므로 의미가 없습니다. 일반적으로 \(m = p\)가 아닌 한 \(\cL^{\prime}(\theta)\)에 대해 가능한 벡터 또는 행렬 모양이 없습니다. 따라서 약간 더 발전된 해석이 필요합니다.
+
+즉, 우리는 \(\cL^{\prime}(\theta)\)를 \(\theta\)-공간을 입력으로 하고 \(\cL\)-공간을 출력으로 하는 \textit{선형 변환}으로 간주합니다. 이 변환은 \(\theta\)의 작은 변화를 받아들이고 \(\cL\)의 해당 작은 변화를 출력합니다. 즉, 우리는 다음과 같이 쓸 수 있습니다.
+\begin{equation}
+    \odif{\cL} = \cL^{\prime}(\theta)[\odif{\theta}].
+\end{equation>
+이전의 경우, \(\cL^{\prime}(\theta)\)는 먼저 \(\cL\)의 스칼라 도함수를 \(\theta\)에 대해 곱하는 것이 작용인 \(\R \to \R\) 선형 연산자였고, 그 다음에는 \(\cL\)의 야코비안 도함수를 \(\theta\)에 대해 곱하는 것이 작용인 \(\R^{n} \to \R\) 선형 연산자였습니다. 일반적으로 \(\cL^{\prime}(\theta)\)는 \(\theta\)에 대한 \(\cL\)의 "도함수"입니다.
+\(\cL^{\prime}\)를 \(\cL\)의 야코비안의 일반화된 버전으로 생각하십시오.
+이처럼, 몇 가지 간단한 도함수 규칙, 가장 중요하게는 연쇄 법칙을 따릅니다.
+
+\begin{theorem}[미분 연쇄 법칙]
+    \(f\)와 \(g\)가 미분 가능한 함수이고 \(\cL = f \circ g\)라고 가정합시다. 그러면
+    \begin{equation>
+        \odif{\cL} = f^{\prime}(g(\theta))g^{\prime}(\theta)[\odif{\theta}],
+    \end{equation>
+    여기서 (평소와 같이) 곱셈은 선형 연산자의 합성을 나타냅니다. 특히,
+    \begin{equation>
+        \cL^{\prime}(\theta) = f^{\prime}(g(\theta))g^{\prime}(\theta)
+    \end{equation>
+    선형 연산자의 등식 의미에서 성립합니다.
+</theorem>
+
+다변수 연쇄 법칙을 함수론적 용어로 생각하는 것이 생산적입니다:
+함수의 합성은 야코비안의 행렬 곱셈(선형 연산자의 합성)으로 '변환'됩니다.
+우리는 여러 예시를 통해 이 결과와 이 관점의 힘을 보여줍니다.
+
+\begin{example}
+    함수 \(f(\vX) = \vW\vX + \vb\vone^{\top}\)를 고려해 봅시다. 그러면
+    \begin{equation>
+        \odif{f} = f(\vX + \odif{\vX}) - f(\vX) = [\vW(\vX + \odif{\vX}) + \vb\vone^{\top}] - [\vW \vX + \vb \vone^{\top}] = \vW\odif{\vX}.
+    \end{equation>
+    따라서 그 입력에 대한 아핀 함수의 도함수는 다음과 같습니다.
+    \begin{equation>
+        f^{\prime}(\vX)[\odif{\vX}] = \vW\odif{\vX} \implies f^{\prime}(\vX) = \vW.
+    \end{equation>
+    \(f^{\prime}\)가 \textit{상수}임을 주목하십시오. 다른 한편으로, 함수 \(g(\vW, \vb) = \vW\vX + \vb\vone^{\top}\)를 고려해 봅시다. 그러면
+    \begin{align>
+        \odif{g}
+        &= g(\vW + \odif{\vW}, \vb + \odif{\vb}) - g(\vW, \vb) = [(\vW + \odif{\vW})\vX + (\vb + \odif{\vb})\vone^{\top}] - [\vW\vX + \vb] \\
+        &= (\odif{\vW})\vX + (\odif{\vb})\vone^{\top} = g^{\prime}(\vW, \vB)[\odif{\vW}, \odif{\vb}].
+    \end{align>
+    이 도함수는 \(\vW, \vb\)에 대해 \textit{상수}이며 (이는 \(g\) 자체가 선형이므로 의미가 있습니다) 미분 입력 \(\odif{\vW}, \odif{\vb}\)에 대해 선형임을 주목하십시오.
+</example>
+
+\begin{example>
+    \(g, h\)가 출력을 서로 곱할 수 있는 미분 가능한 함수이고 \(f = gh\)인 함수를 고려해 봅시다. 그러면 \(f = p \circ v\)이며, 여기서 \(v = (g, h)\)이고 \(p(a, b) = ab\)입니다. 연쇄 법칙을 적용하면 다음을 얻습니다.
+    \begin{equation>
+        \odif{f} = p^{\prime}(v(x))v^{\prime}(x)[\odif{x}].
+    \end{equation>
+    \(v^{\prime}(x)\)를 계산하기 위해 다음을 계산할 수 있습니다.
+    \begin{equation>
+        \odif{v} = v^{\prime}(x)[\odif{x}] = v(x + \odif{x}) - v(x) = \mat{g(x + \odif{x}) - g(x) \\ h(x + \odif{x}) - h(x)} = \mat{g^{\prime}(x)[\odif{x}] \\ h^{\prime}(x)[\odif{x}]}.
+    \end{equation>
+    \(p^{\prime}\)를 계산하기 위해 다음을 계산할 수 있습니다.
+    \begin{align>
+        \odif{p}
+        &= p^{\prime}(a, b)[\odif{a}, \odif{b}] = p(a + \odif{a}, b + \odif{b}) - p(a, b) = (a + \odif{a})(b + \odif{b}) - ab \\
+        &= (\odif{a})b + a(\odif{b}) + (\odif{a})(\odif{b}) = (\odif{a})b + a(\odif{b}),
+    \end{align>
+    여기서 (기억할 것) 미분 \(\odif{a}\)와 \(\odif{b}\)의 곱은 \(0\)으로 설정됩니다. 따라서
+    \begin{equation>
+        p^{\prime}(a, b)[\odif{a}, \odif{b}] = (\odif{a})b + (\odif{b})a.
+    \end{equation>
+    이들을 종합하면 다음을 찾을 수 있습니다.
+    \begin{align>
+        f^{\prime}(x)[\odif{x}]
+        &= p^{\prime}(v(x))v^{\prime}(x)[\odif{x}] = p^{\prime}(g(x), h(x))[g^{\prime}(x)[\odif{x}], h^{\prime}(x)[\odif{x}]] \\
+        &= (g^{\prime}(x)[\odif{x}])h(x) + g(x)(h^{\prime}(x)[\odif{x}]).
+    \end{align>
+    이는 다음을 제공합니다.
+    \begin{equation>
+        f^{\prime}(x)[\odif{x}] = (g^{\prime}(x)[\odif{x}])h(x) + g(x)(h^{\prime}(x)[\odif{x}]).
+    \end{equation>
+    예를 들어 \(f, g, h \colon \R \to \R\)라고 하면 모든 것이 교환되므로
+    \begin{equation>
+        f^{\prime}(x)[\odif{x}] = (g^{\prime}(x)h(x) + g(x)h^{\prime}(x))[\odif{x}] \implies f^{\prime}(x) = g^{\prime}(x)h(x) + g(x)h^{\prime}(x)
+    \end{equation>
+    이는 익숙한 곱셈 규칙입니다.
+</example>
+
+\begin{example>
+    \(\vA\)는 행렬이고 \(\vB\)는 상수 행렬인 함수 \(f(\vA) = \vA^{\top}\vA\vB\vA\)를 고려해 봅시다. 그러면 \(g(\vA) = \vA^{\top}\vA\)이고 \(h(\vA) = \vB\vA\)인 \(f = gh\)라고 하면, 곱셈 규칙을 사용하여 다음을 얻을 수 있습니다.
+    \begin{align>
+        f^{\prime}(\vA)[\odif{\vA}]
+        &= (g^{\prime}(\vA)[\odif{\vA}])h(\vA) + g(\vA)(h^{\prime}(\vA)[\odif{\vA}]) \\
+        &= ((\odif{\vA})^{\top}\vA + \vA^{\top}(\odif{\vA}))\vB\vA + \vA^{\top}\vA\vB(\odif{\vA}).
+    \end{align>
+</example>
+
+<example>
+    다음과 같이 주어지는 함수 \(f \colon \R^{m \times n \times k} \to \R^{m \times n}\)를 고려해 봅시다.
+    \begin{equation>
+        f(\vA)_{ij} = \sum_{t = 1}^{k}A_{ijt}.
+    \end{equation>
+    이 함수에 대한 (행렬 값) 야코비안이나 그래디언트를 쓸 수는 없습니다. 그러나 그 미분은 제대로 계산할 수 있습니다.
+    \begin{equation>
+        \odif{f}_{ij} = [f(\vA + \odif{\vA}) - f(\vA)]_{ij} = \sum_{t = 1}^{k}\odif{\vA}_{ijt} = \vone_{k}^{\top}(\odif{\vA})_{ij}.
+    \end{equation>
+    따라서
+    \begin{equation>
+        (f^{\prime}(\vA)[\odif{\vA}])_{ij} = \vone_{k}^{\top}(\odif{\vA})_{ij},
+    \end{equation>
+    이는 그럼에도 불구하고 잘 정의된 고차 텐서 곱셈 연산을 나타냅니다.
+</example>
+
+이것은 모든 것의 미분을 계산하는 데 필요한 모든 기술을 제공합니다.
+이 섹션에서 다루는 마지막 내용은 미분을 사용하여 그래디언트를 계산하는 방법입니다. 즉, 출력이 스칼라인 함수 \(\cL\)의 경우, 그래디언트 \(\nabla \cL\)은 다음과 같이 정의됩니다.
+\begin{equation>
+    \odif{\cL} = \cL^{\prime}(\theta)[\odif{\theta}] = \ip{\nabla \cL(\theta)}{\odif{\theta}},
+\end{equation>
+여기서 내적은 지정된 객체에 대한 "표준" 내적입니다 (즉, 벡터의 경우 \(\ell^{2}\) 내적, 행렬의 경우 프로베니우스 내적, 고차 텐서의 경우 유사한 좌표 합 내적).
+이 정의는 $\R^n$에서 $\R$로 가는 함수의 그래디언트의 `익숙한' 예시를 부분 도함수 벡터로 정확하게 일반화한 것입니다. 일반 함수 $f : \R^m \to \R^n$에 대한 테일러 정리의 한 버전이 이 연결을 엄격하게 만듭니다.
+따라서 그래디언트 \(\nabla \cL\)를 계산하는 한 가지 방법은 미분 \(\odif{\cL}\)를 계산하고 이를 \(\ip{\text{something}}{\odif{\theta}}\) 형식으로 다시 작성하는 것입니다. 그러면 그 "something"이 그래디언트입니다.
+
+\subsection{자동 미분 (Automatic Differentiation)}
+
+AD의 주요 아이디어는 연쇄 법칙을 효율적으로 계산하는 것입니다.
+우리가 다뤄야 할 기본적인 문제는 다음과 같습니다. 부록의 최적화 섹션에서 우리는
+매개변수 공간 \(\Theta\)가 \(\R^{n}\)와 같은 추상적인 유클리드 공간이라고 간주했습니다. 실제로는 매개변수는 벡터, 행렬 및 고차 객체의 모음입니다: \(\Theta = \R^{m \times n} \times \R^{n}
+\times \R^{r \times q \times p} \times \R^{r \times q} \times \cdots\). 이론적으로는 이것이 어떤 (매우 큰) \(n^{\prime}\)에 대한 큰 매개변수 공간 \(\R^{n^{\prime}}\)와 동일하지만, 계산적으로 효율적인 미분 알고리즘은 이 두 공간을 다르게 처리해야 합니다.
+순방향 모드 및 역방향 모드 자동 미분은 이 계산을 수행하기 위한 두 가지 다른 체계입니다.
+
+간단한 예시부터 시작해 봅시다. \(a, b, c\)가 미분 가능한 함수이고 \(\cL = a \circ b \circ c\)로 정의된다고 해 봅시다. 그러면 \textit{연쇄 법칙}은 다음을 제공합니다.
+\begin{equation>
+    \cL^{\prime}(\theta) = a^{\prime}(b(c(\theta)))b^{\prime}(c(\theta))c^{\prime}(\theta).
+\end{equation>
+\(\cL(\theta)\)를 계산하기 위해, 우리는 먼저 \(c(\theta)\)를 계산하고 그 다음 \(b(c(\theta))\)를 계산하고 그 다음 \(a(b(c(\theta)))\)를 계산하며, 이들을 모두 저장합니다. \(\cL^{\prime}(\theta)\)를 계산하는 두 가지 방법이 있습니다. \textit{순방향 모드 AD}는 다음을 계산합니다.
+\begin{equation>
+    c^{\prime}(\theta) \implies b^{\prime}(c(\theta))c^{\prime}(\theta) \implies a^{\prime}(b(c(\theta)))b^{\prime}(c(\theta))c^{\prime}(\theta)
+</equation>
+즉, 도함수를 "아래에서 위로" 계산합니다. \textit{역방향 모드 AD}는 다음을 계산합니다.
+\begin{equation>
+    a^{\prime}(b(c(\theta))) \implies a^{\prime}(b(c(\theta)))b^{\prime}(c(\theta)) \implies a^{\prime}(b(c(\theta)))b^{\prime}(c(\theta))c^{\prime}(\theta),
+\end{equation>
+즉, 도함수를 "위에서 아래로" 계산합니다. 이것이 왜 중요한지 이해하기 위해, \(f \colon \R^{p} \to \R^{s}\)가 \(f = a \circ b \circ c\)로 주어지고 \(a \colon \R^{r} \to \R^{s}\), \(b \colon \R^{q} \to \R^{r}\), \(c \colon \R^{p} \to \R^{q}\)라고 가정해 봅시다. 그러면 연쇄 법칙은 다음과 같습니다.
+\begin{equation>
+    f^{\prime}(\vx) = a^{\prime}(b(c(\vx)))b^{\prime}(c(\vx))c^{\prime}(\vx)
+\end{equation>
+여기서 (기억할 것) \(f^{\prime}\)는 도함수이며, 이 경우 야코비안입니다 (각 함수의 입력과 출력이 모두 벡터이기 때문입니다). 각 야코비안을 계산하는 것이 사소하고 유일한 비용이 야코비안을 함께 곱하는 것이라고 가정하면, 순방향 모드 AD는 다음과 같은 계산 비용을 가집니다 ( \(A \in \R^{m \times n}, B \in \R^{n \times k}\)를 곱하는 데 \(\cO(mnk)\) 시간이 걸린다고 가정).
+\begin{align>
+    &\text{계산}\ c^{\prime}(\vx) \in \R^{q \times p}\ \text{는 무시할 수 있는 시간 소요} \\
+    &\text{계산}\ b^{\prime}(c(\vx))c^{\prime}(x) \in \R^{r \times p}\ \text{는 \(\cO(pqr)\) 시간 소요} \\
+    &\text{계산}\ a^{\prime}(b(c(\vx)))b^{\prime}(c(\vx))c^{\prime}(\vx) \in \R^{s \times p}\ \text{는 \(\cO(pqr + prs)\) 시간 소요.}
+\end{align>
+한편, 역방향 모드 AD는 다음과 같은 계산 비용을 가집니다.
+\begin{align>
+    &\text{계산}\ a^{\prime}(b(c(\vx))) \in \R^{s \times r}\ \text{는 무시할 수 있는 시간 소요} \\
+    &\text{계산}\ a^{\prime}(b(c(\vx)))b^{\prime}(c(\vx)) \in \R^{s \times q}\ \text{는 \(\cO(qrs)\) 시간 소요} \\
+    &\text{계산}\ a^{\prime}(b(c(\vx)))b^{\prime}(c(\vx))c^{\prime}(\vx) \in \R^{s \times p}\ \text{는 \(\cO(qrs + pqs)\) 시간 소요.}
+\end{align>
+다시 말해, 순방향 모드 AD는 \(\cO(p(qr + rs))\) 시간이 걸리고, 역방향 모드 AD는 \(\cO(s(pq + qr))\) 시간이 걸립니다. \textit{이들은 다른 양의 시간이 걸립니다!}
+
+더 일반적으로, \(f = f^{L} \circ \cdots \circ f^{1}\)이고 각 \(f^{\ell} \colon \R^{d^{\ell - 1}} \to \R^{d^{\ell}}\)이므로 \(f \colon \R^{d^{0}} \to \R^{d^{L}}\)라고 가정해 봅시다. 그러면 순방향 모드 AD는 \(\cO(d^{0}(\sum_{\ell = 2}^{L}d^{\ell - 1}d^{\ell}))\) 시간이 걸리는 반면 역방향 모드 AD는 \(\cO(d^{L}(\sum_{\ell = 1}^{L - 1}d^{\ell - 1}d^{\ell}))\) 시간이 걸립니다. 위 비율에서 모든 것이 동일하다고 가정하면 다음을 알 수 있습니다.
+\begin{itemize>
+    \item 최적화할 함수가 \textit{입력보다 출력이 더 많으면} (즉, \(d^{L} > d^{0}\)), \textit{순방향 모드 AD}를 사용합니다.
+    \item 최적화할 함수가 \textit{출력보다 입력이 더 많으면} (즉, \(d^{0} > d^{L}\)), \textit{역방향 모드 AD}를 사용합니다.
+</itemize>
+신경망에서 우리는 매개변수 공간 \(\Theta\)가 일반적으로 매우 고차원인 \textit{손실 함수} \(\cL \colon \Theta \to \R\)의 그래디언트를 계산합니다. 따라서 실제로 우리는 신경망 학습을 위해 항상 역방향 모드 AD를 사용합니다. 신경망 학습의 맥락에서 역방향 모드 AD는 \textit{역전파}라고 불립니다.
+
+\subsection{역전파 (Back Propagation)}
+\label{app:BP-section}
+이 섹션에서는 간단하지만 완전히 실용적인 예시를 사용하여 알고리즘적 역전파를 논의할 것입니다. 입력-레이블 쌍 \((\vX, \vy)\)를 고정하고, 네트워크 아키텍처 \(f_{\theta} = f_{\theta}^{L} \circ \cdots \circ f_{\theta}^{1} \circ f_{\theta}^{\emb}\)를 고정하고, 여기서 \(\theta = (\theta^{\emb}, \theta^{1}, \dots, \theta^{m}, \theta^{\head})\)와 태스크별 헤드 \(h_{\theta^{\head}}\)를 사용하여 다음과 같이 작성해 봅시다.
+\begin{align>
+    &\vZ_{\theta}^{1}(\vX) \doteq f_{\theta}^{\emb}(\vX), \\
+    &\vZ_{\theta}^{\ell + 1}(\vX) \doteq f_{\theta}^{\ell}(\vZ_{\theta}^{\ell}(\vX)), \quad \forall \ell \in \{1, \dots, L\}, \\
+    &\hat{\vy}_{\theta^{\head}}(\vX) \doteq h_{\theta}(\vZ_{\theta}^{L+1}(\vX)).
+\end{align>
+그러면 이 한 항에 대한 손실을 다음과 같이 정의할 수 있습니다.
+\begin{equation>
+    \cL(\theta) \doteq \sfL(\vy, \hat{\vy}_{\theta}(\vX)),
+\end{equation>
+여기서 \(\sfL\)은 두 번째 인수의 미분 가능한 함수입니다. 그러면 역방향 모드 AD는 \(\theta^{\head}, \theta^{L}, \dots, \theta^{1}, \theta^{\emb}\) 순서로 도함수를 계산하도록 지시합니다.
+
+이 계산을 수행하기 위해 표기법을 일부 변경해 봅시다.
+\begin{itemize>
+    \item 첫째, 변수 간의 의존성 구조를 강조하기 위해 표기법을 변경해 봅시다. 즉,
+    \begin{align>
+        &\vZ^{1} \doteq f^{\emb}(\vX, \theta^{\emb}) \\
+        &\vZ^{\ell + 1} \doteq f^{\ell}(\vZ^{\ell}, \theta^{\ell}), \qquad \forall \ell \in \{1, \dots, L\}, \\
+        &\hat{\vy} \doteq h(\vZ^{L+1}, \theta^{\head}), \\
+        &\cL \doteq \sfL(\vy, \hat{\vy}).
+    \end{align>
+    \item 그런 다음, 도함수가 \(f^{\prime}\)인 대신, 독립 변수를 명시적으로 표기하고 도함수를 예를 들어 \(\odv{f}{\theta^{1}}\)로 작성합니다. 이는 우리 모델에 많은 변수가 있고 한 번에 하나만 신경 쓰기 때문입니다.
+</itemize>
+적절한 미분을 계산하는 것부터 시작할 수 있습니다. 먼저 \(\theta^{\head}\)에 대해 다음을 얻습니다.
+\begin{align>
+    \odif{\cL}
+    &= \odif{\sfL} \\
+    &= \odv{\sfL}{\hat{\vy}}\cdot\odif{\hat{\vy}} \\
+    &= \odv{\sfL}{\hat{\vy}}\cdot\odif{{(h(\vZ^{L + 1}, \theta^{\head}))}} \\
+    &= \odv{\sfL}{\hat{\vy}}\bs{\odv{h}{\vZ^{L + 1}}\cdot\odif{\vZ}^{L + 1} + \odv{h}{\theta^{\head}}\cdot\odif{\theta}^{\head}}.
+\end{align>
+이제 \(\vZ^{L + 1}\)은 \(\theta^{\head}\)에 의존하지 않으므로 \(\odif{\vZ}^{L + 1} = 0\)이 됩니다. 따라서 최종적으로 (도메인이 \(\R\)인 함수 \(\sfL\)에 대해 그래디언트가 도함수의 전치행렬이라는 사실을 사용하여) 다음이 성립합니다.
+\begin{align>
+    \odif{\cL}
+    &= \odv{\sfL}{\hat{\vy}}\cdot\odv{h}{\theta^{\head}}\cdot\odif{\theta}^{\head} \\
+    &= [\nabla_{\hat{\vy}}\sfL]^{\top}\odv{h}{\theta^{\head}}\cdot\odif{\theta}^{\head} \\
+    &= \ip*{\nabla_{\hat{\vy}}\sfL}{\odv{h}{\theta^{\head}}\cdot\odif{\theta}^{\head}} \\
+    &= \ip*{\bp{\odv{h}{\theta^{\head}}}^{*}\nabla_{\hat{\vy}}\sfL}{\odif{\theta}^{\head}} \\
+    &= \ip{\nabla_{\theta^{\head}}\cL}{\odif{\theta}^{\head}}.
+\end{align>
+따라서 \(\nabla_{\theta^{\head}}\cL\)를 계산하려면 그래디언트 \(\nabla_{\hat{\vy}}\sfL\)와 도함수 \(\odv{h}{\theta^{\head}}\)의 \textit{수반} (adjoint)을 계산하고 곱합니다 (즉, 수반 선형 변환을 그래디언트에 적용). 실제로는 두 도함수 모두 수동으로 계산할 수 있지만, 많은 최신 계산 프레임워크는 "순방향 전달", 즉 손실 함수 계산을 위한 코드가 주어지면 도함수 (및/또는 그 수반)를 \textit{자동으로} 정의할 수 있습니다. 이 자동 도함수 정의를 가능한 한 많은 함수로 확장하는 것은 활발한 연구 분야이지만, \cite{bright2025matrix} 자료는 이를 수행하는 한 가지 기본적인 접근 방식을 자세히 설명합니다. 참고로 역전파는 이러한 이유로 \textit{수반 방법}이라고도 불립니다. 즉, 수반 도함수를 사용하여 그래디언트를 계산하기 때문입니다.
+
+이제 일부 \(\theta^{\ell}\)에 대한 미분을 계산해 봅시다.
+\begin{align>
+    \odif{\cL}
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot \odif{\vZ^{\ell + 1}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot \odif{{(f^{\ell}(\vZ^{\ell}, \theta^{\ell}))}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\bs{\odv{f^{\ell}}{\vZ^{\ell}}\cdot\odif{\vZ}^{\ell} + \odv{f^{\ell}}{\theta^{\ell}}\cdot\odif{\theta}^{\ell}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot \odv{f^{\ell}}{\theta^{\ell}}\cdot\odif{\theta}^{\ell} \qquad \text{(왜냐하면~\(\vZ^{\ell}\)은 \(\theta^{\ell}\)의 함수가 아니므로 \(\odif{\vZ}^{\ell} = 0\))} \\
+    &= [\nabla_{\vZ^{\ell + 1}}\cL]^{\top}\odv{f^{\ell}}{\theta^{\ell}}\cdot\odif{\theta}^{\ell} \\
+    &= \ip*{\nabla_{\vZ^{\ell + 1}}\cL}{\odv{f^{\ell}}{\theta^{\ell}}\cdot\odif{\theta}^{\ell}} \\
+    &= \ip*{\bp{\odv{f^{\ell}}{\theta^{\ell}}}^{*}\nabla_{\vZ^{\ell + 1}}\cL}{\odif{\theta}^{\ell}} \\
+    &= \ip{\nabla_{\theta^{\ell}}\cL}{\odif{\theta}^{\ell}}.
+\end{align>
+따라서 \(\nabla_{\theta^{\ell}}\cL\)를 계산하려면 \(\nabla_{\vZ^{\ell + 1}}\cL\)를 계산한 다음 수반 도함수 \(\bp{\odv{f^{\ell}}{\theta^{\ell}}}^{*}\)를 적용합니다. \(\nabla_{\theta^{\ell}}\cL\)가 \(\nabla_{\vZ^{\ell + 1}}\cL\)에 의존하므로, 우리는 \(\vZ^{\ell}\)에 대한 그래디언트도 계산할 수 있기를 원합니다. 이는 정확히 동일한 방식으로 계산할 수 있습니다.
+\begin{align>
+    \odif{\cL}
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot \odif{\vZ^{\ell + 1}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot\odif{{(f^{\ell}(\vZ^{\ell}, \theta^{\ell}))}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\bs{\odv{f^{\ell}}{\vZ^{\ell}}\cdot\odif{\vZ}^{\ell} + \odv{f^{\ell}}{\theta^{\ell}}\cdot\odif{\theta}^{\ell}} \\
+    &= \odv{\cL}{\vZ^{\ell + 1}}\cdot\odv{f^{\ell}}{\vZ^{\ell}}\cdot\odif{\vZ}^{\ell} \qquad \text{(왜냐하면~~\(\theta^{\ell}\)은 \(\vZ^{\ell}\)의 함수가 아니므로 \(\odif{\theta}^{\ell} = 0\) 이번에는)} \\
+    &= \ip*{\bp{\odv{f^{\ell}}{\vZ^{\ell}}}^{*}\nabla_{\vZ^{\ell + 1}}\cL}{\odif{\vZ}^{\ell}} \qquad \text{(동일한 메커니즘)} \\
+    &= \ip{\nabla_{\vZ^{\ell}}\cL}{\odif{\vZ}^{\ell}}.
+\end{align>
+따라서 \(\nabla_{\vZ^{\ell}}\cL\)를 계산하려면 \(\nabla_{\vZ^{\ell + 1}}\cL\)를 계산한 다음 수반 도함수 \(\bp{\odv{f^{\ell}}{\vZ^{\ell}}}^{*}\)를 적용합니다. 따라서 우리는 모든 \(\ell\)에 대해 \(\nabla_{\vZ^{\ell}}\cL\)를 계산하는 재귀를 가지며, 기본 경우는 \(\nabla_{\vZ^{L + 1}}\cL\)이고, 이는 다음과 같이 주어집니다.
+\begin{align>
+    \nabla_{\vZ^{L + 1}}\cL
+    &= \bp{\odv{h}{\vZ^{L + 1}}}^{*}\nabla_{\hat{\vy}}\sfL \\
+    \nabla_{\vZ^{L}}\cL
+    &= \bp{\odv{f^{L}}{\vZ^{L}}}^{*}\nabla_{\vZ^{L + 1}}\cL \\
+    \nabla_{\theta^{L}}\cL
+    &= \bp{\odv{f^{L}}{\theta^{L}}}^{*}\nabla_{\vZ^{L + 1}}\cL \\
+    \vdots &  \\
+    \nabla_{\vZ^{1}}\cL
+    &= \bp{\odv{f^{1}}{\vZ^{1}}}^{*}\nabla_{\vZ^{2}}\cL \\
+    \nabla_{\theta^{1}}\cL
+    &= \bp{\odv{f^{1}}{\theta^{1}}}^{*}\nabla_{\vZ^{2}}\cL \\
+    \nabla_{\theta^{\emb}}\cL
+    &= \bp{\odv{f^{\emb}}{\theta^{\emb}}}^{*}\nabla_{\vZ^{1}}\cL.
+\end{align>
+
+이는 전체 네트워크의 모든 그래디언트를 찾기 위한 계산적으로 효율적인 알고리즘을 제공합니다.
+
+이 섹션은 간단한 계층에 대한 수반 도함수 계산으로 마무리합니다.
+\begin{example}
+    "선형"(아핀) 계층 \(f^{\ell}\)를 고려해 봅시다.
+    \begin{equation>
+        f^{\ell}(\vZ, \vW^{\ell}, \vb^{\ell}) \doteq \vW^{\ell}\vZ + \vb^{\ell}\vone^{\top} = \mat{\vW^{\ell} & \vb^{\ell}}.
+    \end{equation>
+    두 매개변수에 대한 미분은 다음과 같이 계산할 수 있습니다.
+    \begin{align>
+        \odif{f}^{\ell}
+        &= [(\vW^{\ell} + \odif{\vW}^{\ell})\vZ + (\vb^{\ell} + \odif{\vb}^{\ell})\vone^{\top}] - [\vW^{\ell}\vZ + \vb^{\ell}] \\
+        &= (\odif{\vW}^{\ell})\vZ + (\odif{\vb}^{\ell})\vone^{\top}.
+    \end{align>
+    따라서 이 변환의 도함수는 다음과 같습니다.
+    \begin{equation>
+        \odv{f^{\ell}}{(\vW^{\ell}, \vb^{\ell})}[\odif{\vW}^{\ell}, \odif{\vb}^{\ell}] = (\odif{\vW}^{\ell})\vZ + (\odif{\vb}^{\ell})\vone^{\top},
+    \end{equation>
+    즉, \(\R^{m \times d} \times \R^{m}\)에서 \(\R^{m \times n}\)으로의 다음 선형 변환을 나타냅니다.
+    \begin{equation>
+        T[\vA, \vu] = \vA\vZ + \vu\vone^{\top}.
+    \end{equation>
+    우리는 다음 절차를 통해 좌표 합(프로베니우스) 내적에 대한 수반 \(T^{*} \colon \R^{m \times n} \to \R^{m \times d} \times \R^{m}\)를 계산합니다.
+    \begin{align>
+        \ip{T[\vA, \vu]}{\vB}_{\R^{m \times n}}
+        &= \tr((\vA\vZ + \vu\vone^{\top})\vB^{\top}) \\
+        &= \tr(\vA\vZ\vB^{\top} + \vu\vone^{\top}\vB^{\top}) \\
+        &= \tr(\vA\vZ\vB^{\top}) + \tr(\vu\vone^{\top}\vB^{\top}) \\
+        &= \tr(\vB\vZ^{\top}\vA^{\top}) + \tr(\vone^{\top}\vB^{\top}\vu) \\
+        &= \ip{\vB\vZ^{\top}}{\vA}_{\R^{m \times d}} + \ip{\vB\vone}{\vu}_{\R^{m}} \\
+        &= \ip{\vB(\vZ^{\top}, \vone)}{(\vA, \vu)}_{\R^{m \times d} \times \R^{m}}
+    \end{align>
+    따라서 \(T^{*}\vB = \vB(\vZ^{\top}, \vone)\)입니다.
+</example>
+
+연쇄 법칙의 간단한 적용으로서 역전파와 자동 미분은 모두 일반적인 "계산 그래프", 즉 (간단한) 함수의 합성에 대해 작동합니다. 우리는 모든 예시를 신경망 계층으로 제공하는데, 이는 실제에서 가장 일반적인 예시이기 때문입니다.
+
+\section{게임 이론 및 미니맥스 최적화 (Game Theory and Minimax Optimization)} \label{sec:minimax}\label{sec:game_theory}
+
+\Cref{ch:closed-loop}에서와 같이 특정 경우에 학습 문제는 단일 최적화 문제로 축소될 수 없고, 오히려 시스템의 여러 잠재적으로 대립하는 구성 요소가 각자 자신의 목적을 최소화하려고 시도하는 것을 나타냅니다. 이 패러다임의 예로는 생성적 적대 신경망(GAN)을 통한 분포 학습과 폐쇄 루프 전사(CTRL)가 있습니다. 우리는 그러한 시스템을 \textit{두 플레이어 게임}이라고 부를 것입니다. 여기서 플레이어 1과 플레이어 2라는 두 "플레이어"(즉, 구성 요소)가 각자 자신의 목적 \(\cL^{1}\)과 \(\cL^{2}\)을 최소화하려고 시도합니다. 플레이어 1은 매개변수 \(\theta \in \Theta\)를 선택하고 플레이어 2는 매개변수 \(\eta \in \Eta\)를 선택합니다. 이 책에서는 \textit{제로섬 게임}의 특별한 경우를 고려합니다. 즉, \(\cL = -\cL^{1} = \cL^{2}\)가 되도록 공통 목적 함수 \(\cL\)을 정의합니다.
+
+우리의 첫 번째, 매우 예비적인 예시는 다음과 같습니다. 함수 \(u(\theta)\)와 \(v(\eta)\)가 존재하여
+\begin{equation}
+    \cL(\theta, \eta) = -u(\theta) + v(\eta).
+\end{equation>
+그러면 두 플레이어의 목적은 다른 플레이어와 독립적이며, 플레이어는 각자의 최적을 달성하려고 노력해야 합니다.
+\begin{equation>
+    \theta^{\star} \in \argmin_{\theta \in \Theta}u(\theta), \qquad \eta^{\star} \in \argmin_{\eta \in \Eta}v(\eta).
+\end{equation>
+쌍 \((\theta^{\star}, \eta^{\star})\)은 \textit{균형}의 간단한 특별한 경우입니다. 즉, 어떤 플레이어도 움직이기를 원하지 않는 상황입니다. 왜냐하면 움직이면 자신의 상황이 더 나빠지기 때문입니다. 그러나 모든 게임이 그렇게 사소한 것은 아닙니다. 많은 게임은 더 복잡한 목적과 정보 구조를 가지고 있습니다.
+
+이 책에서 관련 게임 이론적 형식주의는 스태켈버그 게임(다양하게 순차 게임이라고 불림)입니다. 이 형식주의에서 한 플레이어(일반적으로 플레이어 1이며 \textit{선두 주자}라고도 불림)는 다른 플레이어(즉, 플레이어 2이며 \textit{추종자}라고도 불림)보다 먼저 매개변수를 선택하고, 추종자는 선두 주자의 선택에 대한 완전한 지식을 사용하여 자신의 선택을 할 수 있습니다. 스태켈버그 게임에 대한 올바른 균형 개념은 \textit{스태켈버그 균형}입니다. 이 균형을 설명하자면, 플레이어 2(즉, 추종자)는 플레이어 1(즉, 선두 주자)이 선택한 \(\theta_{1}\)에 반응적으로 \(\eta\)를 선택할 수 있으므로, 플레이어 2는 물론 \(\cL(\theta_{1}, \cdot)\)를 최소화하는 \(\eta\)를 선택할 것입니다. 그러나 합리적인 플레이어 1은 이것을 인식할 것이고, 따라서 이 규칙에 따라 플레이어 2가 선택하는 최악의 경우의 \(\eta\)가 너무 나쁘지 않도록 \(\theta_{1}\)을 선택할 것입니다. 더 공식적으로, \(\cS(\theta) \doteq \argmin_{\eta \in \Eta}\cL(\theta, \eta)\)를 \(\cL(\theta, \eta)\)를 최소화하는 \(\eta\)의 집합, 즉 플레이어 1이 \(\theta\)를 플레이한 경우 플레이어 2가 플레이할 가능성이 있는 모든 \(\eta\)의 집합이라고 합시다. 그러면 \((\theta^{\star}, \eta^{\star})\)은 스태켈버그 균형입니다.
+\begin{equation>
+    \theta^{\star} \in \argmax_{\theta \in \Theta}\min_{\eta \in \cS(\theta)}\cL(\theta, \eta), \qquad \eta^{\star} \in \argmin_{\eta  \in \Eta}\cL(\theta^{\star}, \eta).
+\end{equation>
+실제로 (연습 문제 증명), 두 플레이어 제로섬 스태켈버그 게임의 맥락에서 \((\theta^{\star}, \eta^{\star})\)은 다음이 성립할 때만 스태켈버그 균형임을 보일 수 있습니다.
+\begin{equation>
+    \theta^{\star} \in \argmax_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta), \qquad \eta^{\star} \in \argmin_{\eta  \in \Eta}\cL(\theta^{\star}, \eta),
+\end{equation>
+(표기법 \(\cS(\theta)\)는 사용되지 않으며 필요하지 않다는 점에 유의하십시오).
+\begin{proof} %
+    다음을 주목하십시오.
+    \begin{equation>
+        \cS(\theta) = \argmin_{\eta \in \Eta}\cL(\theta, \eta),
+    \end{equation>
+    따라서 다음이 성립합니다.
+    \begin{equation>
+        \min_{\eta \in \cS(\theta)}\cL(\theta, \eta) = \min_{\eta \in \argmin_{\eta^{\prime} \in \Eta}\cL(\theta, \eta^{\prime})}\cL(\theta, \eta) = \min_{\eta \in \Eta}\cL(\theta, \eta).
+    \end{equation>
+</proof>
+
+섹션의 나머지 부분에서는 스태켈버그 균형을 학습하기 위한 몇 가지 알고리즘적 접근 방식을 간략하게 논의할 것입니다. 여러분이 가져야 할 직관은 균형을 학습하는 것이 시스템의 다른 부분이 최적화하려는 다른 목적 간의 절충점을 자동으로 알아내도록 하는 것과 같다는 것입니다.
+
+이 섹션을 주의 사항으로 마무리합니다: 두 플레이어 제로섬 게임에서 다음이 성립한다면,
+\begin{equation>
+    \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) = \min_{\eta \in \Eta}\max_{\theta \in \Theta}\cL(\theta, \eta)
+\end{equation>
+모든 스태켈버그 균형은 새들 포인트(saddle point)입니다.\footnote{유명하게 \textit{내쉬 균형}이라고 불립니다.} 즉,
+\begin{equation>
+    \theta^{\star} \in \argmax_{\theta \in \Theta}\cL(\theta, \eta^{\star}), \qquad \eta^{\star} \in \argmin_{\eta \in \Eta}\cL(\theta^{\star}, \eta),
+\end{equation>
+\textit{그 반대도 마찬가지}이며, 또한 각 스태켈버그 균형은 (동일한) 목적 값 \[\max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta).\]을 가집니다.
+\begin{proof} %
+    실제로 다음이 성립한다고 가정합시다.
+    \begin{equation>
+        \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) = \min_{\eta \in \Eta}\max_{\theta  \in \Theta}\cL(\theta, \eta).
+    \end{equation>
+
+    먼저 \((\theta^{\star}, \eta^{\star})\)이 새들 포인트라고 가정합시다. 우리는 이것이 스태켈버그 균형임을 보일 것입니다. 정의에 따라 다음이 성립합니다.
+    \begin{equation>
+        \min_{\eta \in \Eta}\cL(\theta^{\star}, \eta) = \cL(\theta^{\star}, \eta^{\star}) = \max_{\theta \in \Theta}\cL(\theta, \eta^{\star}).
+    \end{equation>
+    그러면 모든 \(\theta\)와 \(\eta\)에 대해 다음이 성립합니다.
+    \begin{equation>
+        \min_{\eta \in \Eta}\cL(\theta, \eta) \leq \cL(\theta, \eta^{\star}) \leq \cL(\theta^{\star}, \eta^{\star}).
+    \end{equation>
+    따라서
+    \begin{equation>
+        \max_{\theta \in \Theta}\cL(\theta, \eta) \leq \cL(\theta^{\star}, \eta^{\star}).
+    \end{equation>
+    완전히 대칭적으로,
+    \begin{equation>
+        \cL(\theta^{\star}, \eta^{\star}) \leq \cL(\theta^{\star}, \eta) \leq \max_{\theta \in \Theta}\cL(\theta^{\star}, \eta) \implies \cL(\theta^{\star}, \eta^{\star}) \leq \min_{\eta \in \Eta}\max_{\theta \in \Theta}\cL(\theta, \eta).
+    \end{equation>
+    따라서 \(\max\min = \min\max\)이므로 다음이 성립합니다.
+    \begin{equation}\label{eq:nash_equilibrium_minmax_maxmin}
+        \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) = \cL(\theta^{\star}, \eta^{\star}) = \min_{\eta \in \Eta}\max_{\theta \in \Theta}\cL(\theta, \eta).
+    \end{equation>
+    특히, 다음이 성립합니다.
+    \begin{equation>
+        \theta^{\star} \in \argmax_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta).
+    \end{equation>
+    새들 포인트 조건으로부터 \(\eta^{\star} \in \argmin_{\eta \in \Eta}\cL(\theta^{\star}, \eta)\)가 있습니다. 따라서 \((\theta^{\star}, \eta^{\star})\)은 스태켈버그 균형입니다. 또한 우리는 모든 새들 포인트가 \eqref{eq:nash_equilibrium_minmax_maxmin}을 따른다는 것을 증명했습니다.
+
+    이제 \((\theta^{\star}, \eta^{\star})\)이 스태켈버그 균형이라고 합시다. 우리는 이것이 새들 포인트임을 주장하며, 이는 증명을 완료합니다. 미니맥스 균형의 정의에 따라,
+    \begin{equation>
+        \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) = \cL(\theta^{\star}, \eta^{\star}).
+    \end{equation>
+    그러면 \(\min\max = \max\min\) 가정에 따라 다음이 성립합니다.
+    \begin{equation>
+        \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) = \cL(\theta^{\star}, \eta^{\star}) = \min_{\eta \in \Eta}\max_{\theta \in \Theta}\cL(\theta, \eta).
+    \end{equation>
+    이는 모든 미니맥스 균형이 원하는 목적 값 \(\cL(\theta^{\star}, \eta^{\star})\)를 가짐을 증명합니다. 이제 우리는 다음을 보여주고자 합니다.
+    \begin{equation>
+        \theta^{\star} \in \argmax_{\theta \in \Theta}\cL(\theta, \eta^{\star}), \qquad \eta^{\star} \in \argmin_{\eta \in \Eta}\cL(\theta^{\star}, \eta).
+    \end{equation>
+    실제로 후자의 주장은 미니맥스 균형의 정의에 따라 성립하므로, 전자만 증명하면 됩니다. 즉, 우리는 다음을 보여줄 것입니다.
+    \begin{equation>
+        \max_{\theta \in \Theta}\cL(\theta, \eta^{\star}) = \cL(\theta^{\star}, \eta^{\star}).
+    \end{equation>
+    이를 보여주기 위해 \(\max\)의 정의에 따라 다음을 주목하십시오.
+    \begin{equation>
+        \cL(\theta^{\star}, \eta^{\star}) \leq \max_{\theta \in \Theta}\cL(\theta, \eta^{\star}),
+    \end{equation>
+    한편, \(\min_{\eta \in \Eta}\cL(\theta, \eta) \leq \cL(\theta, \eta^{\star})\)이므로
+    \begin{equation>
+        \cL(\theta^{\star}, \eta^{\star}) = \max_{\theta \in \Theta}\min_{\eta \in \Eta}\cL(\theta, \eta) \leq \max_{\theta \in \Theta}\cL(\theta, \eta^{\star}).
+    \end{equation>
+    따라서 다음이 성립합니다.
+    \begin{equation>
+        \cL(\theta^{\star}, \eta^{\star}) = \max_{\theta \in \Theta}\cL(\theta, \eta^{\star}),
+    \end{equation>
+    증명이 완료됩니다.
+</proof>
+\(\min\max = \max\min\) 등식이 성립하는 조건은 소위 \textit{미니맥스 정리}에 의해 주어집니다. 이 중 가장 유명한 것은 폰 노이만의 정리입니다. 그러나 우리가 생각하는 경우에서는 이 속성이 일반적으로 성립하지 않습니다.
+
+\subsection{스태켈버그 균형 학습 (Learning Stackelberg Equilibria)}
+
+GDA를 통해 스태켈버그 균형을 어떻게 학습할 수 있을까요? 일반적으로 이는 명백히 불가능합니다. 왜냐하면 GDA를 통한 스태켈버그 균형 학습은 손실 함수의 전역 최소값을 계산하는 것만큼이나 어렵기 때문입니다 (예를 들어, 공유 목적 함수 \(\cL(\theta, \eta)\)를 \(\eta\)의 함수로만 설정함으로써). 따라서 두 가지 유형의 수렴 보장을 달성할 수 있습니다.
+\begin{itemize>
+    \item \(\cL\)이 첫 번째 인수인 \(\theta\)에 대해 (강) 오목하고 두 번째 인수인 \(\eta\)에 대해 (강) 볼록한 경우 (두 인수 모두 립시츠 그래디언트를 가지는 경우), 스태켈버그 균형으로 지수적으로 빠른 수렴을 달성할 수 있습니다.
+    \item \(\cL\)이 두 인수 중 어느 쪽에도 오목하거나 볼록하지 않은 경우, \textit{국소 수렴 보장}을 달성할 수 있습니다. 즉, 매개변수 값을 (국소) 스태켈버그 균형 근처로 초기화하고 최적화 기하학이 좋으면 해당 균형을 효율적으로 학습할 수 있습니다.
+</itemize>
+
+전자의 상황은 단일 플레이어 최적화의 경우와 정확히 유사합니다. 여기서 우리는 그래디언트 하강법이 립시츠 그래디언트를 가진 강한 볼록 목적 함수에 대해 지수적으로 빠르게 수렴함을 증명했습니다. 후자의 상황 또한 단일 플레이어 최적화의 경우와 유사하지만, 기술적 어려움으로 인해 깊이 다루지는 않았습니다. 실제로 국소적으로 좋은 기하학을 가진 비볼록 목적 함수에 대한 국소 수렴 보장이 존재합니다.
+
+이 두 경우의 알고리즘은 동일하며, 그래디언트 하강-상승(Gradient Descent-Ascent, GDA)이라고 불립니다. GDA를 동기 부여하기 위해, \(\theta^{\star}\)를 학습하려고 한다고 가정해 봅시다. 우리는 함수 \(\theta \mapsto \min_{\eta \in \Eta}\cL(\theta, \eta)\)에 대한 그래디언트 상승을 수행할 수 있습니다. 그러나 그러면 이 함수의 \(\theta\)에 대한 도함수를 취해야 할 것입니다. 이를 수행하는 방법을 알아보려면, \(\cL\)이 \(\eta\)에 대해 강한 볼록이므로 \(\cL(\theta, \cdot)\)의 최소값 \(\eta^{\star}(\theta)\)가 하나 존재한다고 가정해 봅시다. 그러면 \textit{댄스킨 정리(Danskin's theorem)}는 다음을 말합니다.
+\begin{equation>
+    \nabla_{\theta}\bs{\min_{\eta \in \Eta}\cL(\theta, \eta)} = \nabla_{\theta}\cL(\theta, \texttt{stop\_grad}(\eta^{\star}(\theta))),
+\end{equation>
+여기서 그래디언트는 \textit{첫 번째 인수에 대해서만} 입니다 (즉, \(\theta\)에 대한 \(\eta^{\star}(\theta)\)의 야코비안을 계산할 필요가 없는 총 도함수가 아님). 이는 stop-gradient 연산자로 표시됩니다.\footnote{\(\cL\)이 \(\eta\)에 대해 강한 볼록이 아니라 단순히 볼록한 경우, 댄스킨 정리는 서브미분(subdifferentials) 측면에서 설명될 수 있습니다. \(\cL\)이 \(\eta\)에 대해 전혀 볼록하지 않은 경우, 이 도함수는 잘 정의되지 않을 수 있지만, 결과 알고리즘에 대한 (국소) 수렴 보장을 얻을 수 있습니다. 따라서 우리는 댄스킨 정리를 알고리즘의 정당화가 아닌 동기 부여로 사용합니다. 댄스킨 정리는 소위 \textit{엔벨로프 정리(envelope theorems)}에 의해 더 완화된 상황으로 일반화될 수 있습니다.}
+\(\theta\)에 대한 도함수를 취하기 위해, 우리는 \(\eta^{\star}(\theta)\)에 대한 근사치를 얻기 위해 \(\eta\)도 최적화하는 \textit{보조 프로세스}를 설정해야 합니다. 이는 다음 알고리즘 템플릿을 통해 수행할 수 있습니다.
+\begin{align>
+    &\eta_{k + 1} = \eta_{k + 1}^{T + 1}; \qquad \eta_{k + 1}^{t + 1} = \eta_{k + 1}^{t} - h \nabla_{\eta} \cL(\theta_{k}, \eta_{k + 1}^{t}), \quad \forall t \in [T]; \qquad \eta_{k + 1}^{1} = \eta_{k} \\
+    &\theta_{k + 1} = \theta_{k} + h \nabla_{\theta}\cL(\theta_{k}, \eta_{k + 1}).
+\end{align>
+즉, 우리는 \(\eta_{k}\)를 업데이트하기 위해 \(T\)단계의 경사 하강을 수행하고 (바라건대 \(\cL(\theta_{k}, \cdot)\)의 최소값으로), 그 다음 \(\theta_{k}\)를 업데이트하기 위해 경사 상승 단계를 수행합니다. 추가적으로, \(\theta_{K} \approx \argmax_{\theta}\min_{\eta}\cL(\theta, \eta)\)를 추정하는 것 외에도, 우리는 또한 \(\eta_{K} \approx \argmin_{\eta}\cL(\theta_{K}, \eta)\)를 학습합니다. 이는 근사 스태켈버그 균형입니다.
+
+이 방법은 \(\theta\)를 한 번 업데이트하는 데 총 \(T + 1\)번의 경사 하강 반복이 필요하므로 실제로 자주 사용되지 않습니다. 대신, 우리는 소위 \textit{(동시) 그래디언트 하강-상승} (GDA) 반복을 사용합니다.
+\begin{align>
+    \theta_{k + 1}
+    &= \theta_{k} + h\nabla_{\theta}\cL(\theta_{k}, \eta_{k}) \\
+    \eta_{k + 1}
+    &= \eta_{k} - Th\nabla_{\eta}\cL(\theta_{k}, \eta_{k}),
+\end{align>
+이는 \((\theta, \eta)\)에 대한 단일 경사 단계를 통해 효율적으로 구현될 수 있습니다. 여기서 중요한 아이디어는 우리의 방법을 위의 비효율적인 반복에 가깝게 만들기 위해, \(\eta\) 업데이트가 \(\theta\) 업데이트보다 \(T\)배 빠르도록 하는 것입니다 (이는 동역학의 선형화를 통해 거의 동일하게 볼 수 있습니다).
+
+\(T\)를 현명하게 선택하는 것이 중요합니다. 어떻게 할 수 있을까요? 이어서 우리는 다른 가정 하에서 GDA가 스태켈버그 균형으로 수렴하도록 하는 두 가지 \(T\) 구성을 논의합니다.
+
+\subsubsection{단일 시간 스케일 GDA의 스태켈버그 균형 수렴 (Convergence of One-Timescale GDA to Stackelberg Equilibrium)}
+
+만약 \(T = 1\) (즉, \(\theta\)와 \(\eta\) 업데이트가 동일한 스케일이므로 \textit{단일 시간 스케일}이라고 불림)이라면, GDA 알고리즘은 다음과 같습니다.
+\begin{equation>
+    \theta_{k + 1} = \theta_{k} + h\nabla_{\theta}\cL(\theta_{k}, \eta_{k}), \qquad \eta_{k + 1} = \eta_{k} - h\nabla_{\eta}\cL(\theta_{k}, \eta_{k}).
+\end{equation>
+만약 \(\cL\)이 \(\theta\)와 \(\eta\)에 대해 립시츠 그래디언트를 가지고, \(\theta\)에 대해 강하게 오목하고 \(\eta\)에 대해 강하게 볼록하며, 강제적(coercive)이라면 (즉, \(\lim_{\norm{\theta}_{2}, \norm{\eta}_{2} \to \infty}\cL(\theta, \eta) = \infty\)), 모든 새들 포인트는 스태켈버그 균형이며 그 반대도 마찬가지입니다. \cite{zamani2024convergence} 연구는 GDA (다시, \(T = 1\)인 경우)가 충분히 작은 스텝 크기 \(h\)를 사용할 때, 립시츠 그래디언트를 가진 강한 볼록 함수에 대한 경사 하강법과 유사하게, 새들 포인트(따라서 스태켈버그 균형)로 지수적으로 빠르게 수렴함을 보여줍니다 (만약 존재한다면).\footnote{우리는 스텝 크기나 지수 밑을 제공하지 않습니다. 이는 강한 볼록성/오목성/립시츠 상수의 복잡한 함수이기 때문입니다. 물론, \cite{zamani2024convergence} 논문은 정확한 매개변수 값을 제공합니다.} 우리가 아는 한, 이러한 종류의 결과는 단일 시간 스케일 GDA에 대한 유일하게 알려진 엄격한 정당화를 구성합니다.
+
+\subsubsection{이중 시간 스케일 GDA의 스태켈버그 균형 국소 수렴 (Local Convergence of Two-Timescale GDA to Stackelberg Equilibrium)}
+
+강한 볼록성/오목성은 \textit{전역} 속성이며, 이 책에서 다루는 게임 중 전역적으로 강한 오목/강한 볼록 목적 함수를 가진 것은 없습니다. 이 경우 우리가 바랄 수 있는 최선은 스태켈버그 균형에 대한 \textit{국소 수렴}입니다. 즉, 매개변수가 스태켈버그 균형에 충분히 가깝게 초기화되고 최적화 기하학이 좋으면, 적절한 스텝 크기 \(h\)와 시간 스케일 \(T\)가 주어지면 GDA는 해당 균형으로 수렴할 수 있습니다.
+
+실제로, 우리의 결과는 \cite{fiez2019convergence}에서 도입된 \textit{미분 스태켈버그 균형}이라는 \textit{국소} 스태켈버그 균형의 버전에 대해서도 유효합니다 (물론 \cite{li2022convergence}의 정확한 정의를 사용합니다). 이는 다음과 같이 정의됩니다. 점 \((\theta^{\star}, \eta^{\star})\)은 다음을 만족하면 미분 스태켈버그 균형입니다.
+\begin{itemize>
+    \item \(\nabla_{\eta}\cL(\theta^{\star}, \eta^{\star}) = \vzero\);
+    \item \(\nabla_{\eta}^{2}\cL(\theta^{\star}, \eta^{\star})\)은 대칭 양의 정부호입니다;
+    \item \(\nabla_{\theta}\cL(\theta^{\star}, \eta^{\star}) = \vzero\);
+    \item \((\nabla_{\theta}^{2}\cL + [\odv*{\nabla_{\eta}\cL}{\theta}][\nabla_{\eta}^{2}\cL]^{-1}[\odv*{\nabla_{\theta}\cL}{\eta}])(\theta^{\star}, \eta^{\star})\)은 대칭 음의 정부호입니다.
+</itemize>
+마지막 조건은 (전체) 헤세 행렬에 대해 다음을 요구합니다.
+\begin{equation>
+    \nabla^{2} \cL(\theta, \eta) = \mat{\nabla_{\theta}^{2}\cL(\theta, \eta) & \odv*{\nabla_{\theta}^{2}\cL(\theta, \eta)}{\eta} \\ \odv*{\nabla_{\eta\theta}^{2}\cL(\theta, \eta)}{\theta} & \nabla_{\eta}^{2}\cL(\theta)}
+\end{equation>
+또는 동등하게, 그 슈어 보수(Schur complement)가 음의 정부호여야 합니다. 댄스킨 정리가 제공하는 \(\nabla_{\theta}[\min_{\eta \in \Eta}\cL(\theta, \eta)]\)의 계산을 살펴보면, 마지막 두 기준은 실제로는 함수 \(\theta \mapsto \min_{\eta \in \Eta}\cL(\theta, \eta)\)의 그래디언트와 헤세 행렬에 대한 제약이며, 그래디언트가 \(0\)이고 헤세 행렬이 음의 준정부호임을 보장합니다. 이 직관은 각 스태켈버그 균형이 미분 스태켈버그 균형일 것이라고 예상할 수 있음을 알려줍니다. \cite{fiez2020implicit}는 이를 엄격하게 확인합니다 (일부 기술적 조건까지).
+
+단일 플레이어 최적화에서 엄격한 국소 최적점의 개념과 유사하게 (여기서 \(\nabla^{2}\cL(\theta^{\star})\)가 양의 준정부호여야 함), 미분 스태켈버그 균형의 정의는 \textit{\(\cL(\theta, \cdot)\)가 균형 근처에서 국소적으로 (엄격하게) 볼록하고, \(\min_{\eta \in \Eta}\cL(\cdot, \eta)\)가 동일한 영역에서 국소적으로 (엄격하게) 오목하다}는 것을 의미합니다.
+
+이러한 맥락에서 우리는 \cite{li2022convergence}의 결과를 제시합니다. \((\theta^{\star}, \eta^{\star})\)를 미분 스태켈버그 균형이라고 합시다. \(\cL\)이 립시츠 그래디언트를 가진다고 가정해 봅시다. 즉,
+\begin{equation>
+    \max\rc{\norm{\nabla_{\theta}^{2}\cL(\theta^{\star}, \eta^{\star})}_{2}, \norm*{\nabla_{\eta}^{2}\cL(\theta^{\star}, \eta^{\star})}_{2},  \norm*{\odv*{\nabla_{\theta}\cL(\theta^{\star}, \eta^{\star})}{\eta}}_{2}} \leq \beta.
+</equation>
+또한 각각 \(\cL(\theta, \cdot)\)와 \(\min_{\eta}\cL(\cdot, \eta)\)의 국소 강한 볼록성/오목성 매개변수를 다음과 같이 정의합니다.
+\begin{equation>
+    \mu_{\eta} = \lambda_{\min}(\nabla_{\eta}^{2}\cL(\theta^{\star}, \eta^{\star})), \qquad \mu_{\theta} = \min\rc{\beta, -\bp{\nabla_{\theta}^{2}\cL + \rs{\odv*{\nabla_{\eta}\cL}{\theta}}\rs{\nabla_{\eta}^{2}\cL}^{-1}\rs{\odv*{\nabla_{\theta}\cL}{\eta}}}(\theta^{\star}, \eta^{\star})).
+\end{equation>
+그런 다음 국소 조건수를 다음과 같이 정의합니다.
+\begin{equation>
+    \kappa_{\eta} = L/\mu_{\eta}, \qquad \kappa_{\theta} = L/\mu_{\theta}.
+\end{equation>
+\cite{li2022convergence} 논문은 스텝 크기 \(h = \frac{1}{4\beta T}\)를 취하고 \(T \geq 2\kappa\)를 취하면 알고리즘은 다음과 같아집니다.
+\begin{align>
+    \theta_{k + 1}
+    &= \theta_{k} + \frac{1}{4\beta T}\nabla_{\theta} \cL(\theta_{k}, \eta_{k}), \\
+    \eta_{k + 1}
+    &= \eta_{k} - \frac{1}{4\beta}\nabla_{\eta} \cL(\theta_{k}, \eta_{k}),
+\end{align>
+전체 헤세 행렬 \(\nabla^{2}\cL(\theta^{\star}, \eta^{\star})\)은 대각화 가능하고, \((\theta_{0}, \eta_{0})\)를 \((\theta^{\star}, \eta^{\star})\)에 충분히 가깝게 초기화하면 양의 상수 \(c_{0}, c_{1} > 0\)이 존재하여
+\begin{equation>
+    \norm{(\theta_{k}, \eta_{k}) - (\theta^{\star}, \eta^{\star})}_{2} \leq c_{0}\bp{1 - \frac{c_{1}}{T\kappa_{\theta}}}^{k}\norm{(\theta_{0}, \eta_{0}) - (\theta^{\star}, \eta^{\star})}_{2},
+\end{equation>
+미분 스태켈버그 균형으로 지수적 수렴을 의미합니다.
+
+\subsection{스태켈버그 균형 학습 시 실제 고려 사항 (Practical Considerations when Learning Stackelberg Equilibria)}
+
+실제로 우리는 매개변수를 (미분) 스태켈버그 균형에 가깝게 초기화하는 방법을 모릅니다. 훈련되는 신경망의 과도한 매개변수화로 인해 발생하는 대칭성을 포함하여 목적 함수 내의 대칭성으로 인해, 대부분의 초기화가 스태켈버그 균형에 가깝다고 (경험적으로) 예상할 수 있습니다. 또한 스텝 크기 \(h\) 또는 시간 스케일 \(T\)를 계산하는 방법을 모릅니다. 이는 균형에서의 손실 \(\cL\)의 속성에 따라 달라지기 때문입니다. 실제로는 몇 가지 일반적인 접근 방식이 있습니다.
+\begin{itemize>
+    \item \(T = 1\) (동일한 스텝 크기)을 취하고, 바닐라 GD와 달리 Adam과 같은 학습률 적응형 최적화기에서 파생된 \(\theta\) 및 \(\eta\) 업데이트를 사용합니다. 여기서 최적화기가 좋은 균형을 학습하기 위해 학습률을 조정할 수 있기를 \textit{바라지만} (\textit{알고 있지는 않습니다}).
+    \item \(T\)를 \(T = 10^{6}\)과 같은 상수로 취하면 \(\eta\)가 \(\theta\)보다 \(10^{6}\)배 빠르게 평형을 이룹니다. 여기서도 Adam 스타일 업데이트를 사용할 수 있으며, 시간 스케일을 고정하기를 바랍니다.
+    \item Let \(T\) depend on the iteration \(k\), and let \(T_{k} \to \infty\) as \(k \to \infty\). This schedule was studied (also in the case of noise) by Borkar in \cite{borkar1997stochastic}.
+</itemize>
+예를 들어, 인코더가 플레이어 1이고 디코더가 플레이어 2인 CTRL 스타일 모델을 훈련할 때 이를 사용할 수 있습니다 (\Cref{ch:closed-loop} 참조). CTRL에 대한 일부 이론은 \Cref{thm:ctrl_theory}에 제시되어 있습니다.
+
+\section{연습 문제 (Exercises)}
+
+\begin{exercise>
+    우리는 매끄러운 함수 \(f\)에 대해 강하게 볼록하면 경사 하강법이 전역 최적점으로 선형적으로 수렴함을 보여주었습니다. 그러나 일반적으로 비볼록 최적화에서는 볼록성, 심지어 강한 볼록성도 없습니다. 다행히도 어떤 경우에는 \(f\)가 소위 \(\mu\)-Polyak-Lojasiewicz (PL) 부등식을 만족합니다. 즉, 모든 \(\theta\)에 대해 양의 상수 \(\mu > 0\)가 존재하여,
+    \begin{align*>
+        \frac{1}{2}\|\nabla f(\theta)\|_2^2 \ge \mu\left( f(\theta) - f(\theta^\star) \right),
+    \end{align*>
+    여기서 \(\theta^*\)는 \(f\)의 최소값입니다.
+    
+    PL 부등식과 \(f\)가 \(\beta\)-매끄럽다는 가정 하에, 경사 하강법 \eqref{eq:GD}이 \(\theta^*\)로 선형적으로 수렴함을 보이십시오.
+\end{exercise>
+
+\begin{exercise>
+    다음과 같이 정의된 소프트맥스 함수에 대한 미분과 수반 도함수를 계산하십시오.
+    \begin{equation>
+        \softmax\rp{\mat{x_{1} \\ \vdots \\ x_{n}}} = \frac{1}{\sum_{i = 1}^{n}e^{x_{i}}}\mat{x_{1} \\ \vdots \\ x_{n}}.
+    \end{equation>
+</exercise>
+
+<exercise>
+    \Cref{sub:contrastive_learning_architecture}에 정의된 \(L\)-계층 MLP에 대한 역전파 계산을 수행하십시오.
+</exercise>
+
+<exercise>
+    \Cref{sub:contrastive_learning_architecture}에 정의된 \(L\)-계층 트랜스포머에 대한 역전파 계산을 수행하십시오.
+</exercise>
+
+<exercise>
+    \(L\)개의 인코더 계층과 \(L\)개의 디코더 계층을 가진 (아키텍처를 반드시 지정할 필요는 없음) 오토인코더에 대한 역전파 계산을 수행하십시오.
+</exercise>
 
 \end{document}
+

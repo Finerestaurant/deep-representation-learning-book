@@ -1,10 +1,1139 @@
-\providecommand{\toplevelprefix}{../..}
-\documentclass[../../book-main_ko.tex]{subfiles}
+\providecommand{\toplevelprefix}{../..}  % 
+\documentclass[../../book-main.tex]{subfiles}
 
 \begin{document}
 
-\chapter{엔트로피}
+\chapter{엔트로피, 확산, 잡음 제거 및 손실 압축}\label{app:entropy}\label{app:diffusion-denoising}
 
-% 한국어 번역 예정
+\begin{quote}
+``{\em 시간과 함께 무질서 또는 엔트로피가 증가하는 것은 시간의 화살이라고 불리는 것의 한 예시이며, 이는 과거와 미래를 구별하여 시간에 방향을 부여합니다.}''
+
+$~$\hfill -- 시간의 역사, 스티븐 호킹
+ \end{quote}
+\vspace{5mm}
+
+이 부록에서는 \Cref{ch:general-distribution}에서 언급된 미분 엔트로피, 확산 프로세스 하에서의 변화, 그리고 손실 압축과의 연관성에 대한 몇 가지 사실에 대한 증명을 제공합니다. 우리는 데이터 소스를 나타내는 확률 변수 \(\vx\)에 대해 다음의 완화된 가정을 할 것입니다.
+
+\begin{assumption}\label{assumption:entropy_x_compact_support}
+    \(\vx\)는 반경이 최대 \(R\)인 콤팩트 집합 \(\cS \subseteq \R^{D}\) 상에서 지지됩니다. 즉, \(R \doteq \sup_{\vxi \in \cS}\norm{\vxi}_{2}\).
+\end{assumption}
+
+특히, 유클리드 공간의 콤팩트 집합은 유계이므로 \(R < \infty\)가 성립합니다. 우리는 일관되게 \(B_{r}(\vxi) \doteq \{\vu \in \R^{D} \colon \norm{\vxi - \vu}_{2} \leq r\}\)를 사용하여 \(\vxi\)를 중심으로 하는 반경 \(r\)의 유클리드 볼을 나타낼 것입니다. 이러한 의미에서 \Cref{assumption:entropy_x_compact_support}는 \(\cS \subseteq B_{R}(\vzero)\)를 가집니다.
+
+이 가정은 실제 우리가 다루는 (거의) 모든 변수에 대해 성립하며, 데이터 전처리 과정에서 정규화 단계를 통해 (자주) 부과됩니다. 
+
+\section{저차원 분포의 미분 엔트로피}\label{sec:low_dim_entropy}
+
+이 짧은 부록에서는 저차원 분포의 미분 엔트로피에 대해 논의합니다. 정의상 밀도를 갖지 않는 확률 변수 \(\vx\)의 미분 엔트로피는 \(-\infty\)입니다. 여기에는 저차원 집합 상에 지지되는 모든 확률 변수가 포함됩니다. 이 섹션의 목표는 이것이 왜 "도덕적으로 올바른" 값인지 논의하는 것입니다.
+
+사실, \Cref{assumption:entropy_x_compact_support}가 성립하고 \(\vx\)의 지지 집합 \(\cS\)가 부피가 \(0\)인 확률 변수 \(\vx\)를 고려해봅시다.\(\footnote{\text{정식으로는 } \\cS \text{가 보렐 측도를 갖는 보렐 가측 집합임을 의미합니다.}})\) 우리는 \(\vx\)가 \(\cS\) 상에서 균일하게 분포하는 경우를 고려할 것입니다.\(\footnote{\text{예를 들어, } \\cS \text{ 상의 하우스도르프 측도에 대해.}})\) 우리의 목표는 \(h(\vx)\)를 계산하는 것입니다.
+
+이 경우 \(\vx\)는 밀도를 갖지 않을 것입니다. 우리가 \(h(\vx) = -\infty\)임을 알지 못하는 반사실적 세계에서는 미분 엔트로피의 표준 정의를 사용하여 직접 정의할 수 없을 것입니다. 대신, 다른 분석 및 정보 이론에서와 같이 밀도를 갖는 \(\vx\)의 점진적으로 더 나은 근사 \(\vx_{\eps}\)의 엔트로피의 극한을 고려하는 것이 합리적일 것입니다. 즉,
+\begin{equation}
+    h(\vx)\ \text{\"=''}\ \lim_{\eps \searrow 0}h(\vx_{\eps}).
+\end{equation}
+이를 위해 기본적인 아이디어는 \(\cS\)의 \(\eps\)-확장(thickening), 즉 다음과 같이 정의되는 \(\cS_{\eps}\)를 취하는 것입니다.
+\begin{equation}
+    S_{\eps} = \bigcup_{\vxi \in \cS}B_{\eps}(\vxi)
+\end{equation}
+이는 \Cref{fig:entropy_eps_thickening}에서 시각화됩니다.
+\begin{figure}[th]
+    \centering
+    \begin{tikzpicture}
+        \def\radius{0.2cm} % 
+        \def\curve{(0,0) .. controls (1,1.5) and (3,-0.5) .. (4,1)} % 
+
+        \path[decoration={markings, mark=between positions 0 and 1 step 0.02 with {
+                \fill[red!30, opacity=0.5, draw=none] (0,0) circle (\radius);
+            }}, postaction={decorate}] \curve;
+
+        \draw[blue, thick] \curve node[right, blue] {$\cS$};
+
+        \coordinate (p_on_curve) at (2, 0.5); % 
+        \fill[red!50, opacity=0.7] (p_on_curve) circle (\radius);
+        \fill[black] (p_on_curve) circle (1pt) node[below left] {$x$};
+
+            \node[red, below right] at (3.5, -0.2) {$\cS_{\eps} = \bigcup_{\vxi \in S} B_{\eps}(\vxi)$};
+
+    \end{tikzpicture}
+    \caption{\(\R^{2}\)에 있는 곡선 \(\cS\)의 \(\eps\)-확장 \(\cS_\eps\) 그림.}
+    \label{fig:entropy_eps_thickening}
+\end{figure}
+우리는 지지 집합이 완전 차원인 \(\cS_{\eps}\)인 확률 변수를 다룰 것이며, \(\eps \to 0\)일 때의 극한을 취할 것입니다. 실제로, \(\vx_{\eps} \sim \dUnif(\cS_{\eps})\)로 정의합니다. \(\cS_{\eps}\)는 양의 부피를 가지므로, \(\vx_{\eps}\)는 다음과 같은 밀도 \(p_{\eps}\)를 가집니다.
+\begin{equation}
+    p_{\eps}(\vxi) = \indvar(\vxi \in \cS_{\eps}) \cdot \frac{1}{\volume(\cS_{\eps})}.
+\end{equation}
+\(0 \log 0 = 0\)이라는 관례를 사용하여 \(\vx_{\eps}\)의 엔트로피를 계산하면 다음과 같습니다.
+\begin{align}
+    h(\vx_{\eps}) 
+    &= -\int_{\R^{D}}p_{\eps}(x)\log p_{\eps}(x)\odif{x} \ 
+    &= -\int_{\cS_{\eps}}\frac{1}{\volume(\cS_{\eps})} \log\rp{\frac{1}{\volume(\cS_{\eps})}}\odif{\vxi} \ 
+    &= \frac{\log(\volume(\cS_{\eps}))}{\volume(\cS_{\eps})}\int_{\cS_{\eps}}\odif{\vxi} \ 
+    &= \log(\volume(\cS_{\eps})).
+\end{align}
+\(\cS\)가 콤팩트이므로 \(\volume(\cS_{\eps})\)는 유한하며 \(\eps \searrow 0\)일 때 \(0\)으로 수렴합니다. 따라서
+\begin{equation}
+    h(\vx) = \lim_{\eps \searrow 0}h(\vx_{\eps}) = \lim_{\eps \searrow 0}\log(\volume(\cS_{\eps}))\ = -\infty,
+\end{equation}
+원하는 대로입니다.
+
+위의 계산은 사실 \(\vx\)의 분포에 대한 특정 제약 조건 하에서 \(\vx\)의 최대 가능 엔트로피에 대한 훨씬 더 유명하고 잘 알려진 결과의 한 귀결입니다. 여기에 결과를 제공하지 않는 것은 소홀한 일일 것입니다. 예를 들어, 증명은 \cite{poliyanski2024information}의 2장에서 제공됩니다.
+\begin{theorem}\label{thm:max_entropy}
+    \(\vx\)가 \(\R^{D}\) 상의 확률 변수라고 합시다.
+    \begin{enumerate}
+        \item \(\vx\)가 콤팩트 집합 \(\cS \subseteq \R^{D}\) 상에서 지지되면 (즉, \Cref{assumption:entropy_x_compact_support}),
+        \begin{equation}
+            h(\vx) \leq h(\dUnif(\cS)) = \log \volume(\cS).
+        \end{equation}
+        \item \(\vx\)가 PSD 행렬 \(\vSigma \in \PSD(D)\)에 대해 \(\Cov(\vx) \preceq \vSigma\) (PSD 순서에 대해, 즉 \(\vSigma - \Cov(\vx)\)는 PSD)를 만족하는 유한한 공분산을 가지면,
+        \begin{equation}
+            h(\vx) \leq h(\dNorm(\vzero, \vSigma)) = \frac{1}{2}\log((2\pi e)^{D}\det\vSigma).
+        \end{equation}
+        \item \(\vx\)가 상수 \(a \geq 0\)에 대해 \(\Ex\norm{\vx}_{2}^{2} \leq a\)를 만족하는 유한한 2차 모멘트를 가지면,
+        \begin{equation}
+            h(\vx) \leq h\rp{\dNorm\rp{\vzero, \frac{a}{D}\vI}} = \frac{D}{2}\log\frac{2\pi e a}{D}.
+        \end{equation}
+    \end{enumerate}
+\end{theorem}
+
+
+\section{확산 및 잡음 제거 프로세스}\label{sec:entropy_diffusion}
+
+본문(\Cref{ch:general-distribution})에서 우리는 확률 변수 \(\vx\)와 \(\eqref{eq:app_additive_gaussian_noise_model}\)에 의해 정의된 확률 과정, 즉 다음을 고려했습니다.
+\begin{equation}\label{eq:app_additive_gaussian_noise_model}
+    \vx_{t} = \vx + t\vg, \qquad  \forall t \in [0, T]
+\end{equation}
+여기서 \(\vg \sim \dNorm(\vzero, \vI)\)는 \(\vx\)와 독립입니다. 
+
+이 섹션의 구성은 다음과 같습니다. \Cref{sub:diffusion_entropy_increases}에서는 \Cref{eq:app_additive_gaussian_noise_model} 하에서 엔트로피가 증가함, 즉 \(\odv*{h(\vx_{t})}{t} > 0\)임을 보여주는 공식적인 정리와 명확한 증명을 제공합니다. \Cref{sub:denoising_entropy_decreases}에서는 \Cref{eq:app_additive_gaussian_noise_model} 하에서 잡음 제거 과정에서 엔트로피가 감소함, 즉 모든 \(s < t\)에 대해 \(h(\Ex[\vx_{s} \given \vx_{t}]) < h(\vx_{t})\)임을 보여주는 공식적인 정리와 명확한 증명을 제공합니다. \Cref{sub:app_diffusion_intermediate_results}에서는 이전 하위 섹션의 주장을 확립하는 데 필요한 기술적 보조정리에 대한 증명을 제공합니다.
+
+시작하기 전에 몇 가지 주요 표기법을 소개합니다. 먼저, \(\phi_{t}\)를 \(\dNorm(\vzero, t^{2}\vI)\)의 밀도라고 합시다. 즉,
+\begin{equation}\label{eq:gaussian_noise_time_t}
+    \phi_{t}(\vxi) \doteq \frac{1}{(2\pi)^{D/2}t^{D}}\exp\rp{-\frac{\norm{\vxi}_{2}^{2}}{2t^{2}}}.
+\end{equation}
+다음으로, \(\vx_{t}\)는 \(\R^{D}\) 전체에 지지되므로 (본문에서와 같이) \(p_{t}\)로 표시되는 \( \textit{밀도}\)를 가집니다. 간단한 계산은 다음을 보여줍니다.
+\begin{equation}\label{eq:p_t_representation}
+    p_{t}(\vxi) = \Ex[\phi_{t}(\vxi - \vx)],
+\end{equation}
+그리고 이 표현으로부터 (즉, \Cref{prop:diff_convolution}으로부터) \(p_{t}\)가 \(\vxi\)에 대해 매끄럽고 (즉, 무한히 미분 가능하고) \(t\)에 대해서도 매끄러우며 모든 곳에서 양수임을 추론할 수 있습니다. 이 사실은 처음에는 다소 놀랍습니다. 완전히 불규칙한 확률 변수 \(\vx\) (예를 들어, 밀도를 갖지 않는 베르누이 확률 변수)에 대해서도 그 가우스 평활화는 모든 (임의로 작은) \(t > 0\)에 대해 밀도를 허용합니다. 증명은 수학적 분석에 능숙한 독자를 위한 연습 문제로 남겨둡니다.
+
+그러나 우리는 또한 \(\vx\)의 분포의 \( \textit{평활성}\)에 대한 가정을 추가해야 합니다. 이는 저차원 분포와 함께 \(t = 0\) 주변에서 발생하는 일부 기술적 문제를 제거할 것입니다.\(\footnote{\text{이 경우 다양한 양이 매우 불규칙해지고 이를 다루려면 상당한 추가 분석이 필요할 것입니다.}})\) 그럼에도 불구하고, 우리는 우리의 결과가 추가 작업을 통해 더 완화된 가정 하에서도 유효할 것이라고 예상합니다. 지금은 다음을 가정합시다.
+\begin{assumption}\label{assumption:entropy_x_density}
+    \(\vx\)는 \(p\)로 표시되는 두 번 연속 미분 가능한 밀도를 가집니다.
+\end{assumption}>
+\subsection{확산 과정은 시간이 지남에 따라 엔트로피를 증가시킨다}\label{sub:diffusion_entropy_increases}
+
+이 섹션 부록에서는 \Cref{thm:diffusion_entropy_increases}의 증명을 제공합니다. 편의상 이를 다음과 같이 다시 진술합니다. 
+
+\begin{theorem}[확산은 엔트로피를 증가시킨다]\label{thm:diffusion_entropy_increases}
+    \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수 \(\vx\)와 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)인 \((\vx_{t})_{t \in [0, T]}\)가 있다고 하자. 그러면 
+    \begin{equation}\label{eq:diffusion_entropy_increases}
+        h(\vx_{s}) < h(\vx_{t}), \qquad \forall s, t \colon 0 \leq s < t \leq T.
+    \end{equation}
+\end{theorem}
+\begin{proof}
+    시작하기 전에 질문해야 합니다. \(\eqref{eq:diffusion_entropy_increases}\)의 부등식은 언제 의미가 있을까요? 우리는 \Cref{lem:diffusion_entropy_exists}에서 우리의 가정 하에 미분 엔트로피가 잘 정의되고, 결코 \(+\infty\)가 아니며, \(t > 0\)에 대해 유한함을 보여줄 것이므로, \(\eqref{eq:diffusion_entropy_increases}\)의 (엄격한) 부등식은 의미가 있습니다.
+
+    잘 정의 문제와는 별도로, 이 증명의 핵심은 \(\vx_{t}\)의 밀도 \(p_{t}\)가 \textit{열 방정식}과 매우 유사한 특정 편미분 방정식을 만족함을 보여주는 것입니다. 열 방정식은 공간을 통한 열의 확산을 설명하는 유명한 PDE입니다. 이것은 직관적으로 이해되어야 하며, 정신적 그림을 그립니다. 시간 \(t\)가 증가함에 따라 원래 (아마도 밀집된) \(\vx\)의 확률은 진공 상태에서 열이 방출되는 것처럼 \(\R^{D}\) 전체로 분산됩니다. 
+    
+    이러한 \(p_{t}\)에 대한 PDE, 즉 더 일반적인 확률 과정에 대한 \textit{포커-플랑크 방정식}은 매우 강력한 도구입니다. 왜냐하면 이는 \(p_{t}\)의 순간적인 시간 미분을 \(p_{t}\)의 순간적인 공간 미분으로 설명할 수 있게 해주며, 그 반대도 가능하여 \(p_{t}\)의 규칙성과 역학에 대한 간결한 설명을 제공하기 때문입니다. 일단 \(p_{t}\)에 대한 역학을 얻으면, 시스템을 사용하여 \(h(\vx_{t})\)의 역학을 설명하는 또 다른 시스템을 얻을 수 있습니다. 결국 \(h(\vx_{t})\)는 \(p_{t}\)의 함수일 뿐입니다.  
+
+    PDE의 설명은 라플라시안 \(\Delta\)라고 불리는 수학적 객체를 포함합니다. 다변수 미적분학 수업에서 시간 미분 가능하고 공간적으로 두 번 미분 가능한 함수 \(f \colon (0, T) \times \R^{D} \to \R\)에 작용하는 라플라시안은 다음과 같이 주어진다는 것을 기억하십시오.
+    \begin{equation}
+        \Delta f_{t}(\vxi) = \tr(\nabla^{2}f_{t}(\vxi)) = \sum_{i = 1}^{D}\pddv{f_{t}}{\xi_{i}}(\vxi).
+    \end{equation}
+    
+    즉, \(p_{t}\)의 적분 표현을 사용하고 적분 하에서 미분함으로써 \(p_{t}\)의 미분을 계산하고 (\Cref{prop:p_t_derivatives}에서 수행함) \(p_{t}\)가 열 유사 PDE를 만족함을 관찰할 수 있습니다.
+    \begin{equation}
+        \pdv{p_{t}}{t}(\vxi) = t\Delta p_{t}(\vxi).
+    \end{equation}\
+    그런 다음 \(h(\vx_{t})\)의 역학을 찾기 위해 \Cref{prop:dutis}와 열 유사 PDE를 다시 사용하여 다음을 얻을 수 있습니다.
+    \begin{align}
+        \odv*{h(\vx_{t})}{t}
+        &= -\odv*{\int_{\R^{D}}p_{t}(\vxi)\log p_{t}(\vxi)\odif{\vxi}}{t} \ 
+        &= -\int_{\R^{D}}\pdv*{\bs{p_{t}(\vxi)\log p_{t}(\vxi)}}{t}\odif{\vxi} \ 
+        &= -\int_{\R^{D}}\pdv{p_{t}}{t}(\vxi)[1 + \log p_{t}(\vxi)]\odif{\vxi} \ 
+        &= -t\int_{\R^{D}}\Delta p_{t}(\vxi)[1 + \log p_{t}(\vxi)]\odif{\vxi}.
+    \end{align}
+    약간 복잡한 부분 적분 논증 (\Cref{lem:diffusion_ibp})을 사용하여 다음을 얻습니다. 
+    \begin{align}
+        \odv*{h(\vx_{t})}{t}
+        &= t\int_{\R^{D}}\ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}\odif{\vxi} \ 
+        &= t\int_{\R^{D}}\frac{\norm{\nabla p_{t}(\vxi)}_{2}^{2}}{p_{t}(\vxi)}\odif{\vxi} \ 
+        &> 0
+    \end{align}
+    여기서 엄격한 부등식은 마지막 줄에서 성립합니다. 왜냐하면 이것이 성립하지 않으려면 \(\nabla p_{t}(\vxi)\)가 거의 모든 곳에서 (즉, 부피가 0인 집합을 제외한 모든 곳에서) 사라져야 하지만, 이는 \(p_{t}\)가 거의 모든 곳에서 상수임을 의미할 것이고, 이는 \(p_{t}\)가 밀도라는 사실과 모순되기 때문입니다.
+
+    증명을 완료하기 위해 미적분학의 기본 정리를 사용합니다.
+    \begin{equation}
+        h(\vx_{t}) = h(\vx_{s}) + \int_{s}^{t}\odv*{h(\vx_{u})}{u}\odif{u} > h(\vx_{s}),
+    \end{equation}
+    이는 주장을 증명합니다. (이것은 \(h(\vx_{s}) = -\infty\)일 때 의미가 없으며, 이는 \(s = 0\)이고 \(h(\vx) = -\infty\)일 때만 발생할 수 있지만, 이 경우 \(h(\vx_{t}) > -\infty\)이므로 이 주장은 어쨌든 자명하게 참입니다.)
+\end{proof}
+
+
+\subsection{잡음 제거 과정은 시간이 지남에 따라 엔트로피를 감소시킨다}\label{sub:denoising_entropy_decreases}
+
+\Cref{sub:intro_diffusion_denoising}에서 우리는 확률 변수 \(\vx_{T}\)에서 시작하여 다음과 같은 형태의 반복을 사용하여 점진적으로 잡음을 제거합니다.
+\begin{equation}\label{eq:app_denoising_iteration}
+    \hat{\vx}_{s} \doteq \Ex[\vx_{s} \mid \vx_{t} = \hat{\vx}_{t}] = \frac{s}{t}\hat{\vx}_{t} + \bp{1 - \frac{s}{t}}\bar{\vx}^{\ast}(t, \hat{\vx}_{t}).
+\end{equation}
+\(s, t \in \{t_{0}, t_{1}, \dots, t_{L}\}\)이고 \(s < t\)이며 \(\vx_{T} = \hat{\vx}_{T}\)일 때, 우리는 \(h(\hat{\vx}_{s}) < h(\hat{\vx}_{t})\)임을 증명하여 잡음 제거 과정이 실제로 엔트로피를 감소시킨다는 것을 보여주고자 합니다.
+
+이를 수행하기 전에 문제 진술에 대한 몇 가지 언급을 하겠습니다. 먼저, 트위디의 공식 \(\eqref{eq:tweedie}\)은 다음을 말합니다.
+\begin{equation}
+    \bar{\vx}^{\ast}(t, \vx_{t}) = \vx_{t} + t^{2}\nabla p_{t}(\vx_{t}),
+\end{equation}
+이는 시간 \(t\)에서 시간 \(0\)으로의 완전한 잡음 제거 단계를 \(\vx_{t}\)의 로그 밀도에 대한 그래디언트 단계와 유사하게 만듭니다. \(\eqref{eq:app_denoising_iteration}\)에서 시간 \(t\)에서 시간 \(s\)로의 완전한 잡음 제거 단계에 대해 유사한 결과를 얻을 수 있을까요? 실제로 가능하며 매우 간단합니다. \(\eqref{eq:app_denoising_iteration}\)과 트위디의 공식 \(\eqref{eq:tweedie}\)을 사용하면 다음을 얻습니다.
+\begin{equation}\label{eq:app_denoising_iteration_score}
+    \Ex[\vx_{s} \mid \vx_{t}] = \frac{s}{t}\vx_{t} + \bp{1 - \frac{s}{t}}\bp{\vx_{t} + t^{2}\nabla_{\vx_{t}}\log p_{t}(\vx_{t})} = \vx_{t} + \bp{1 - \frac{s}{t}}t^{2}\nabla_{\vx_{t}}\log p_{t}(\vx_{t}).
+\end{equation}
+따라서 이 반복적인 잡음 제거 단계는 축소된 스텝 크기를 가진 교란된 로그 밀도 \(\log p_{t}\)에 대한 그래디언트 단계입니다. 특히, 이 단계는 \textit{스코어 함수 벡터 필드}에 의한 확률 변수 \(\vx_{t}\) 분포의 교란으로 볼 수 있으며, 이는 확률 미분 방정식 (SDE) 및 확산 모델 이론 \cite{song2020score}과의 연결을 시사합니다. 실제로, 다음 결과 \Cref{thm:conditioning_reduces_entropy}의 증명은 이 강력한 메커니즘과 극한 논증 (예를 들어, \cite{DBLP:conf/iclr/ChenC0LSZ23}의 설명에서 기술적 접근 방식 따르기)을 사용하여 개발될 수 있습니다. 우리는 여기에서 더 간단한 증명을 제공할 것이며, 이는 기본적인 도구만을 사용하여 잡음 제거를 통한 엔트로피 감소 과정 뒤에 있는 몇 가지 핵심 양을 밝힐 것입니다. 반면에, \Cref{thm:conditioning_reduces_entropy}의 잡음 제거 과정이 관측 \(\vx_{t}\)를 생성하는 노이즈 추가 과정과 관련된 \textit{역} 과정과 정확히 일치하지 않는다는 사실 때문에 약간의 기술적인 계산을 다룰 필요가 있습니다.\(\footnote{\text{확산 모델에 익숙한 사람들을 위해, 우리는 여기서 역 시간 순방향 과정이 } \Cref{thm:conditioning_reduces_entropy} \text{에 의해 정의된 과정에 의해 생성된 반복 시퀀스와 일치하지 않는다고 언급합니다. 이러한 과정은 } \Cref{thm:conditioning_reduces_entropy} \text{의 무한히 많은 단계가 무한히 작은 수준의 노이즈가 각 단계에 추가될 때 특정 극한에서 일치합니다. 일반적인 유한 단계의 경우, 우리는 도구의 정교함 수준에 관계없이 일부 근사를 도입해야 합니다.}})\)
+
+우리는 \(h(\Ex[\vx_{s} \mid \vx_{t}]) < h(\vx_{t})\)임을 증명하고자 합니다. 즉, 공식적으로:
+\begin{theorem}\label{thm:conditioning_reduces_entropy}
+    \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수 \(\vx\)와 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)인 \((\vx_{t})_{t \in [0, T]}\)가 있다고 하자. 그러면 
+    \begin{equation}
+        h(\Ex[\vx_{s} \mid \vx_{t}]) < h(\vx_{t}), \qquad \forall s, t \in [0, T] \colon \quad 0 < t \leq \frac{R}{\sqrt{2D}}, \quad 0 \leq s  < t\cdot\min\bc{1, \frac{R^{2}/D - 2t^{2}}{R^{2}/D - t^{2}}}.
+    \end{equation}
+\end{theorem}
+\begin{proof}
+    이 증명은 두 가지 주요 아이디어를 사용합니다.
+    \begin{enumerate}
+        \item 첫째, 변수 변경 공식을 사용하여 \(\Ex[\vx_{s} \mid \vx_{t}]\)에 대한 밀도를 작성합니다.
+        \item 둘째, 이 밀도를 제한하여 엔트로피를 제어합니다.
+    \end{enumerate}
+    변수 변경은 원래 \cite{Gribonval2011-pf}에서 파생된 \Cref{cor:gribonval_A2}에 의해 정당화됩니다.
+
+    이제 이러한 아이디어를 실행합니다. \Cref{cor:gribonval_A2}로부터, \(\bar{\vx}(\vxi) \doteq \Ex[\vx_{s} \given \vx_{t} = \vxi]\)로 정의된 함수 \(\bar{\vx}\)가 미분 가능하고 단사적이므로 그 범위 \(\cX \subseteq \R^{D}\) 상에서 가역적임을 얻습니다. 우리는 그 역함수를 \(\bar{\vx}^{-1}\)로 표시합니다. 변수 변경 공식을 사용하여 \(\bar{\vx}(\vx_{t})\)의 밀도 \(\bar{p}\)는 다음과 같이 주어집니다. 
+    \begin{equation}
+        \bar{p}(\vxi) \doteq \frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}, 
+    \end{equation}\
+    여기서 (기억하십시오, \Cref{sec:autodiff}로부터) \(\bar{\vx}^{\prime}\)는 \(\bar{\vx}\)의 야코비 행렬입니다. \Cref{lem:gribonval_A1}로부터 \(\bar{\vx}^{\prime}\)가 양의 정부호 행렬임을 알고 있으므로, 행렬식은 양수이고 따라서 전체 밀도는 양수입니다. 그러면 다음이 성립합니다. 
+    \begin{align}
+        h(\bar{\vx}(\vx_{t}))
+        &= -\int_{\cX}\frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))} \log \frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))} \odif{\vxi} \ 
+        &= -\int_{\cX}\frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))} \log((p_{t} \circ \bar{\vx}^{-1})(\vxi))\odif{\vxi} \ 
+        &\qquad + \int_{\cX}\frac{(p_{t} \circ
+        \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}\log\det\rp{\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi))}\odif{\vxi} \ 
+        &= -\int_{\R^{D}}p_{t}(\vxi)\log p_{t}(\vxi)\odif{\vxi}
+        + \int_{\cX}\frac{(p_{t} \circ
+        \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}\log\det\rp{\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi))}\odif{\vxi} \ 
+        &= h(\vx_{t}) - \int_{\cX}\frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}\log\rp{\frac{1}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}}\odif{\vxi}. 
+    \end{align}
+마지막 항(부호 \(-\) 포함)을 연구하고, 이 항이 음수임을 보일 것입니다.
+
+오목성에 의해, 모든 \(x \geq 0\)에 대해 \(-x\log x \leq 1 - x\)가 성립합니다. 따라서 
+    \begin{align}
+        h(\bar{\vx}(\vx_{t})) - h(\vx_{t})
+        &= - \int_{\cX}\frac{(p_{t} \circ \bar{\vx}^{-1})(\vxi)}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}\log\rp{\frac{1}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}}\
+odif{\vxi} \ 
+        &\leq  \int_{\cX}(p_{t} \circ \bar{\vx}^{-1})(\vxi)\cdot \bp{1 - \frac{1}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}}\
+odif{\vxi} \ 
+        &= \int_{\cX}(p_{t} \circ \bar{\vx}^{-1})(\vxi)\odif{\vxi} - \int_{\cX}\frac{(p_{t} \circ \bar{\vx}^{-1}(\vxi))}{\det(\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi)))}\odif{\vxi} \ 
+        &= \int_{\R^{D}}p_{t}(\vxi)\det\rp{\bar{\vx}^{\prime}(\bar{\vx}^{-1}(\vxi))}\odif{\vxi} - 1.
+    \end{align}
+    이제 고유값에 대한 산술-기하 평균 부등식에 의해, 대칭 양의 정부호 행렬 \(\vM \in \PSD(D)\)에 대해 다음의 상한이 성립합니다. 
+    \begin{equation}
+        \det(\vM)^{1/D} = \prod_{i = 1}^{D}\lambda_{i}(\vM)^{1/D} \leq \frac{\sum_{i = 1}^{D}\lambda_{i}(\vM)}{D} = \frac{\tr(\vM)}{D},
+    \end{equation}
+    이를 위의 표현에 적용하면 다음을 얻습니다. 
+    \begin{align}
+        &\int_{\R^{D}}p_{t}(\vxi)\det\rp{\vI + \bp{1 - \frac{s}{t}}t^{2}\nabla^{2}\log p_{t}(\vxi)}\odif{\vxi} \ 
+        &\leq \int_{\R^{D}} p_{t}(\vxi) \tr\rp{\frac{1}{D}\bs{\vI + \bp{1 - \frac{s}{t}}t^{2}\nabla^{2}\log p_{t}(\vxi)}}^{D}\odif{\vxi} \ 
+        &= \int_{\R^{D}} p_{t}(\vxi)\bp{1 + \frac{\bp{1 - \frac{s}{t}}t^{2}}{D}\tr(\nabla^{2}\log p_{t}(\vxi))}^{D}\odif{\vxi} \ 
+        &= \int_{\R^{D}} p_{t}(\vxi)\bp{1 + \frac{\bp{1 - \frac{s}{t}}t^{2}}{D}\Delta \log p_{t}(\vxi)}^{D}\odif{\vxi}.
+    \end{align}
+    \Cref{lem:app_diffusion_laplacian_control}로부터 다음이 성립합니다 (여기서 \(R\)은 \Cref{assumption:entropy_x_compact_support}에서와 같이 \(\vx\)의 지지 반경입니다).
+    \begin{equation}
+        \abs{\Delta \log p_{t}(\vxi)} \leq \max\rp{\frac{D}{t^{2}}, \abs*{\frac{R^{2}}{t^{4}} - \frac{D}{t^{2}}}} =: U_{t}.
+    \end{equation}
+    그러면 다음이 성립합니다.
+    \begin{equation}
+        -\frac{\bp{1 - \frac{s}{t}}t^{2}}{D}U_{t} \leq \frac{\bp{1 - \frac{s}{t}}t^{2}}{D}\Delta \log p_{t}(\vxi) \leq \frac{\bp{1 - \frac{s}{t}}t^{2}}{D}U_{t}.
+    \end{equation}
+    한편, 함수 \(x \mapsto (1 + x)^{D}\)는 \([-1, \infty)\)에서 볼록이므로
+    \(-(1-s/t)t^{2}U_{t}/D \leq x \leq (1-s/t)t^{2}U_{t}/D\)에 대해 다음이 성립합니다. 
+    \begin{align}
+        (1 + x)^{d} 
+        &\leq \bp{1 - \frac{\bp{1 - \frac{s}{t}}t^{2}U_{t}}{D}}^{D} + \underbrace{\bs{\bp{1 + \frac{\bp{1 - \frac{s}{t}}t^{2}U_{t}}{D}}^{D} - \bp{1 - \frac{\bp{1 - \frac{s}{t}}t^{2}U_{t}}{D}}^{D}}}_{M(s, t, D)}x \ 
+        &\leq 1 + M(s, t, D)x.
+    \end{align}
+    여기서 \(U_{t} > 0\)이므로 \(M(s, t, D) > 0\)입니다. 위의 경계에서 \(x\)의 하한이 \(\geq -1\)임을 확인해야 합니다. 실제로,
+    \begin{align}
+        -\frac{\bp{1 - \frac{s}{t}}t^{2}}{D}U_{t}
+        &= -\frac{\bp{1 - \frac{s}{t}}t^{2}}{D}\max\rp{\frac{D}{t^{2}}, \abs*{\frac{R^{2}}{t^{4}} - \frac{D}{t^{2}}}} \ 
+        &= -\bp{1 - \frac{s}{t}}\max\rp{1, \abs*{\frac{R^{2}}{Dt^{2}} - 1}}
+    \end{align}
+    이는 가정에 의해 주어진 바와 같이 \(0 < t < R/\sqrt{2D}\)이고 \(0 \leq s  < t\cdot\frac{R^{2}/D - 2t^{2}}{R^{2}/D - t^{2}}\)인 경우에만 \(\geq -1\)입니다. 
+
+    이 경계를 적용하면 다음을 얻습니다.
+    \begin{align}
+        &\int_{\R^{D}} p_{t}(\vxi)\bp{1 + \frac{\bp{1 - \frac{s}{t}}t^{2}}{D}\Delta \log p_{t}(\vxi)}^{D}\odif{\vxi} \ 
+        &\leq \int_{\R^{D}}p_{t}(\vxi)\bp{1 + M(s, t, D)\Delta \log p_{t}(\vxi)}\odif{\vxi} \ 
+        &= 1 + M(s, t, D)\int_{\R^{D}}p_{t}(\vxi)\Delta \log p_{t}(\vxi)\odif{\vxi} \ 
+        &= 1 - M(s, t, D)\int_{\R^{D}}\ip{\nabla p_{t}(\vxi)}{\nabla\log p_{t}(\vxi)}\odif{\vxi} \ 
+        &= 1 - M(s, t, D)\int_{\R^{D}}\frac{\norm{\nabla p_{t}(\vxi)}_{2}^{2}}{p_{t}(\vxi)}\odif{\vxi},
+    \end{align}
+    여기서 마지막 몇 줄은 \Cref{thm:diffusion_entropy_increases}의 증명과 동일합니다. 이 결과를 이전 추정치와 결합하면,
+    \begin{equation}
+        h(\bar{\vx}(\vx_{t})) - h(\vx_{t}) \leq - M(s, t, D)\int_{\R^{D}}\frac{\norm{\nabla p_{t}(\vxi)}_{2}^{2}}{p_{t}(\vxi)}\odif{\vxi} < 0
+    \end{equation}
+    여기서 부등식은 \Cref{thm:diffusion_entropy_increases}와 동일한 논증에 의해 엄격합니다.
+\end{proof}
+
+
+\subsection{기술 보조정리 및 중간 결과}\label{sub:app_diffusion_intermediate_results}
+
+이 하위 섹션에서는 우리의 주요 두 개념 정리에 힘을 실어주는 기술적 결과를 제시합니다. 우리의 설명은 수학에 있어 다소 표준적일 것입니다. 우리는 먼저 상위 수준 결과부터 시작하여 점차적으로 증분 결과로 넘어갈 것입니다. 상위 수준 결과는 증분 결과를 사용할 것이며, 이러한 방식으로 우리는 결과의 종속성 순서를 쉽게 읽을 수 있습니다. 즉, 어떤 결과도 이전 결과에 의존하지 않습니다. 서로 의존하지 않는 결과는 일반적으로 위 증명 쌍에 나타나는 순서대로 정렬됩니다. 
+
+
+\subsubsection{미분 엔트로피의 유한성}
+
+먼저 확률 과정에 따라 엔트로피가 존재하고 유한함을 보입니다.
+
+\begin{lemma}\label{lem:diffusion_entropy_exists}
+    \(\vx\)를 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. 
+    \begin{enumerate}
+        \item \(t > 0\)에 대해 미분 엔트로피 \(h(\vx_{t})\)는 존재하며 \(> -\infty\)이다.
+        \item 추가적으로 \(\vx\)에 대해 \Cref{assumption:entropy_x_compact_support}가 성립하면, \(h(\vx) < \infty\)이고 \(h(\vx_{t})< \infty\)이다.
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    \Cref{lem:diffusion_entropy_exists}.1을 증명하기 위해 우리는 고전적이지만 지루한 분석 논증을 사용합니다. \(\vx_{t}\)는 밀도를 가지므로 다음을 쓸 수 있습니다.
+    \begin{equation}
+        h(\vx_{t}) = -\int_{\R^{D}}p_{t}(\vxi)\log p_{t}(\vxi) \odif{\vxi}.
+    \end{equation}
+    따라서 \(g \colon \R^{D} \to \R\)를 다음과 같이 정의합시다.
+    \begin{equation}
+        g(\vxi) \doteq -p_{t}(\vxi)\log p_{t}(\vxi) \implies h(\vx_{t}) = \int_{\R^{D}}g(\vxi)\odif{\vxi}.
+    \end{equation}
+    분석에서 적분의 값을 제한하기 위해 평소와 같이 다음을 정의합니다.
+    \begin{equation}
+        g_{+}(\vxi) \doteq \max(g(\vxi), 0), \quad g_{-}(\vxi) \doteq \max(-g(\vxi), 0) \quad \implies \quad g = g_{+} - g_{-} \quad \text{and} \quad g_{+}, g_{-} \geq 0.
+    \end{equation}
+    그러면
+    \begin{equation}
+        h(\vx_{t}) = \int_{\R^{D}}g_{+}(\vxi)\odif{\vxi} - \int_{\R^{D}}g_{-}(\vxi)\odif{\vxi},
+    \end{equation}
+    두 적분 모두 피적분 함수가 음이 아니므로 음이 아닌 것이 보장됩니다. 
+    
+    \(h(\vx_{t})\)가 잘 정의됨을 보이기 위해 우리는 \(\int_{\R^{D}}g_{+}(\vxi)\odif{\vxi} < \infty\) 또는 \(\int_{\R^{D}}g_{-}(\vxi) \odif{\vxi} < \infty\)임을 보여야 합니다. \(h(\vx_{t}) > -\infty\)임을 보이기 위해 \(\int_{\R^{D}}g_{-}(\vxi)\odif{\vxi} < \infty\)임을 보이는 것으로 충분합니다. \(g_{-}\)의 적분을 제한하기 위해 \(g_{-}\)의 양을 이해해야 합니다. 즉, \(g\)가 음수일 때를 특성화해야 합니다.
+    \begin{equation}
+        g(\vxi) \leq 0 \iff p_{t}(\vxi)\log p_{t}(\vxi) \geq 0 \iff \log p_{t}(\vxi) \geq 0 \iff p_{t}(\vxi) \geq 1.
+    \end{equation}
+    따라서 다음이 성립합니다.
+    \begin{equation}
+        g_{-}(\vxi) = \indvar(p_{t}(\vxi) \geq 1)\cdot (-g(\vxi)) = \indvar(p_{t}(\vxi) \geq 1)p_{t}(\vxi)\log p_{t}(\vxi).
+    \end{equation}
+    \(g_{-}(\vxi)\)의 적분을 제한하기 위해 우리는 \(p_{t}\)가 "너무 집중되어 있지 않음", 즉 \(p_{t}\)가 너무 크지 않음을 보여야 합니다. 이를 증명하기 위해 이 경우에는 함수 \(g_{-}(\vxi)\) 자체를 제한할 수 있는 운이 좋습니다. 즉, 다음을 주목합시다.
+    \begin{equation}
+        \max_{\vxi \in \R^{D}}\phi_{t}(\vxi - \vx) = \phi_{t}(\vzero) = \frac{1}{(2\pi)^{D/2}t^{D}} =: C_{t}.
+    \end{equation}
+    이는 \(t \to 0\)일 때 발산하지만 모든 유한한 \(t\)에 대해 유한합니다. 따라서
+    \begin{equation}
+        p_{t}(\vxi) = \Ex \phi_{t}(\vxi - \vx) \leq \Ex C_{t} = C_{t}.
+    \end{equation}
+    이제 두 가지 경우가 있습니다.
+    \begin{itemize}
+        \item \(C_{t} < 1\)이면 \(p_{t}(\vxi) < 1\)이므로 지시 함수는 결코 \(1\)이 아닙니다. 따라서 \(g_{-} = 0\)이 동일하게 성립하고 그 적분도 \(0\)입니다.
+        \item \(C_{t} \geq 1\)이면 \(\log C_{t} \geq 0\)이므로 로그는 단조 증가 함수이므로,
+        \begin{align}
+            \int_{\R^{D}}g_{-}(\vxi)\odif{\vxi}
+            &= \int_{\R^{D}}\indvar(p_{t}(\vxi) \geq 1)p_{t}(\vxi)\log p_{t}(\vxi)\odif{\vxi} \\
+            &= \Ex[\indvar(p_{t}(\vx_{t}) \geq 1)\log p_{t}(\vx_{t})] \\
+            &\leq \Ex[\indvar(p_{t}(\vx_{t}) \geq 1) \log C_{t}] \\
+            &= \Pr[p_{t}(\vx_{t}) \geq 1]\log C_{t}.
+        \end{align}
+    \end{itemize}
+    따라서 \(\int_{\R^{D}}g_{-}(\vxi)\odif{\vxi} < \infty\)이므로 미분 엔트로피 \(h(\vx_{t})\)는 존재하며 \(> -\infty\)입니다.
+
+    \Cref{lem:diffusion_entropy_exists}.2를 증명하기 위해 \Cref{assumption:entropy_x_compact_support}가 성립한다고 가정합니다. 우리는 \(h(\vx) < \infty\)이고 \(h(\vx_{t}) < \infty\)임을 보여야 합니다. 이를 수행하는 메커니즘은 동일하며, 최대 엔트로피 결과 \Cref{thm:max_entropy}와 관련됩니다. 즉, \(\vx\)는 절대적으로 유계이므로 유한한 공분산을 가지며 이를 \(\vSigma\)로 나타낼 것입니다. 그러면 \(\vx_{t}\)의 공분산은 \(\vSigma + t^{2}\vI\)입니다. 따라서 \(\vx\)와 \(\vx_{t}\)의 엔트로피는 각각의 공분산을 갖는 정규 분포의 엔트로피, 즉 \(\log[(2\pi e)^{D}\det(\vSigma)]\) 또는 \(\log[(2\pi e)^{D}\det(\vSigma + t^{2}\vI)]\)로 상한이 지정될 수 있으며, 둘 다 \(< \infty\)입니다.
+\end{proof}
+
+\subsubsection{드 브루인 항등식에서의 부분 적분}
+
+마지막으로, \Cref{thm:diffusion_entropy_increases,thm:conditioning_reduces_entropy}의 증명에서 언급된 부분 적분 논증을 채웁니다. 이 논증은 개념적으로는 매우 간단하지만, 부분 적분에서의 경계 항이 사라짐을 보이기 위해 몇 가지 기술적 추정이 필요합니다.
+
+\begin{lemma}\label{lem:diffusion_ibp}
+    \(\vx\)를 \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. \(t \geq 0\)에 대해 \(p_{t}\)를 \(\vx_{t}\)의 밀도라고 하자. 그러면 상수 \(c \in \R\)에 대해 다음이 성립한다.
+    \begin{equation}
+        \int_{\R^{D}}\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)]\odif{\vxi} = -\int_{\R^{D}}\ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}\odif{\vxi}.
+    \end{equation}
+\end{lemma}
+\begin{proof}
+    이 증명의 기본 아이디어는 두 단계로 이루어집니다.
+    \begin{itemize}
+        \item 먼저, 그린 정리를 적용하여 콤팩트 집합에서 부분 적분을 수행합니다.
+        \item 둘째, 이 콤팩트 집합의 반경을 \(+\infty\)로 보내어 \(\R^{D}\) 전체에 대한 적분을 얻습니다.
+    \end{itemize}
+    그린 정리는 임의의 콤팩트 집합 \(\cK \subseteq \R^{D}\), 두 번 연속 미분 가능한 함수 \(\plainphi \colon \R^{D} \to \R\), 그리고 연속 미분 가능한 함수 \(\psi \colon \R^{D} \to \R\)에 대해 다음을 말합니다.
+    \begin{equation}
+        \int_{\cK}\bc{\psi(\vxi) \Delta \plainphi(\vxi) + \ip{\nabla \psi(\vxi)}{\nabla \plainphi(\vxi)}}\odif{\vxi} = \int_{\partial \cK}\psi(\vxi)\ip{\nabla \plainphi(\vxi)}{\vn(\vxi)}\odif{\sigma(\vxi)}
+    \end{equation}
+    여기서 \(\odif{\sigma(\vxi)}\)는 ``표면 측도''에 대한 적분을 나타냅니다. 즉, \(\cK\)의 경계인 \(\partial \cK\)에 대한 상속된 측도이며, 따라서 \(\vxi\)는 이 표면 위의 값을 취하고 \(\vn(\vxi)\)는 표면 점 \(\vxi\)에서 \(\cK\)에 대한 단위 법선 벡터입니다. 이제 \(\plainphi(\vxi) \doteq p_{t}(\vxi)\)와 \(\psi(\vxi) \doteq c + \log p_{t}(\vxi)\)로 놓고, \(\vzero\)를 중심으로 하는 반경 \(r > 0\)인 볼 \(B_{r}(\vzero)\) 위에서 적용합니다 (따라서 \(\partial B_{r}(\vzero)\)는 \(\vzero\)를 중심으로 하는 반경 \(r\)인 구이고 \(\vn(\vxi) = \vxi/\norm{\vxi}_{2} = \vxi/r\)):
+    \begin{align}
+        &\int_{B_{r}(\vzero)}\bc{\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)] + \ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}}\odif{\vxi} \\
+        &= \int_{\partial B_{r}(\vzero)}[c + \log p_{t}(\vxi)]\ip*{\nabla p_{t}(\vxi)}{\frac{\vxi}{r}}\odif{\sigma(\vxi)} \\
+        &= \frac{1}{r}\int_{\partial B_{r}(\vzero)}[c + \log p_{t}(\vxi)]\ip*{\nabla p_{t}(\vxi)}{\vxi}\odif{\sigma(\vxi)}.
+    \end{align}
+    \(r \to \infty\)로 보내면 다음이 성립합니다.
+    \begin{align}
+        &\int_{\R^{D}}\bc{\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)] + \ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}}\odif{\vxi} \label{eq:app_diffusion_r_infinity_limit} \\
+        &= \lim_{r \to \infty}\int_{B_{r}(\vzero)}\bc{\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)] + \ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}}\odif{\vxi} \\
+        &= \lim_{r \to \infty}\int_{\partial B_{r}(\vzero)}\bc{\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)] + \ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}}\odif{\vxi} \\
+        &= \lim_{r \to \infty}\frac{1}{r}\int_{\partial B_{r}(\vzero)}[c + \log p_{t}(\vxi)]\ip*{\nabla p_{t}(\vxi)}{\vxi}\odif{\sigma(\vxi)},
+    \end{align}
+    여기서 첫 번째 등식은 피적분 함수에 대한 지배 수렴에 의해 성립합니다. 마지막 극한을 계산하는 것이 남았습니다. 이를 위해 각 항의 점근 전개를 취합니다. 주요 장치는 다음과 같습니다: \(\vxi \in \partial B_{r}(\vzero)\)에 대해 \(\norm{\vxi}_{2} = r\)이므로
+    \begin{align}
+        p_{t}(\vxi)
+        &= \Ex[\phi_{t}(\vxi - \vx)] \\
+        &= \Ex\rs{\underbrace{\frac{1}{(2\pi)^{D/2}t^{D}}}_{\doteq C_{t}}e^{-\|\vxi - \vx\|_{2}^{2}/(2t^{2})}} \\
+        &= C_{t}\Ex\rs{e^{-(\norm{\vxi}_{2}^{2} - 2\ip{\vxi}{\vx} + \norm{\vx}_{2}^{2})/(2t^{2})}} \\
+        &= C_{t}\Ex\rs{e^{-(r^{2} - 2\ip{\vxi}{\vx} + \norm{\vx}_{2}^{2})/(2t^{2})}} \\
+        &= C_{t}e^{-r^{2}/(2t^{2})}\Ex[e^{(2\ip{\vxi}{\vx} - \norm{\vx}_{2}^{2})/(2t^{2})}].
+    \end{align}
+    \(\norm{\vxi}_{2} = r\)이므로 코시-슈바르츠 부등식에 의해 다음이 성립합니다.
+    \begin{equation}
+        -2r\norm{\vx}_{2} - \norm{\vx}_{2}^{2} \leq 2\ip{\vxi}{\vx} - \norm{\vx}_{2}^{2} \leq 2r\norm{\vx}_{2} - \norm{\vx}_{2}^{2}.
+    \end{equation}
+    \Cref{assumption:entropy_x_compact_support}에 의해 \(\vx\)는 반경 \(R\)인 콤팩트 집합 \(\cS\) 위에서 지지됩니다. 따라서
+    \begin{equation}
+        -2R(r + R) \leq 2\ip{\vxi}{\vx} - \norm{\vx}_{2}^{2} \leq 2Rr.
+    \end{equation}
+    다시 말해 다음이 성립합니다.
+    \begin{equation}
+        C_{t}e^{-[r^{2} + 2R(r + R)]/(2t^{2})} \leq p_{t}(\vxi) \leq C_{t}e^{[-r^{2} + 2Rr]/(2t^{2})}.
+    \end{equation}
+    이제 그래디언트를 계산하기 위해 \Cref{prop:p_t_derivatives}와 기댓값의 선형성을 사용하여 다음을 계산할 수 있습니다.
+    \begin{align}
+        \ip{\nabla p_{t}(\vxi)}{\vxi}
+        &= \ip*{-\frac{1}{t^{2}}\Ex\rs{\bp{\vxi - \vx}\phi_{t}(\vxi - \vx)}}{\vxi} \\
+        &= -\frac{1}{t^{2}}\Ex\rs{\ip{\vxi - \vx}{\vxi}\phi_{t}(\vxi - \vx)} \\
+        &= -\frac{1}{t^{2}}\Ex\rs{\bp{\norm{\vxi}_{2}^{2} - \ip{\vxi}{\vx}}\phi_{t}(\vxi - \vx)} \\
+        &= -\frac{1}{t^{2}}\Ex\rs{\bp{r^{2} - \ip{\vxi}{\vx}}\phi_{t}(\vxi - \vx)} \\
+        &= \frac{1}{t^{2}}\Ex\rs{\bp{\ip{\vxi}{\vx} - r^{2}}\phi_{t}(\vxi - \vx)}.
+    \end{align}
+    코시-슈바르츠와 표현 \(p_{t}(\vxi) \doteq \Ex[\phi_{t}(\vxi - \vx)]\)를 다시 사용하면 다음이 성립합니다.
+    \begin{align}
+        &\frac{1}{t^{2}}\Ex\rs{\bp{-Rr - r^{2}}\phi_{t}(\vxi - \vx)} \leq \ip{\nabla p_{t}(\vxi)}{\vxi} \leq \frac{1}{t^{2}}\Ex\rs{\bp{Rr - r^{2}}\phi_{t}(\vxi - \vx)} \\
+        &\frac{1}{t^{2}}\bp{-Rr - r^{2}}\Ex\rs{\phi_{t}(\vxi - \vx)} \leq \ip{\nabla p_{t}(\vxi)}{\vxi} \leq \frac{1}{t^{2}}\bp{Rr - r^{2}}\Ex\rs{\phi_{t}(\vxi - \vx)} \\
+        &-\frac{r(R + r)}{t^{2}}p_{t}(\vxi) \leq \ip{\nabla p_{t}(\vxi)}{\vxi} \leq -\frac{r(r - R)}{t^{2}}p_{t}(\vxi).
+    \end{align}
+    \(r > R > 0\)일 때 (극한 \(r \to \infty\)를 취할 것이고 \(R\)은 고정되어 있으므로 적합합니다) 양변이 음수입니다. 이는 이해가 됩니다: 대부분의 확률 질량이 반경 \(R\)인 볼 내에 포함되어 있으므로 스코어는 안쪽을 가리키며, 바깥쪽을 가리키는 벡터 \(\vxi\)와 음의 내적을 가집니다. 따라서 \(p_{t}(\vxi)\)에 대한 적절한 경계를 사용하면
+    \begin{equation}
+        -\frac{r(R + r)}{t^{2}}\cdot C_{t}e^{[-r^{2} + 2Rr]/(2t^{2})} \leq \ip{\nabla p_{t}(\vxi)}{\vxi} \leq -\frac{r(r - R)}{t^{2}}\cdot C_{t}e^{-[r^{2} + 2R(r + R)]/(2t^{2})}.
+    \end{equation}
+    그러면 \(C_{t} = \mathrm{poly}(t^{-1})\)임을 주목하면 다음을 계산할 수 있습니다.
+    \begin{equation}
+        [c + \log p_{t}(\vxi)]\ip{\nabla p_{t}(\vxi)}{\vxi} = \mathrm{poly}(r, R, t^{-1}, c)e^{-\Theta_{r}(r^{2})}
+    \end{equation}
+    따라서 \(\partial B_{r}(\vzero)\)의 표면적이 \(\omega_{D} r^{D - 1}\)이고 여기서 \(\omega_{D}\)는 \(D\)의 함수임을 고려하면 다음이 성립합니다.
+    \begin{equation}
+        \frac{1}{r}\int_{\partial B_{r}(\vzero)}[c + \log p_{t}(\vxi)]\ip{\nabla p_{t}(\vxi)}{\vxi}\odif{\vxi} = \mathrm{poly}(r, R, t^{-1}, c)e^{-\Theta_{r}(r^{2})}
+    \end{equation}
+    따라서 지수적으로 감쇠하는 꼬리는 다음을 의미합니다.
+    \begin{equation}
+        \lim_{r \to \infty}\frac{1}{r}\int_{\partial B_{r}(\vzero)}[c + \log p_{t}(\vxi)]\ip{\nabla p_{t}(\vxi)}{\vxi}\odif{\vxi} = 0.
+    \end{equation}
+    마지막으로 \eqref{eq:app_diffusion_r_infinity_limit}에 대입하면 다음을 얻습니다.
+    \begin{align}
+        &\int_{\R^{D}}\bc{\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)] + \ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}}\odif{\vxi} = 0 \\
+        \implies
+        &\int_{\R^{D}}\Delta p_{t}(\vxi)[c + \log p_{t}(\vxi)]\odif{\vxi} = -\int_{\R^{D}}\ip{\nabla \log p_{t}(\vxi)}{\nabla p_{t}(\vxi)}\odif{\vxi}
+    \end{align}
+    이는 주장한 바와 같습니다.
+\end{proof}
+
+\subsubsection{잡음 제거기 \(\bar{\vx}\)의 국소 가역성}
+
+여기서 우리는 \Cref{thm:conditioning_reduces_entropy}의 증명에서 사용된 몇 가지 결과를 제공하며, 이는 \cite{Gribonval2011-pf}의 해당 결과의 적절한 일반화입니다.
+
+\begin{lemma}[\cite{Gribonval2011-pf}, 보조정리 A.1의 일반화]\label{lem:gribonval_A1}
+    \(\vx\)를 \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. \(s, t \in [0, T]\)가 \(0 \leq s < t \leq T\)를 만족한다고 하고, \(\bar{\vx}(\vxi) \doteq \Ex[\vx_{s} \mid \vx_{t} = \vxi]\)라고 정의하자. 야코비 행렬 \(\bar{\vx}^{\prime}(\vxi)\)는 대칭 양의 정부호 행렬이다.
+\end{lemma}
+\begin{proof}
+    다음이 성립합니다.
+    \begin{equation}
+        \bar{\vx}^{\prime}(\vxi) = \vI + \bp{1 - \frac{s}{t}}t^{2}\nabla^{2}\log p_{t}(\vxi).
+    \end{equation}
+    여기서 다음을 전개합니다.
+    \begin{equation}
+        \nabla^{2}\log p_{t}(\vxi) = \frac{p_{t}(\vxi)\nabla^{2}p_{t}(\vxi) - (\nabla p_{t}(\vxi))(\nabla p_{t}(\vxi))^{\top}}{p_{t}(\vxi)^{2}}.
+    \end{equation}
+    따라서 다음이 성립함을 보장해야 합니다.
+    \begin{align}
+        \bar{\vx}^{\prime}(\vxi)
+        &= \vI + \bp{1 - \frac{s}{t}}t^{2}\frac{p_{t}(\vxi)\nabla^{2}p_{t}(\vxi) - (\nabla p_{t}(\vxi))(\nabla p_{t}(\vxi))^{\top}}{p_{t}(\vxi)^{2}} \\
+        &= \frac{p_{t}(\vxi)^{2}\vI + \bp{1 - \frac{s}{t}}t^{2}\bs{p_{t}(\vxi)\nabla^{2}p_{t}(\vxi) - (\nabla p_{t}(\vxi))(\nabla p_{t}(\vxi))^{\top}}}{p_{t}(\vxi)^{2}}
+    \end{align}
+    가 대칭 양의 준정부호 행렬임을 보여야 합니다. 실제로 이것은 (클레로 정리에 의해) 명백히 대칭입니다. 양의 준정부호성을 보이기 위해 \eqref{eq:p_t_representation}로 주어진 \(p_{t}\)의 기댓값 표현 (그리고 \Cref{prop:p_t_derivatives}에 의한 \(\nabla p_{t}\), \(\Delta p_{t}\))을 대입하여 다음을 얻습니다 (여기서 \(\vx\)는 정의된 바와 같고 \(\vy\)는 \(\vx\)와 독립 동일 분포입니다).
+    \begin{align}
+        &\vv^{\top}[\bar{\vx}^{\prime}(\vxi)]\vv \\
+        &= p_{t}(\vxi)^{-2}\vv^{\top}\Bigg\{p_{t}(\vxi)^{2}\vI + \bp{1 - \frac{s}{t}}t^{2}\Ex[\phi_{t}(\vxi - \vx)]\Ex\rs{\phi_{t}(\vxi - \vx)\cdot\frac{(\vxi - \vx)(\vxi - \vx)^{\top} - t^{2}\vI}{t^{4}}} \\
+        & \qquad \qquad \qquad -\bp{1 - \frac{s}{t}}t^{2}\Ex\rs{-\phi_{t}(\vxi - \vx)\cdot\frac{\vxi - \vx}{t^{2}}}\Ex\rs{-\phi_{t}(\vxi - \vx)\cdot\frac{\vxi - \vx}{t^{2}}}^{\top}\Bigg\}\vv \\
+        &= p_{t}(\vxi)^{-2}\vv^{\top}\Bigg\{\Ex[\phi_{t}(\vxi - \vx)\phi_{t}(\vxi - \vy)\vI] \\
+        & \qquad \qquad \qquad + \bp{1 - \frac{s}{t}}t^{2}\Ex\rs{\phi_{t}(\vxi - \vx)\phi_{t}(\vxi - \vy)\cdot\frac{(\vxi - \vy)(\vxi - \vy)^{\top} - t^{2}\vI}{t^{4}}} \\
+        & \qquad \qquad \qquad -\bp{1 - \frac{s}{t}}t^{2}\Ex\rs{\phi_{t}(\vxi - \vx)\phi_{t}(\vxi - \vy)\cdot\frac{(\vxi - \vx)(\vxi - \vy)^{\top}}{t^{4}}}\Bigg\} \\
+        &= \frac{1 - s/t}{p_{t}(\vxi)^{2}}\vv^{\top}\Ex\mathopen{}\Bigg[\phi_{t}(\vxi - \vx)\phi_{t}(\vxi - \vy)\bc{\frac{1}{1 - s/t}\vI + \frac{(\vxi - \vy)(\vxi - \vy)^{\top}}{t^{2}} - \vI - \frac{(\vxi - \vx)(\vxi - \vy)^{\top}}{t^{2}}}\Bigg]\vv \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\vv^{\top}\Ex\rs{\frac{s}{t - s}\vI +\frac{(\vxi - \vx)(\vxi - \vx)^{\top}}{2t^{2}} + \frac{(\vxi - \vy)(\vxi - \vy)^{\top}}{2t^{2}} - \frac{(\vxi - \vx)(\vxi - \vy)^{\top}}{t^{2}}}\vv \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\vv^{\top}\Ex\rs{\frac{s}{t - s}\vI +\frac{1}{2t^{2}}\bp{(\vxi - \vx)(\vxi - \vx)^{\top} + (\vxi - \vy)(\vxi - \vy)^{\top} - 2(\vxi - \vx)(\vxi - \vy)^{\top}}}\vv \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\Ex\rs{\frac{s}{t - s}\norm{\vv}_{2}^{2} +\frac{1}{2t^{2}}\bp{[(\vxi - \vx)^{\top}\vv]^{2} + [(\vxi - \vy)^{\top}\vv]^{2} - 2[(\vxi - \vx)^{\top}\vv][(\vxi - \vy)^{\top}\vv]}} \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\Ex\rs{\frac{s}{t - s}\norm{\vv}_{2}^{2} +\frac{1}{2t^{2}}\bp{[(\vxi - \vx)^{\top}\vv]^{2} + [(\vxi - \vy)^{\top}\vv]^{2} - 2[(\vxi - \vx)^{\top}\vv][(\vxi - \vy)^{\top}\vv]}} \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\Ex\rs{\frac{s}{t - s}\norm{\vv}_{2}^{2} +\frac{1}{2t^{2}}\bp{[(\vxi - \vx)^{\top}\vv] - [(\vxi - \vy)^{\top}\vv]}^{2}} \\
+        &= \frac{t - s}{tp_{t}(\vxi)^{2}}\Ex\rs{\frac{s}{t - s}\norm{\vv}_{2}^{2} +\frac{1}{2t^{2}}[(\vy - \vx)^{\top}\vv]^{2}} \\
+        &= \frac{s}{tp_{t}(\vxi)^{2}}\norm{\vv}_{2}^{2} + \frac{t - s}{2t^{3}p_{t}(\vxi)}\Ex[\{(\vy - \vx)^{\top}\vv\}^{2}]
+    \end{align}
+    \(\vx\)와 \(\vy\)가 독립 동일 분포이므로 전체 적분 (즉, 원래의 이차 형식)은 \(s = 0\)이고 \(\vx\)의 지지 집합이 \(\vv\)에 직교하는 아핀 부분공간에 전적으로 포함될 때에만 \(0\)이 됩니다. 그러나 이는 가정 (즉, \(\vx\)가 \(\R^{D}\) 위에서 밀도를 가진다는 것)에 의해 배제되므로 야코비 행렬 \(\bar{\vx}^{\prime}(\vxi)\)는 대칭 양의 정부호 행렬입니다.
+\end{proof}
+
+\begin{lemma}[\cite{Gribonval2011-pf} 따름정리 A.2, 파트 1의 일반화]\label{lem:gribonval_A2}
+    \(f \colon \R^{D} \to \R^{D}\)가 야코비 행렬 \(f^{\prime}(\vx)\)가 대칭 양의 정부호인 임의의 미분 가능 함수라고 하자. 그러면 \(f\)는 단사이며, 따라서 \(\Range(f)\)가 \(f\)의 치역일 때 \(\R^{D} \to \Range(f)\)인 함수로서 가역이다.
+\end{lemma}
+\begin{proof}
+    \(f\)가 단사가 아니라고 가정합니다. 즉, \(f(\vx) = f(\vx^{\prime})\)이면서 \(\vx \neq \vx^{\prime}\)인 \(\vx, \vx^{\prime}\)가 존재합니다. \(\vv \doteq (\vx^{\prime} - \vx)/\norm{\vx^{\prime} - \vx}_{2}\)로 정의합니다. 함수 \(g \colon \R \to \R\)를 \(g(t) \doteq \vv^{\top}f(\vx + t\vv)\)로 정의합니다. 그러면 \(g(0) = \vv^{\top}f(\vx) = \vv^{\top}f(\vx^{\prime}) = g(\norm{\vx^{\prime} - \vx}_{2})\)입니다. \(f\)가 미분 가능하므로 \(g\)도 미분 가능하고, 따라서 평균값 정리에 의해 어떤 \(t^{\ast} \in (0, \norm{\vx^{\prime} - \vx}_{2})\)에서 도함수 \(g^{\prime}\)가 사라져야 합니다. 그러나
+    \begin{equation}
+        g^{\prime}(t^{\ast}) \doteq \vv^{\top}\bs{f^{\prime}(\vx + t^{\ast}\vv)}\vv > 0
+    \end{equation}
+    야코비 행렬이 양의 정부호이기 때문입니다. 따라서 우리는 모순에 도달하며, 주장이 증명됩니다.
+\end{proof}
+
+위의 두 결과를 결합하면 다음의 중요한 결과를 얻습니다.
+
+\begin{corollary}[\cite{Gribonval2011-pf} 따름정리 A.2, 파트 2의 일반화]\label{cor:gribonval_A2}
+    \(\vx\)를 \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. \(s, t \in [0, T]\)가 \(0 \leq s < t \leq T\)를 만족한다고 하고, \(\bar{\vx}(\vxi) \doteq \Ex[\vx_{s} \mid \vx_{t} = \vxi]\)라고 정의하자. 그러면 \(\bar{\vx}\)는 단사이며, 따라서 치역 위로 가역이다.
+\end{corollary}
+\begin{proof}
+    보여야 할 것은 \(\bar{\vx}\)가 미분 가능하다는 것뿐인데, 이는 트위디의 공식 (\Cref{thm:tweedie})에서 \(\bar{\vx}\)가 \(\nabla \log p_{t}\)가 미분 가능할 때만 미분 가능함을 보여주므로 즉각적이며, 이는 \Cref{eq:p_t_representation}에 의해 제공됩니다.
+\end{proof}
+
+\subsubsection{라플라시안 \(\Delta \log p_{t}\) 제어}
+
+마지막으로, \Cref{thm:conditioning_reduces_entropy}의 증명에 필요한 기술적 추정을 개발하며, 이는 실제로 유효한 \(t\)에 대한 가정의 동기를 부여합니다.
+
+\begin{lemma}\label{lem:app_diffusion_laplacian_control}
+    \(\vx\)를 \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. \(p_{t}\)를 \(\vx_{t}\)의 밀도라고 하자. 그러면 \(t > 0\)에 대해 다음이 성립한다.
+    \begin{equation}
+        \sup_{\vxi \in \R^{D}}\abs{\Delta \log p_{t}(\vxi)} \leq \max\rp{\frac{D}{t^{2}}, \abs*{\frac{R}{t^{4}} - \frac{D}{t^{2}}}}.
+    \end{equation}
+\end{lemma}
+\begin{proof}
+    연쇄 법칙에 의해 간단한 연습으로 다음을 계산합니다.
+    \begin{equation}
+        \Delta \log p_{t}(\vxi) = \frac{\Delta p_{t}(\vxi)}{p_{t}(\vxi)} - \frac{\norm{\nabla p_{t}(\vxi)}_{2}^{2}}{p_{t}(\vxi)^{2}}.
+    \end{equation}
+    \Cref{prop:p_t_derivatives}를 사용하여 \(\Delta p_{t}(\vxi)\)의 항들을 작성하면 다음을 얻습니다.
+    \begin{align}
+        \frac{\Delta p_{t}(\vxi)}{p_{t}(\vxi)}
+        &= \frac{\Ex\rs{\frac{\norm{\vxi - \vx}_{2}^{2} - Dt^{2}}{t^{4}} \cdot \phi_{t}(\vxi - \vx)}}{\Ex[\phi_{t}(\vxi - \vx)]} \\
+        &= \frac{\int_{\R^{D}}\bc{\frac{\norm{\vxi - \vu}_{2}^{2} - Dt^{2}}{t^{4}}}\phi_{t}(\vxi - \vu)p(\vu)\odif{\vu}}{\int_{\R^{D}}\phi_{t}(\vxi - \vu)p(\vu)\odif{\vu}}.
+    \end{align}
+    이는 베이지안 주변화처럼 보이므로 적절한 정규화된 밀도를 정의합니다.
+    \begin{equation}
+        q_{\vxi}(\vu) = \frac{\phi_{t}(\vxi - \vu)p(\vu)}{\int_{\R^{D}}\phi_{t}(\vxi - \vv)p(\vv)\odif{\vv}} = \frac{\phi_{t}(\vxi - \vu)p(\vu)}{\Ex[\phi_{t}(\vxi - \vx)]} = \frac{\phi_{t}(\vxi - \vu)p(\vu)}{p_{t}(\vxi)}
+    \end{equation}
+    그러면 \(\vy_{\vxi} \sim q_{\vxi}\)로 정의하여 다음을 쓸 수 있습니다.
+    \begin{equation}
+        \frac{\Delta p_{t}(\vxi)}{p_{t}(\vxi)} = \int_{\R^{D}}\bc{\frac{\norm{\vxi - \vu}_{2}^{2} - Dt^{2}}{t^{4}}}q_{\vxi}(\vu)\odif{\vu} = \frac{1}{t^{4}}\Ex[\norm{\vxi - \vy_{\vxi}}_{2}^{2}] - \frac{D}{t^{2}}.
+    \end{equation}
+    마찬가지로 두 번째 항 (제곱되지 않은)을 작성하면 다음을 얻습니다.
+    \begin{equation}
+        \frac{\nabla p_{t}(\vxi)}{p_{t}(\vxi)} = -\frac{\vxi - \Ex[\vy_{\vxi}]}{t^{2}}.
+    \end{equation}
+    \(\vz_{\vxi} \doteq \vy_{\vxi} - \vxi\)로 정의하면 다음이 성립합니다.
+    \begin{equation}
+        \frac{\Delta p_{t}(\vxi)}{p_{t}(\vxi)} = \frac{\Ex[\norm{\vz_{\vxi}}_{2}^{2}]}{t^{4}} - \frac{D}{t^{2}}, \qquad \frac{\nabla p_{t}(\vxi)}{p_{t}(\vxi)} = \frac{\Ex[\vz_{\vxi}]}{t^{2}}.
+    \end{equation}
+    따라서 \(\Delta \log p_{t}\)를 완전히 작성하면 다음을 얻습니다.
+    \begin{align}
+        \Delta \log p_{t}(\vxi)
+        &= \frac{\Ex[\norm{\vz_{\vxi}}_{2}^{2}]}{t^{4}} - \frac{D}{t^{2}} - \frac{\norm{\Ex[\vz_{\vxi}]}_{2}^{2}}{t^{4}} \\
+        &= \frac{\Ex[\norm{\vz_{\vxi}}_{2}^{2}] - \norm{\Ex[\vz_{\vxi}]}_{2}^{2}}{t^{4}} - \frac{D}{t^{2}} \\
+        &= \frac{\tr(\Cov(\vz_{\vxi}))}{t^{4}} - \frac{D}{t^{2}} \\
+        &= \frac{\tr(\Cov(\vy_{\vxi}))}{t^{4}} - \frac{D}{t^{2}}.
+    \end{align}
+    공분산 행렬은 양의 준정부호이므로 이 대각합의 자명한 하한은 \(0\)입니다. 상한을 찾기 위해 \(\vy_{\vxi}\)는 \(\vx\)의 지지 집합에서만 값을 취한다는 것을 주목합니다 (\(p\)가 밀도 \(q_{\vxi}\)의 \(\vy_{\vxi}\)의 인수이므로), 이는 \Cref{assumption:entropy_x_compact_support}에 의해 반경이 \(R \doteq \sup_{\vxi \in \R^{D}}\norm{\vxi}_{2}\)인 콤팩트 집합 \(\cS\)입니다. 따라서
+    \begin{equation}
+        \tr(\Cov(\vy_{\vxi})) = \Ex[\norm{\vy_{\vxi}}_{2}^{2}] - \norm{\Ex[\vy_{\vxi}]}_{2}^{2} \leq \Ex[\norm{\vy_{\vxi}}_{2}^{2}] \leq R^{2}.
+    \end{equation}
+    따라서
+    \begin{equation}
+        -\frac{D}{t^{2}} \leq \Delta \log p_{t}(\vxi) \leq \frac{R^{2}}{t^{4}} - \frac{D}{t^{2}},
+    \end{equation}
+    이는 주장을 보여줍니다.
+\end{proof}
+
+\subsubsection{도함수 계산}
+
+여기서 우리는 부록 전체에서 재사용될 몇 가지 유용한 도함수를 계산합니다.
+
+\begin{proposition}\label{prop:p_t_derivatives}
+    \(\vx\)를 \Cref{assumption:entropy_x_compact_support,assumption:entropy_x_density}가 성립하는 임의의 확률 변수라고 하고, \((\vx_{t})_{t \in [0, T]}\)를 확률 과정 \(\eqref{eq:app_additive_gaussian_noise_model}\)이라고 하자. \(t \geq 0\)에 대해 \(p_{t}\)를 \(\vx_{t}\)의 밀도라고 하자. 그러면
+    \begin{align}
+        \pdv{p_{t}}{t}(\vxi)
+        &= \Ex\rs{\phi_{t}(\vxi - \vx)\cdot\frac{\norm{\vxi - \vx}_{2}^{2} - Dt^{2}}{t^{3}}} \\
+        \nabla p_{t}(\vxi)
+        &= -\Ex\rs{\phi_{t}(\vxi - \vx)\cdot\frac{\vxi - \vx}{t^{2}}} \\
+        \nabla^{2}p_{t}(\vxi)
+        &= \Ex\rs{\phi_{t}(\vxi - \vx)\cdot\frac{(\vxi - \vx)(\vxi - \vx)^{\top} - t^{2}\vI}{t^{4}}} \\
+        \Delta p_{t}(\vxi)
+        &= \Ex\rs{\phi_{t}(\vxi - \vx)\cdot\frac{\norm{\vxi - \vx}_{2}^{2} - Dt^{2}}{t^{4}}}.
+    \end{align}
+\end{proposition}
+\begin{proof}
+    우리는 \(p_{t}\)의 합성곱 표현, 즉 \eqref{eq:p_t_representation}을 사용합니다. 먼저 시간 도함수를 취하면 계산을 통해 \Cref{prop:dutis}가 적용됨을 보여주고,\footnote{우리는 \(f_{t}(\vxi) = p(\vxi) \phi_{t}(\vxi - \vx)\)를 사용하며, 이것이 \(\vxi\)에 대해 두 번 연속 미분 가능하고 \(t\)에 대해 (두 번 이상) 연속 미분 가능함을 주목합니다. 그런 다음 \(f_{t}\)의 국소 적분 가능성을 확인하기 위해 \(\pdv{f_{t}}{t}(\vxi) = f_{t}(\vxi)\cdot \frac{1}{t^{3}}(\norm{\vxi - \vx}_{2}^{2} - Dt^{2})\)를 계산하고, 이것이 \(\vxi\)와 \(t \in [t_{\min}, t_{\max}]\)에 대해 적분 가능함을 쉽게 확인합니다. 여기서 \(t_{\min} > 0\)입니다. (실제로 \(f_{t}\)는 지수적으로 감쇠하는 꼬리를 가지므로 곱에서의 이차 항은 문제가 되지 않습니다.)} 따라서 도함수를 적분/기댓값 안으로 가져올 수 있습니다.
+    \begin{equation}
+        \pdv{p_{t}}{t}(\vxi) = \pdv*{\Ex[\phi_{t}(\vxi - \vx)]}{t} = \Ex\rs{\pdv*{\phi_{t}(\vxi - \vx)}{t}} = \pdv{\phi_{t}}{t} * p.
+    \end{equation}
+    한편, 합성곱의 성질 (\Cref{prop:diff_convolution})에 의해 그리고 \(p\)가 콤팩트하게 지지된다는 사실 (\Cref{assumption:entropy_x_compact_support})을 사용하면
+    \begin{equation}
+        p_{t} = \phi_{t} * p \implies \nabla p_{t} = \nabla \phi_{t} * p \implies \nabla^{2}p_{t} = \nabla^{2}\phi_{t} * p \implies \Delta p_{t} = \Delta \phi_{t} * p.
+    \end{equation}
+    나머지 계산은 \Cref{prop:normal_derivatives}에서 따릅니다.
+\end{proof}
+
+
+\begin{proposition}\label{prop:normal_derivatives}
+    \(t > 0\)이고 \(\vxi \in \R^{D}\)일 때 다음이 성립합니다.
+    \begin{align}
+        \pdv*{\phi_{t}}{t}(\vxi)
+        &= \phi_{t}(\vxi) \cdot \frac{\norm{\vxi}_{2}^{2} - Dt^{2}}{t^{3}} \\
+        \nabla \phi_{t}(\vxi)
+        &= -\phi_{t}(\vxi)\cdot\frac{\vxi}{t^{2}} \\
+        \nabla^{2} \phi_{t}(\vxi)
+        &= \phi_{t}(\vxi)\cdot\frac{\vxi\vxi^{\top} - t^{2}\vI}{t^{4}} \\
+        \Delta \phi_{t}(\vxi)
+        &= \phi_{t}(\vxi) \cdot \frac{\norm{\vxi}_{2}^{2} - Dt^{2}}{t^{4}}.
+    \end{align}
+\end{proposition}
+\begin{proof}
+    직접 계산.
+\end{proof}
+
+
+
+\subsubsection{적분 부호 아래에서의 미분}
+
+이 부록에서 우리는 적분 부호 아래에서 여러 번 미분하며, 언제 이것을 할 수 있는지 아는 것이 중요합니다. 적분 부호 아래에서의 미분에는 두 가지 종류가 있습니다.
+\begin{enumerate}
+    \item 적분 \(\int f_{t}(\vxi)\odif{\vxi}\)를 보조 매개변수 \(t\)에 대해 미분하는 것.
+    \item 합성곱 \((f * g)(\vxi) = \int f(\vxi)g(\vxi - \vu)\odif{u}\)를 변수 \(\vxi\)에 대해 미분하는 것.
+\end{enumerate}
+
+첫 번째 범주에 대해 우리는 구체적인 결과를 제공하며, 증명 없이 진술하지만 \href{https://planetmath.org/differentiationundertheintegralsign}{링크된 출처}에 기인합니다. 이 출처는 다음 결과를 미분 연산자와 완화된 분포의 상호작용에 대한 더 일반적인 정리의 특수한 경우로 유도하며, 이는 이 책의 범위를 훨씬 넘어섭니다. 완전한 형식적 참고문헌은 \cite{jones1982theory}에서 찾을 수 있습니다.
+\begin{proposition}[\cite{jones1982theory}, 섹션 11.12]\label{prop:dutis}
+    \(f \colon (0, T) \times \R^{D} \to \R\)가 다음을 만족한다고 하자.
+    \begin{itemize}
+        \item \(f\)는 \((t, \vxi)\)의 결합 가측 함수이다.
+        \item 르베그 거의 모든 \(\vxi \in \R^{D}\)에 대해 함수 \(t \mapsto f_{t}(\vxi)\)는 절대 연속이다.
+        \item \(\pdv{f_{t}}{t}\)는 국소 적분 가능하다. 즉, 모든 \([t_{\min}, t_{\max}] \subseteq (0, T)\)에 대해 다음이 성립한다.
+        \begin{equation}
+            \int_{t_{\min}}^{t_{\max}}\int_{\R^{D}}\abs*{\pdv{f_{t}}{t}(\vxi)}\odif{\vxi} < \infty.
+        \end{equation}
+    \end{itemize}
+    그러면 \(t \mapsto \int_{\R^{D}}f_{t}(\vxi)\odif{\vxi}\)는 \((0, T)\)에서 절대 연속 함수이며, 그 도함수는 다음과 같다.
+    \begin{equation}
+        \odv*{\int_{\R^{D}}f_{t}(\vxi)\odif{\vxi}}{t} = \int_{\R^{D}}\pdv*{f_{t}}{t}(\vxi)\odif{\vxi},
+    \end{equation}
+    이는 거의 모든 \(t \in (0, T)\)에 대해 정의된다.
+\end{proposition}
+
+두 번째 범주에 대해 우리는 또 다른 구체적인 결과를 제공하며, 증명 없이 진술하지만 \cite{brezis2011functional}에서 완전히 형식화되어 있습니다.
+\begin{proposition}[\cite{brezis2011functional}, 명제 4.20]\label{prop:diff_convolution}
+    \(f\)가 콤팩트 지지를 갖는 \(k\)번 연속 미분 가능하고, \(g\)가 국소 적분 가능하다고 하자. 그러면 다음으로 정의되는 합성곱 \(f * g\)
+    \begin{equation}
+        (f * g)(\vxi) \doteq \int_{\R^{D}}f(\vu)g(\vxi - \vu)\odif{\vu}
+    \end{equation}
+    는 \(k\)번 연속 미분 가능하고, 그 \(k\)차 도함수는 다음과 같다.
+    \begin{equation}
+        \nabla^{k}(f * g) =(\nabla^{k}f) * g.
+    \end{equation}
+\end{proposition}
+이 책에는 포함되어 있지 않지만, 간단한 부분 적분 논증은 \(g\)도 \(k\)번 미분 가능하면 우리가 규칙성을 ``교환''할 수 있음을 보여줍니다.
+\begin{equation}
+    \nabla^{k}(f * g) = f * (\nabla^{k} g).
+\end{equation}
+
+
+\section{손실 압축과 구면 패킹}\label{app:rate-distortion-covering}
+
+이 섹션에서 우리는 \Cref{thm:covering-number-rate-distortion}을 증명합니다.
+이 부록 전체에서의 관례를 따라 확률 변수 \(\vx\)의 콤팩트 지지 집합을 \(\cS = \Supp(\vx)\)로 씁니다.
+
+예고된 대로, 우리는 \Cref{thm:covering-number-rate-distortion}을 증명하기 위해 지지 집합 \(\cS\)에 대한 규칙성 가정을 할 것입니다. 최소한의 가정 하에서 진행하는 한 가지 가능성은 우리의 설정에서 \cite{Riegler2018-jh,Riegler2023-rr}의 결과를 구체화하는 것입니다. 이러한 결과들은 매우 낮은 규칙성을 갖는 집합 \(\cS\) (예를 들어, 프랙탈 구조를 갖는 칸토어 유사 집합)에 적용되기 때문입니다. 그러나 \Cref{thm:covering-number-rate-distortion}과 같은 결론을 주장하기 위해 필요한 이러한 결과들의 상수를 정확하게 계산하는 것은 우리의 설정에서 다소 번거로운 것으로 밝혀졌습니다.
+따라서 우리의 접근 방식은 일부 일반성을 희생하지만 더 투명한 논증을 개발할 수 있게 해주는 기하학적 규칙성 가정을 집합 \(\cS\)에 추가하는 것입니다. 너무 많은 일반성을 희생하지 않기 위해 집합 \(\cS\)에서 저차원성이 금지되지 않도록 해야 합니다.
+따라서 우리는 책 전체에서 사용해온 실행 예제인 저랭크 가우스 분포의 혼합을 고려합니다. 이 기하학적 설정에서 우리는 \(\cS\)가 초구면들의 합집합이라고 가정함으로써 이를 강제할 것이며, 이는 압도적인 확률로 고차원에서 가우스 가정과 동치입니다.
+
+\begin{assumption}\label{assumption:union-of-spheres}
+    확률 변수 \(\vx\)의 지지 집합 \(\cS \subset \R^D\)는 \(K\)개의 구면의 유한 합집합이며, 각각의 차원은 \(d_k\), \(k \in [K]\)이다.
+    \(\vx\)가 \(k\)번째 구면에서 추출될 확률은 \(\pi_k \in [0, 1]\)로 주어지며, \(k\)번째 구면에서 추출되는 조건 하에서 \(\vx\)는 그 구면 위에서 균등하게 분포한다.
+    각 구면은 다른 모든 구면들과 상호 직교한다.
+\end{assumption}
+
+우리는 과도한 기술적 세부 사항을 단순화하고 단행본 전체에서 사용된 중요한 실행 예제와 연결하기 위해 단순화된 \Cref{assumption:union-of-spheres} 하에서 진행합니다. 우리는 추가적인 기술적 노력을 통해 결과가 \textit{양의 도달을 갖는 집합} 클래스의 지지 집합 \(\cS\)로 일반화될 수 있다고 믿지만, 이는 미래로 남겨둡니다.
+
+
+
+
+\subsection{율-왜곡과 피복 사이의 관계 증명}
+
+증명을 간략히 스케치한 다음 세 가지 기본 보조정리를 확립하고 증명을 제공합니다. 증명은 아래 스케치에서 소개된 개념들에 의존합니다.
+
+율-왜곡 함수 \eqref{eqn:rate-distortion-general}의 상한을 얻는 것은 간단합니다: 율 특성화 (즉, 율-왜곡 함수는 기대 제곱 \(\ell^2\) 왜곡이 \(\epsilon\)인 \(\vx\)에 대한 코드의 최소 율)에 의해, \(\cR_{\epsilon}(\x)\)의 상한을 설정하려면 이 목표 왜곡을 달성하는 \(\x\)에 대한 하나의 코드만 보여주면 되며, \(\Supp(\x)\)의 임의의 \(\epsilon\)-피복이 이를 달성하고, 율은 피복의 기수의 밑이 2인 로그와 같습니다.
+하한은 더 미묘합니다. 우리는 \Cref{rem:slb}에서 논의된 섀넌 하한을 사용합니다: \cite[\S III, (22)]{Linder1994-ej}의 상수를 계산하면 \Cref{eq:slb}에서 인용된 결과의 더 정밀한 버전을 제공합니다 (물론 비트 단위로): 콤팩트 지지와 밀도를 갖는 임의의 확률 변수 \(\vx\)에 대해 다음이 성립합니다.
+\begin{equation}\label{eq:slb-appendix-1}
+    \cR_{\epsilon}(\x)
+    \geq
+    h(\x)
+    - \log \volume(B_{\epsilon})
+    +
+    \log
+    \left(
+    \frac{
+    	2
+    }
+    {
+    	D \Gamma(D/2)
+    }
+    \left(
+    \frac{
+    	D
+    }
+    {
+    	2e
+    }
+    \right)^{D/2}
+    \right),
+\end{equation}
+이 식에서 엔트로피 (등)는 네이트 단위입니다.
+상수는 스털링 근사를 사용하여 쉽게 추정할 수 있습니다.
+종종 유용한 스털링 근사의 양적 형태는 임의의 \(x > 0\)에 대해 \cite{Jameson2015-hy}
+\begin{equation}
+    \Gamma(x) \leq \sqrt{2\pi} x^{x - 1/2} e^{-x} e^{1/(12x)}.
+\end{equation}
+를 제공합니다. 우리는 이 경계를 \Cref{eq:slb-appendix-1}의 \(\Gamma(D/2)\)에 적용할 것입니다.
+우리는 다음을 얻습니다.
+\begin{align}
+    \log
+    \left(
+    \frac{
+        2
+    }
+    {
+        D \Gamma(D/2)
+    }
+    \left(
+    \frac{
+        D
+    }
+    {
+        2e
+    }
+    \right)^{D/2}
+    \right)
+    &\geq
+    -\frac{1}{6D}
+    +
+    \log\left(
+        \frac{2}{D}
+        \left(
+        \frac{
+            D
+        }
+        {
+            2e
+        }
+        \right)^{D/2}
+        \cdot
+        \sqrt{\frac{D}{4\pi}}
+        \left(
+        \frac{D}{2e}
+        \right)^{-D/2}
+    \right)
+    \\
+    &=
+    -\frac{1}{6D}
+    - \frac{1}{2}\log D\pi,\label{eq:slb-constant-est}
+\end{align}
+이를 \Cref{eq:slb}에서 상수 \(C_D\)의 명시적 값으로 취할 수 있습니다.
+완전히 양화된 섀넌 하한을 요약하면 (비트 단위로):
+\begin{equation}\label{eq:slb-appendix}
+    \cR_{\epsilon}(\x)
+    \geq
+    h(\x)
+    - \log_2 \volume(B_{\epsilon})
+    - O(\log D).
+\end{equation}
+
+이제 현재 목적을 위한 중요한 제약은 섀넌 하한이 확률 변수 \(\vx\)가 밀도를 가질 것을 요구한다는 것이며, 이는 관심 있는 많은 저차원 분포들을 배제합니다.
+그러나 \(\vx\)가 밀도를 허용하는 상황을 잠시 고려해 봅시다.
+\(\vx\)가 지지 집합 위에서 균등하게 분포한다는 가정은 이 설정에서 쉽게 형식화됩니다: 임의의 보렐 집합 \(A \subset \cS\)에 대해
+\begin{equation}
+    \Pr[\vx \in A] = \int_{A} \frac{1}{\volume(\cS)} \odif \vx.
+\end{equation}
+그러면 엔트로피 \(h(\vx)\)는 단순히
+\begin{equation}
+    h(\vx) = \log_2 \volume(\cS).
+\end{equation}
+그러면 증명은 비율 \(\volume(\cS) / \volume(B_{\epsilon})\)를 \(\epsilon\) 볼에 의한 \(\cS\)의 \(\epsilon\)-피복수와 연결하는 보조정리로 마무리됩니다.
+
+
+\Cref{assumption:union-of-spheres}를 만족하는 퇴화 분포로 위의 프로그램을 확장하기 위해,
+\Cref{thm:covering-number-rate-distortion}의 하한 증명은 실제 저차원 분포 \(\vx\)를 밀도를 갖는 ``가까운'' 분포들로 근사하는 논증을 활용할 것이며, 이는 \Cref{thm:max_entropy} 앞의 증명 스케치와 유사하지만 정확히 같지는 않습니다.
+그런 다음 \Cref{thm:covering-number-rate-distortion}에서 원하는 결론을 얻기 위해 근사 시퀀스에 도입된 매개변수를 왜곡 매개변수 \(\epsilon\)와 연결합니다.
+
+
+\begin{definition}\label{def:thickening-set}
+    \(\cS\)가 콤팩트 집합이라고 하자.
+    임의의 \(\delta > 0\)에 대해 \(\cS\)의 \(\delta\)-두껍게 하기를 \(\cS_{\delta}\)로 표기하며 다음과 같이 정의한다.
+    \begin{equation}
+        \cS_{\delta} = \set*{\vxi \in \R^D \given \mathrm{dist}(\vxi, \cS) \leq
+        \delta}.
+    \end{equation}
+\end{definition}
+\Cref{def:thickening-set}에서 참조된 거리 함수는 다음과 같이 정의됩니다.
+\begin{equation}\label{eq:dist-func}
+    \dist(\vxi, \cS) = \inf_{\vxi' \in \cS} \norm*{\vxi - \vxi'}_2.
+\end{equation}
+콤팩트 집합 \(\cS\)에 대해 바이어슈트라스 정리는 임의의 \(\vxi \in \R^D\)에 대해 거리 함수의 하한을 달성하는 어떤 \(\vxi' \in \cS\)가 항상 존재함을 함의합니다.
+\(\cS_{\delta}\)의 콤팩트성은 \(\cS\)의 콤팩트성으로부터 쉽게 따르므로 임의의 \(\delta > 0\)에 대해 \(\volume(\cS_{\delta})\)는 유한합니다. 그러면 \Cref{assumption:union-of-spheres}에 특화된 두껍게 된 확률 변수에 대한 다음 정의를 만들 수 있습니다.
+
+
+\begin{definition}\label{def:thickening-rv-uos}
+    \(\vx\)가 \(\Supp(\vx) = \cS\)가 \(K\)개의 초구면들의 합집합이고 \Cref{assumption:union-of-spheres}에 따라 분포하는 확률 변수라고 하자.
+    혼합의 각 성분의 지지 집합을 \(\cS_k\)로 표기한다.
+    두껍게 된 확률 변수 \(\vx_{\delta}\)를 각 성분 측도가 두껍게 된 집합 \(\cS_{k, \delta}\) (\Cref{def:thickening-set}) 위에서 균등하고 \(k \in [K]\)에 대해 혼합 가중치가 \(\pi_k\)인 측도들의 혼합으로 정의한다.
+\end{definition}
+
+
+\begin{lemma}\label{lem:rate-distortion-lb-uos}
+    확률 변수 \(\vx\)가 \Cref{assumption:union-of-spheres}를 만족한다고 가정하자. 그러면 \(0 < \delta < \tfrac{1}{2}\)일 때 두껍게 된 확률 변수 \(\vx_{\delta}\) (\Cref{def:thickening-rv-uos})는 임의의 \(\epsilon > 0\)에 대해 다음을 만족한다.
+    \begin{equation}
+        R_{\delta + \epsilon}(\vx_{\delta})
+        \leq
+        R_{\epsilon}(\vx).
+    \end{equation}
+\end{lemma}
+
+\Cref{lem:rate-distortion-lb-uos}의 증명은 \Cref{sec:app-rate-dist-deferred-proofs}로 미룹니다.
+\Cref{lem:rate-distortion-lb-uos}를 사용하면 위의 프로그램을 실현할 수 있습니다. 왜냐하면 확률 변수 \(\vx_{\delta}\)는 르베그 측도에 대해 균등한 밀도를 가지기 때문입니다.
+
+\begin{proof}[(\Cref{thm:covering-number-rate-distortion}의 증명)]
+    상한은 쉽게 보여집니다. \(S\)가 기수가 \(\cN_{\epsilon}(\Supp(\vx))\)인 \(\vx\)의 지지 집합의 임의의 \(\epsilon\)-피복이면, 각 \(\vxi \in \Supp(\vx)\)에 재구성 \(\hat{\vxi} = \argmin_{\vxi' \in S}\, \norm{\vxi - \vxi'}_2\)를 할당하는 코딩 방식을 고려합니다. 동점은 임의로 깹니다. 그러면 동점은 확률 0으로 발생하고, \(S\)가 스케일 \(\epsilon\)에서 \(\Supp(\vx)\)를 피복한다는 사실이 왜곡이 \(\epsilon\) 이하임을 보장합니다; 이 방식의 율은 \(\log_2 \cN_{\epsilon}(\Supp(\vx))\)입니다.
+
+    하한에 대해 \(0 < \delta < \tfrac{1}{2}\)이고 두껍게 된 확률 변수 \(\vx_{\delta}\)를 고려합니다. \Cref{lem:rate-distortion-lb-uos}에 의해 다음이 성립합니다.
+    \begin{equation}
+        R_{\delta + \epsilon}(\vx_{\delta})
+        \leq
+        R_{\epsilon}(\vx).
+    \end{equation}
+    \(\vx_{\delta}\)가 균등한 르베그 밀도를 가지므로 섀넌 하한을 \eqref{eq:slb-appendix} 형태로 적용하여 다음을 얻을 수 있습니다.
+    \begin{equation}\label{eq:slb-proof}
+        \log_2 \volume(\Supp(\vx_{\delta}))
+        - \log_2 \volume(B_{\delta + \epsilon})
+        - O(\log D)
+        \leq
+        R_{\epsilon}(\vx).
+    \end{equation}
+    마지막으로 비율
+    \begin{equation}
+        \frac{
+            \volume(\Supp(\vx_{\delta}))
+        }
+        {
+            \volume(B_{\delta + \epsilon})
+        }
+    \end{equation}
+    을 피복수의 관점에서 하한을 설정해야 합니다.
+    \(\Supp(\vx_{\delta}) = \Supp(\vx) + B_{\delta}\)이고, 여기서 \(+\)는 민코프스키 합을 나타내므로, 부피 경계 논증의 표준 적용 (예를 들어 \cite[명제 4.2.12]{Vershynin2018-br} 참조)은 다음을 제공합니다.
+    \begin{equation}
+        \volume(\Supp(\vx_{\delta}))
+        \geq
+        \cN_{2\delta}(\Supp(\vx))
+        \volume(B_{\delta}).
+    \end{equation}
+    따라서
+    \begin{align}
+        \frac{
+            \volume(\Supp(\vx_{\delta}))
+        }
+        {
+            \volume(B_{\delta + \epsilon})
+        }
+        &\geq
+        \cN_{2\delta}(\Supp(\vx))
+        \frac{
+            \volume(B_{\delta})
+        }
+        {
+            \volume(B_{\delta + \epsilon})
+        }
+        \\
+        &=
+        \cN_{2\delta}(\Supp(\vx))
+        \left(
+            \frac{
+                \delta
+            }
+            {
+                \delta + \epsilon
+            }
+        \right)^D.
+    \end{align}
+    \(\delta = \epsilon / 2\)를 선택하면 섀넌 하한 \eqref{eq:slb-proof}와 위의 추정에서 다음을 얻습니다.
+    \begin{equation}
+        \log_2 \cN_{\epsilon}(\Supp(\vx))
+        - O(D)
+        \leq
+        R_{\epsilon}(\vx),
+    \end{equation}
+    이것이 보여야 할 것이었습니다.
+
+\end{proof}
+
+
+
+\subsection{보조정리 \ref{lem:rate-distortion-lb-uos}의 증명}\label{sec:app-rate-dist-deferred-proofs}
+
+\begin{proof}[(\Cref{lem:rate-distortion-lb-uos}의 증명)]
+    기대 제곱 왜곡이 \(\epsilon^2\)인 \(\vx\)에 대한 임의의 코드가 동일한 율과 크게 크지 않은 왜곡을 갖는 \(\vx_{\delta}\)에 대한 코드를 생성함을 보이는 것으로 충분합니다. 적절한 \(\delta\) 선택에 대해 그렇습니다.
+    따라서 율 \(R\)과 기대 제곱 왜곡 \(\epsilon^2\)를 달성하는 \(\vx\)에 대한 그러한 코드를 고정합니다. 이 코드를 사용한 재구성된 확률 변수를 \(\hat{\vx}\)로 쓰고, 연관된 부호화-복호화 매핑을 \(\mathrm{q} : \Supp(\vx) \to \Supp(\vx)\)로 씁니다 (즉, \(\hat{\vx} = \mathrm{q}(\vx)\)).
+
+    이제 \(\cS_k\)를 \(\vx\)의 지지 집합의 \(k\)번째 초구면으로 표기합니다.
+    \(\Span(\cS_k) = \Span(\vU_k)\)가 되도록 하는 정규 직교 기저 \(\vU_{k} \in \R^{D \times d_k}\)가 존재합니다.
+    지지 집합 \(\cS\)의 다음 직교 분해는 증명 전체에서 반복적으로 사용됩니다.
+    다음이 성립합니다.
+    \begin{align}
+        \cS_{\delta}
+        &= \set{\vxi \in \R^D \given \exists k \in [K] \::\: \dist(\vxi,
+        \cS_k) \leq \delta}
+        \\
+        &= \bigcup_{k \in [K]} \set{\vxi \in \R^D \given \dist(\vxi,
+        \cS_k) \leq \delta}.
+    \end{align}
+    직교 사영에 의해 임의의 \(k \in [K]\)에 대해 임의의 \(\vxi \in \R^D\)는 \(\vxi = \vxi^{\|} + \vxi^{\perp}\)로 쓸 수 있으며, 여기서 \(\vxi^{\|} \in \Span(\cS_k)\)이고 \(\ip{\vxi^{\|}}{\vxi^\perp} = 0\)입니다.
+    그러면 임의의 \(\vxi' \in \cS_k\)에 대해 다음이 성립합니다.
+    \begin{align}
+        \norm*{\vxi - \vxi'}_2^2
+        =
+        \norm*{\vxi^{\|} + \vxi^{\perp} - \vxi'}_2^2
+        &=
+        \norm*{\vxi^{\|}}_2^2 + \norm*{\vxi^{\perp}}_2^2 + \norm*{\vxi'}_2^2
+        - 2 \ip*{\vxi^{\|}}{\vxi'}
+        \\
+        &\geq
+        \norm*{\vxi^{\|}}_2^2 + \norm*{\vxi'}_2^2
+        - 2 \ip*{\vxi^{\|}}{\vxi'}
+        \\
+        &=
+        \norm*{\vxi^{\|} - \vxi'}_2^2.
+    \end{align}
+    또한 임의의 0이 아닌 \(\vxi^{\|} \in \Span(\cS_k)\)에 대해 다음이 알려져 있습니다.
+    \begin{equation}
+        \inf_{\vxi' \in \cS_k}\,
+        \norm*{\vxi^{\|} - \vxi'}_2^2
+        =
+        \norm*{\vxi^{\|} - \frac{\vxi^{\|}}{\norm{\vxi^{\|}}_2}}_2^2.
+    \end{equation}
+    \(\vxi^{\|}\)가 0이면 모든 \(\vxi' \in \cS_k\)에 대해 위의 거리가 \(1\)과 같음은 명백합니다.
+    따라서 사영 매핑 \(\pi_{\cS_k}(\vxi)\)를 다음과 같이 정의하면
+    \begin{equation}
+        \pi_{S_k}(\vxi) = \frac{\vU_k\vU_k^\top \vxi}{\norm{\vU_k^\top \vxi}_2}
+    \end{equation}
+    \(\vU_k^\top \vxi \neq \mathbf{0}\)인 임의의 \(\vxi \in \R^D\)에 대해
+    \(\pi_{\cS_k}(\vxi) = \argmin_{\vxi' \in \cS_k}\norm*{\vxi' - \vxi}_2\)가 됩니다.
+    우리는 \(0 < \delta < 1\)을 선택하여 두껍게 된 집합 \(\cS_{\delta}\)가 사영 매핑 \(\pi_{\cS_k}\) 중 어느 것도 잘 정의되지 않는 점 \(\vxi \in \R^D\)를 포함하지 않도록 합니다.
+    따라서 두껍게 된 집합 \(\cS_{\delta}\)는 다음을 만족합니다.
+    \begin{align}
+        \cS_{\delta}
+        &= \bigcup_{k \in [K]} \set*{\vxi \in \R^D \given
+        \norm*{\vxi - \frac{\vU_k\vU_k^\top \vxi}{\norm{\vU_k^\top \vxi}_2}}_2
+        \leq \delta}.
+    \end{align}
+    이 거리들은 직교 분해의 관점에서 다음과 같이 다시 쓸 수 있습니다.
+    \begin{align}
+        \norm*{\vxi - \frac{\vU_k\vU_k^\top \vxi}{\norm{\vU_k^\top \vxi}_2}}_2^2
+        &=
+        \norm*{\vxi}_2^2 - 2 \norm{\vU_k^\top \vxi}_2 + 1
+        \\
+        &=
+        \norm*{\vxi^{\|}}_2^2
+        + \norm*{\vxi^{\perp}}_2^2
+        - 2 \norm{\vU_k^\top \vxi^{\|}}_2 + 1
+        \\
+        &=
+        \norm*{\vxi^{\perp}}_2^2
+        + \left( \norm*{\vxi^{\|}}_2 - 1 \right)^2.
+        \label{eq:distance-to-hypersphere}
+    \end{align}
+    다음으로 모든 그러한 \(\vxi \in \cS_{\delta}\)가 혼합의 단일 부분공간에 대한 사영과 유일하게 연관될 수 있음을 보여줄 것이며, 이는 \(\cS\)에 대한 해당 사영을 정의할 수 있게 해줍니다.
+    주어진 \(\vxi \in \cS_{\delta}\)에 대해 위에 의해 직교 분해 \(\vxi = \vxi^{\|}_k + \vxi^{\perp}_k\)가 다음을 만족하는 부분공간 \(\vU_k\)를 찾을 수 있습니다.
+    \begin{equation}
+        \norm*{\vxi^{\perp}_k}_2^2
+        + \left( \norm*{\vxi^{\|}_k}_2 - 1 \right)^2
+        \leq
+        \delta^2.
+    \end{equation}
+    어떤 \(j \neq k\)에 대해 분해 \(\vxi = \vxi_j^{\|} + \vxi_j^{\perp}\)를 고려합니다. 다음이 성립합니다.
+    \begin{align}
+        \norm*{\vxi_j^{\|}}_2
+        =
+        \norm*{
+            \vU_j \vU_j^\top \vxi
+        }_2
+        &=
+        \norm*{
+            \vU_j \vU_j^\top( \vU_k \vU_k^\top \vxi + (\vI - \vU_k \vU_k^\top)
+            \vxi )
+        }_2
+        \\
+        &=
+        \norm*{
+            \vU_j \vU_j^\top (\vI - \vU_k \vU_k^\top) \vxi
+        }_2
+        \\
+        &\leq
+        \norm*{
+            (\vI - \vU_k \vU_k^\top) \vxi
+        }_2
+        =
+        \norm*{
+            \vxi_k^{\perp}
+        }_2
+        \leq \delta,
+    \end{align}
+    여기서 두 번째 줄은 부분공간 \(\vU_k\)들에 대한 직교성 가정을 사용하고, 세 번째 줄은 직교 사영이 비확장임을 사용합니다.
+    따라서 \(j\)번째 거리는 다음을 만족합니다.
+    \begin{equation}
+        \norm*{\vxi^{\perp}_j}_2^2
+        + \left( \norm*{\vxi^{\|}_j}_2 - 1 \right)^2
+        \geq
+        (1 - \delta)^2.
+    \end{equation}
+    이는 \(0 < \delta < 1/2\)이면 모든 \(\vxi \in \cS_{\delta}\)가 혼합에서 유일한 가장 가까운 부분공간을 가짐을 함의합니다.
+    따라서 이 조건 하에서 다음 매핑 \(\pi_{\cS} : \cS_{\delta} \to \cS\)가 잘 정의됩니다.
+    \begin{equation}
+        \pi_{\cS}(\vxi)
+        =
+        \pi_{\cS_{k_\star}}(\vxi),
+        \enspace\text{여기서}\enspace
+        k_{\star} = \argmin_{k \in [K]}\,
+        \dist(\vxi, \cS_{k}).
+    \end{equation}
+
+
+    이제 \(\vx_{\delta}\)에 대한 코드를 다음과 같이 정의합니다.
+    \begin{equation}
+        \hat{\vx}_{\delta} = \mathrm{q}( \pi_{\cS}(\vx_{\delta}) ).
+    \end{equation}
+    분명히 이것은 \(\vx_{\delta}\)에 대한 율-\(R\) 코드와 연관됩니다. 왜냐하면 \(\vx\)에 대한 율-\(R\) 코드의 부호화-복호화 매핑을 사용하기 때문입니다. 우리는 이것이 작은 왜곡을 달성함을 보여야 합니다.
+    다음을 계산합니다.
+    \begin{align}
+        \bE\left[ \norm*{ \vx_{\delta} - \hat{\vx}_{\delta} }_2^2 \right]
+        &=
+        \bE\left[ \norm*{ \vx_{\delta} - \mathrm{q}(\pi_{\cS}(\vx_{\delta})) }_2^2 \right]
+        \\
+        &\leq
+        \left(
+        \bE\left[ \norm*{ \vx_{\delta} - \pi_{\cS}(\vx_{\delta}) }_2^2
+        \right]^{1/2}
+        + \bE\left[ \norm*{ \pi_{\cS}(\vx_{\delta})
+        - \mathrm{q}(\pi_{\cS}(\vx_{\delta})) }_2^2 \right]^{1/2}
+        \right)^2,\label{eq:distortion-decomposition}
+    \end{align}
+    여기서 부등식은 민코프스키 부등식을 사용합니다.
+    이제 \Cref{def:thickening-set,def:thickening-rv-uos}에 의해 결정론적으로 다음이 성립합니다.
+    \begin{equation}
+        \norm*{ \vx_{\delta} - \pi_{\cS}(\vx_{\delta}) }_2^2
+        \leq \delta^2,
+    \end{equation}
+    따라서 기댓값도 이 추정을 만족합니다.
+    두 번째 항에 대해 확률 변수 \(\pi_{\cS}(\vx_{\delta})\)의 밀도가 \(\vx\)의 밀도에 충분히 가깝다고 특성화하면 충분합니다---\Cref{assumption:union-of-spheres}가 함의하듯이 이는 각 하위 구면 \(\cS_k\) 위의 균등 분포들의 혼합입니다.
+    위의 논증에 의해 \(\cS_{\delta}\)의 모든 점 \(\vxi\)는 하나의 부분공간 \(\vU_k\)에만 연관될 수 있으며, 이는 \(\cS_{\delta}\)의 정의에서 혼합 성분들 (\Cref{def:thickening-rv-uos} 참조)이 겹치지 않음을 의미합니다. 따라서 밀도 \(\pi_{\cS}(\vx_{\delta})\)는 \(\cS_{k, \delta}\)에서 추출되는 조건 하의 조건부 확률 변수 \(\vx_{\delta}\)에 대한 \(\pi_{\cS_k}\)의 효과를 연구함으로써 특성화될 수 있습니다. 이 측도를 \(\mu_{k, \delta}\)로 표기합니다.
+    우리는 이 측도의 \(\pi_{\cS_k}\)에 의한 전진이 \(\cS_k\) 위에서 균등함을 주장합니다.
+    이것이 성립함을 보기 위해 \Cref{eq:distance-to-hypersphere}를 상기하면 다음의 특성화를 제공합니다.
+    \begin{equation}
+        \cS_{k, \delta} = \set*{
+            \vxi^{\|} + \vxi^{\perp}
+            \given
+            \vxi^{\|} \in \Span(\vU_k),
+            \vxi^{\perp} \in \Span(\vU_k)^\perp,
+            \norm*{\vxi^{\perp}}_2^2
+            + \left( \norm*{\vxi^{\|}}_2 - 1 \right)^2
+            \leq
+            \delta
+        }.
+    \end{equation}
+    문제의 조건부 분포는 이 집합 위에서 균등합니다; 우리는 이 조건부 확률 변수에 적용된 사영 \(\pi_{\cS_k}\)가 \(\cS_k\) 위에서 균등한 확률 변수를 생성함을 보여야 합니다.
+    이 좌표들에 대해 \(\pi_{\cS_k}(\vxi^\| + \vxi^\perp) = \vxi^\| / \norm{\vxi^{\|}}_2\)임을 보았습니다.
+    따라서 임의의 \(\vxi \in \cS_{k}\)에 대해 \(\pi_{\cS_k}\) 아래에서 \(\cS_{k, \delta}\)에서 \(\vxi\)의 원상은 다음과 같습니다.
+    \begin{equation}
+        \pi_{\cS_k}^{-1}(\vxi) = \set*{
+            r\vxi + \vxi^\perp
+            \given
+            r > 0,
+            \vxi^{\perp} \in \Span(\vU_k)^\perp,
+            \norm*{\vxi^{\perp}}_2^2
+            + \left( r - 1 \right)^2
+            \leq
+            \delta
+        }.
+        \label{eq:fiber-of-uos}
+    \end{equation}
+    \((\pi_{\cS_k})_{\sharp} \mu_{k, \delta}\)가 균등함을 보이려면 \(\cS_{k, \delta}\) 위의 균등 밀도의 적분을 분해하여 각 파이버 \(\pi_{\cS_k}^{-1}(\vxi)\) (각 \(\vxi \in \cS_k\)에 대해)가 적분에 ``동등하게 기여''함을 명확히 해야 합니다.\footnote{더 엄밀하게 말하면, 이는 \(\vxi \in \cS_{k}\)에 대응하는 정칙 조건부 밀도로 \(\cS_{k, \delta}\) 위의 균등 밀도를 분해하고, \(\vxi\)에 대한 해당 밀도가 균등함을 보이는 것에 해당합니다. 증명은 이것이 참임을 명확히 합니다.}
+    \Cref{def:thickening-rv-uos}에 의해 다음이 성립합니다.
+    \begin{equation}
+        \volume(\cS_{k, \delta})
+        = \iint_{\Span(\vU_k) \times \Span(\vU_k)^\perp} \mathbf{1}_{
+            \norm*{\vxi^{\perp}}_2^2
+            + \left( \norm*{\vxi^{\|}}_2 - 1 \right)^2
+            \leq
+            \delta
+        }
+        \odif \vxi^{\|} \odif \vxi^{\perp}.
+    \end{equation}
+    특히 직교 좌표들에 대한 적분이 인수분해됩니다.
+    \(\odif \vtheta^{d}\)를 \(\R^d\)에서 반경 \(1\)인 구 위의 균등 (하르) 측도로 표기합니다. \(\vxi^{\|}\) 적분을 극좌표로 변환하면 다음을 얻습니다.
+    \begin{equation}
+        \volume(\cS_{k, \delta})
+        = \int_{[0, \infty)} \int_{\bS^{d_k-1}} \int_{\Span(\vU_k)^\perp}
+        r^{d_k-1}
+        \mathbf{1}_{
+            \norm*{\vxi^{\perp}}_2^2
+            + \left( r - 1 \right)^2
+            \leq
+            \delta
+        }
+        \odif r \odif \vtheta^{d_k} \odif \vxi^{\perp}.
+    \end{equation}
+    파이버 표현 \eqref{eq:fiber-of-uos}와 비교하면, 전진이 균등함을 검증하기 위해 위 적분의 \(r\)과 \(\vxi^\perp\) 성분들을 ``적분해 내야'' 함을 알 수 있습니다.
+    그러나 이것은 명백합니다. 위의 표현은 이 적분의 값이 \(\vxi^\|\)에---또는 문맥상 동등하게, 구면 성분 \(\vtheta^{d_k}\)의 값에---독립임을 보여주기 때문입니다.
+
+    따라서 위의 논증에 의해 \(\pi_{\cS}(\vx_{\delta})\)는 균등합니다.
+    \(\delta\)에 대한 가정이 \(\vx_{\delta}\)의 분포에서 혼합 성분들이 겹치지 않음을 함의하므로, 혼합 가중치 \(\pi_k\)도 상 \(\pi_{\cS}(\vx_{\delta})\)에서 보존되며, 특히 \(\pi_{\cS}(\vx_{\delta})\)의 분포는 \(\vx\)의 분포와 같습니다.
+    따라서 \Cref{eq:distortion-decomposition}의 두 번째 항은 다음을 만족합니다.
+    \begin{equation}
+        \bE\left[ \norm*{ \pi_{\cS}(\vx_{\delta}) - \mathrm{q}(\pi_{\cS}(\vx_{\delta})) }_2^2 \right]
+        =
+        \bE\left[ \norm*{ \vx - \mathrm{q}(\vx) }_2^2 \right]
+        \leq
+        \epsilon^2,
+    \end{equation}
+    왜냐하면 \(\mathrm{q}\)는 \(\vx\)에 대한 왜곡-\(\epsilon\) 코드이기 때문입니다.
+
+    따라서 우리는 가정된 율-\(R\), (기대 제곱) 왜곡-\(\epsilon^2\) \(\vx\)에 대한 코드가 율-\(R\), (기대 제곱) 왜곡 \(\delta + \epsilon\) \(\vx_{\delta}\)에 대한 코드를 생성함을 보였습니다.
+    이는 다음을 확립합니다.
+    \begin{equation}
+        R_{\delta + \epsilon}(\vx_{\delta})
+        \leq
+        R_{\epsilon}(\vx),
+    \end{equation}
+    이것이 보여야 할 것이었습니다.
+
+
+\end{proof}
+
+
+
 
 \end{document}
