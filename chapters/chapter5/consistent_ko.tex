@@ -64,8 +64,8 @@ $~$\hfill -- 알베르트 아인슈타인
   \end{equation}
   이 다음 두 가지 척도 중 하나에 따라 $\vX$에 \textit{가깝다}고 말한다:
   \begin{enumerate}
-    	item $\vX \approx \hat{\vX}$가 높은 확률로 어떤 노름에서 성립하면, \textit{샘플별로} 일관성이 있다고 말한다.
-    	item 표현이 $\Law(\vX) \approx \Law(\hat{\vX})$이면, \textit{분포적으로 일관성}이 있다고 말한다.
+    	\item $\vX \approx \hat{\vX}$가 높은 확률로 어떤 노름에서 성립하면, \textit{샘플별로} 일관성이 있다고 말한다.
+    	\item 표현이 $\Law(\vX) \approx \Law(\hat{\vX})$이면, \textit{분포적으로 일관성}이 있다고 말한다.
   \end{enumerate}
 \end{definition}
 
@@ -134,7 +134,7 @@ PCA의 경우, 추구하는 표현 $\Z$에 대한 정규화가 명시적이므�
 정규화된 헤비안 방식 \eqref{eqn:Hebbian}은 문제 \eqref{eq:pca-reconstruction-ch5}의 목적 함수에 대한 \textit{확률적} 투영 경사 하강 방식의 1차 근사로 해석될 수 있다 (배치 크기 $1$, $\vU$의 열 수 1). $\norm{\vu}_2 = 1$이 \eqref{eqn:Hebbian}의 투영 연산에 의해 유지되는 한 말이다.
 \eqref{eq:pca-reconstruction-ch5}와 같은 재구성 비용을 최적화하기 위한 확률적 경사 방법 사용에 대한 정확성 증명으로서, 그리고 \textit{(종단 간) 역전파보다 간단한 알고리즘이 일관된 오토인코더를 학습하는 데 성공할 수 있다}는 제안으로서, 그 존재를 염두에 두는 것이 가치가 있다.
 
-\begin{figure}[tb]
+\begin{figure}
   \centering
   \begin{tikzpicture}
     \draw (-0.1, -0.2) .. controls (1, 0.25) .. (2.1, -0.1);
@@ -152,7 +152,7 @@ PCA의 경우, 추구하는 표현 $\Z$에 대한 정규화가 명시적이므�
     \node at (1, -0.5) {\(\x\)};
 
     \draw[->] (2.25, 1) -- (3.75, 1);
-    \node at (3, 1.25) {\(\fl\и\)};
+    \node at (3, 1.25) {\(\fl\)};
 
     \draw (4.1, 0.1) -- (5.9, 0.1);
     \draw (5.9, 0.1) -- (5.9, 1.9);
@@ -167,7 +167,7 @@ PCA의 경우, 추구하는 표현 $\Z$에 대한 정규화가 명시적이므�
     \node at (5, -0.5) {\(\z\)};
 
     \draw[->] (6.25, 1) -- (7.75, 1);
-    \node at (7, 1.25) {\(\re\и\)};
+    \node at (7, 1.25) {\(\re\)};
 
     \draw (7.9, -0.2) .. controls (9, 0.25) .. (10.1, -0.1);
     \draw (10.1, -0.1) .. controls (9.75, 1) .. (10.1, 2);
@@ -241,35 +241,35 @@ PCA의 간단한 경우와 비교하여, 학습을 위해 동일한 재구성 �
     \node at (1, -0.5) {\(\x\)};
 
     \draw[->] (2.25, 1.25) -- (3.25, 1.25);
-    \node at (2.75, 1.5) {\(\fl_{1}\и\)};
+    \node at (2.75, 1.5) {\(\fl_{1}\)};
 
     \draw[->] (3.5, 1.25) -- (4.5, 1.25);
-    \node at (4, 1.5) {\(\fl_{2}\и\)};
+    \node at (4, 1.5) {\(\fl_{2}\)};
 
     \draw[->] (4.75, 1.25) -- (5.75, 1.25);
-    \node at (5.25, 1.5) {\(\cdots\и\)};
+    \node at (5.25, 1.5) {\(\cdots\)};
 
     \draw[->] (6, 1.25) -- (7, 1.25);
-    \node at (6.5, 1.5) {\(\fl_{L}\и\)};
+    \node at (6.5, 1.5) {\(\fl_{L}\)};
 
     \draw[->] (7, 0.75) -- (6, 0.75);
-    \node at (6.5, 0.5) {\(\re_{L}\и\)};
+    \node at (6.5, 0.5) {\(\re_{L}\)};
 
     \draw[->] (5.75, 0.75) -- (4.75, 0.75);
-    \node at (5.25, 0.5) {\(\cdots\и\)};
+    \node at (5.25, 0.5) {\(\cdots\)};
 
     \draw[->] (4.5, 0.75) -- (3.5, 0.75);
-    \node at (4, 0.5) {\(\re_{2}\и\)};
+    \node at (4, 0.5) {\(\re_{2}\)};
 
     \draw[->] (3.25, 0.75) -- (2.25, 0.75);
-    \node at (2.75, 0.5) {\(\re_{1}\и\)};
+    \node at (2.75, 0.5) {\(\re_{1}\)};
 
     \draw (7.3, 0.1) -- (9.1, 0.1);
     \draw (9.1, 0.1) -- (9.1, 1.9);
     \draw (9.1, 1.9) -- (7.3, 1.9);
     \draw (7.3, 1.9) -- (7.3, 0.1);
 
-    \node at (8.2, -0.5) {\(\z\и\и\и\)};
+    \node at (8.2, -0.5) {\(\z\)};
 
   \end{tikzpicture}
   \caption{평탄화 및 재구성 쌍 $(\fl, \re)$의 구성 과정 묘사. 여기서 인코더 $\fl = \fl_{L} \circ \fl_{L - 1} \circ \cdots \circ \fl_{1}$는 평탄화 계층들을 구성하여 구성되고, 디코더 $\re = \re_{1} \circ \re_{2} \circ \cdots \circ \re_{L}$는 각 $\fl_{\ell}$의 역으로 구성된다.}
@@ -316,7 +316,8 @@ Hinton과 Rumelhart \cite{Rumelhart1986}에 따른 오토인코딩의 고전적 
 \begin{align*}
 p(\vx; \vtheta) &= \int p(\vz;\, \vtheta) p(\vx \mid \vz;\, \vtheta) \odif \vz
 \\
-&= E_{\vz \sim p(\,\cdot\,;\, \vtheta)}[ p(\vx \mid \vz;\, \vtheta) ].
+&= 
+\bE_{\vz \sim p(\,\cdot\,;\, \vtheta)}[ p(\vx \mid \vz;\, \vtheta) ].
 \end{align*}
 고전적으로, 데이터 분포 $p(\vx;\, \vtheta)$에 대한 우리의 모델은 잠재 분포 $p(\vz;\, \vtheta)$와 조건부 분포 $p(\vx \mid \vz;\, \vtheta)$의 선택에 해당한다.
 그럼에도 불구하고, \Cref{ch:classic}에서 연구한 특수한 경우를 제외하고, 이러한 잠재 분포로부터 데이터 분포에 대한 모델을 계산하는 것은 다루기 어렵다.
@@ -385,7 +386,7 @@ VAE는 일반적으로 실제 데이터 분포로부터의 개별 샘플 $\vx$�
  \X
 \xrightarrow{\hspace{1mm} \mathcal{E} = f \hspace{1mm}} \Z  \xrightarrow{\hspace{1mm} \mathcal{D} = g \hspace{1mm}} \hat{\X}.
 \end{equation}
-이는 관찰된 입력 데이터 $\X$와 디코딩된 $\hat \X$가 어떤 유사성 척도 $d(\X, \hat \X)$에 의해 가깝도록 강제해야 한다. 자연에서 동물이나 인간은 실제 $\X$에 직접 접근할 수 있는 경우가 거의 없다. 예를 들어, 우리는 장면 속 객체의 실제 3D 모양, 거리 또는 동역학에 직접 접근할 수 없다. 그럼에도 불구하고, 우리는 모두 그것들을 매우 정확하고 효율적으로 추정하고 예측하는 법을 배웠다. 따라서, 뛰어난 질문은 다음과 같다: 비록 우리의 추정치 $\hat {\x}$를 실제 $\x$와 직접 비교할 수 없더라도, $\X$의 실제 분포를 어떻게 학습할 수 있는가? 이 장에서 보게 되겠지만, 그 해답은 데이터 분포의 저차원성뿐만 아니라 폐루프 피드백에도 있다.
+이는 관찰된 입력 데이터 $\X$와 디코딩된 $\hat \X$가 어떤 유사성 척도 $d(\X, \hat \X)$에 의해 가깝도록 강제해야 한다. 자연에서 동물이나 인간은 실제 $\X$에 직접 접근할 수 있는 경우가 거의 없다. 예를 들어, 우리는 장면 속 객체의 실제 3D 모양, 거리 또는 동역학에 직접 접근할 수 없다. 그럼에도 불구하고, 우리는 모두 그것들을 매우 정확하고 효율적으로 추정하고 예측하는 법을 배웠다. 따라서, 뛰어난 질문은 다음과 같다: 비록 우리의 추정치 $\hat \x$를 실제 $\x$와 직접 비교할 수 없더라도, $\X$의 실제 분포를 어떻게 학습할 수 있는가? 이 장에서 보게 되겠지만, 그 해답은 데이터 분포의 저차원성뿐만 아니라 폐루프 피드백에도 있다.
 
 \subsection{스태클버그 게임을 통한 폐루프 전사}\label{sec:closed-loop-transcription}
 
@@ -393,10 +394,10 @@ VAE는 일반적으로 실제 데이터 분포로부터의 개별 샘플 $\vx$�
 
 위의 어려움을 완화하기 위한 초기 시도로서, 사람들은 판별적 접근법을 통해 생성기/디코더 $g$를 학습할 것을 제안했다 \cite{Tu-2007}. 이러한 생각의 흐름은 {\em 생성적 적대 신경망(GAN)} \cite{goodfellow2014generative}의 아이디어로 이어졌다. 이는 일반적으로 심층 네트워크로 모델링되는 판별기 $d$를 도입하여 생성된 샘플 $\hat \X$와 실제 샘플 $\X$ 사이의 차이를 식별한다:
 \begin{equation}
- \Z  \xrightarrow{\hspace{2mm} g(\z,\eta) \hspace{2mm}} \hat \X, \, \X  \xrightarrow{\hspace{2mm} d(\x, \theta)\hspace{2mm}} \{\mathbf 0, \mathbf 1\}}.
+ \Z \xrightarrow{\hspace{2mm} g(\z,\eta) \hspace{2mm}} \hat \X, \, \X \xrightarrow{\hspace{2mm} d(\x, \theta)\hspace{2mm}} \{\mathbf 0, \mathbf 1\}.
  \label{eqn:GAN}
 \end{equation}
-생성기 $g$와 판별기 $d$ 사이의 {\em 스태클버그 게임}을 통해 $\hat {\x}$와 $\x$ 사이의 분포를 정렬하려고 시도할 수 있다고 제안된다:
+생성기 $g$와 판별기 $d$ 사이의 {\em 스태클버그 게임}을 통해 $\hat \x$와 $\x$ 사이의 분포를 정렬하려고 시도할 수 있다고 제안된다:
 \begin{equation}
 \max_{\theta}\min_{\eta} \mathbb{E}_{p({\x})}[\log d(\x,\theta)] + \mathbb{E}_{p({\z})}[1 - \log d(\underbrace{g(\z,\eta)}_{\hat \x \sim p_g},\theta)].
 \end{equation}
@@ -421,7 +422,7 @@ KL-발산과 비교하여, JS-발산은 두 분포의 지지 집합이 겹치지
 \begin{definition}[자기 일관된 표현]\label{def:closed_loop}
     데이터 $\vX$가 주어졌을 때, \textit{자기 일관된 표현}은 함수 쌍 $(f \colon \cX \to \cZ, g \colon \cZ \to \cX)$이며, 여기서 \textit{특징} $\vZ = f(\vX)$는 간결하고 구조화되어 있고, \textit{오토인코딩 특징} $\hat{\vZ} \doteq f \circ g(\vZ)$는 $\vZ$에 \textit{가깝다}.
     \begin{enumerate}
-        	item 특정 노름에서 높은 확률로 $\vZ \approx \hat{\vZ}$이면 \textit{샘플별로} 자기 일관성이 있다고 말한다.
+        \item 특정 노름에서 높은 확률로 $\vZ \approx \hat{\vZ}$이면 \textit{샘플별로} 자기 일관성이 있다고 말한다.
         	
 \item 표현이 $\Law(\vZ) \approx \Law(\hat{\vZ})$이면 \textit{분포적으로 자기 일관성}이 있다고 말한다.
     \end{enumerate}
@@ -431,13 +432,13 @@ KL-발산과 비교하여, JS-발산은 두 분포의 지지 집합이 겹치지
 
 위에서 우리는 데이터 분포를 학습하는 문제를 폐쇄 루프 오토인코딩 문제로 공식화하는 것이 가능하다고 주장했다. 또한 이러한 방식이 경험적으로 작동하는 것처럼 보인다는 것도 보았다. 남은 질문은 이러한 방식이 언제, 왜 작동해야 하는가이다. 임의의 데이터 분포를 가진 가장 일반적인 경우에 대해 이 질문에 답하기는 어렵다. 그럼에도 불구하고, 평소와 같이, 데이터 분포가 저차원 부분 공간 또는 저계급 가우시안의 혼합인 이상적인 경우에 대해 엄격한 정당성에 도달할 수 있는지 살펴보자. 이 중요한 특별한 경우에 대한 명확한 특성화와 이해는 더 일반적인 경우에 대한 통찰력을 줄 것이다.\footnote{저차원 구조를 가진 대부분의 분포는 이 분포 계열로 잘 근사될 수 있기 때문이다.} 
 
-이를 위해 먼저 $\vX$가 저차원 가우시안의 혼합에 따라 분포하고, $\vX$에 대한 레이블(즉, 부분 공간 할당)이 $\vy$에 의해 주어진다고 가정하자. 그런 다음, 예를 들어 $\vX$를 \textit{직교} 부분 공간의 혼합에 지원되는 표현 $\vZ$로 인코딩하고, $\vZ$를 다시 $\vX$로 디코딩하는 것을 학습함으로써 데이터 분포를 학습하기 위한 최소-최대 최적화 문제를 설정한다. 그러면 우리가 달성하고자 하는 표현은 이전에 논의된 정보 이득 버전, 즉 $ \Delta R_{\epsilon}(\vZ) = R_{\epsilon}(\vZ) - \sum_{k=1}^K R_{\epsilon}(\bm Z_k)$에 의해 최대화되며, 이는 각 클래스 $k$의 표현 $\vZ_{k}$가 다른 클래스의 지원 부분 공간과 직교하는 부분 공간을 확장하도록 강제한다. 디코딩의 일관성을 측정하는 방법은 이전과 같이 $\sum_{k = 1}^{K}\Delta R_{\epsilon}(\vZ_{k}, \hat{\vZ}_{k})$에 의해 주어지며, 이는 각 클래스 $k$에 대한 표현 $\vZ_{k}$와 그 자동 인코딩 $\hat{\vZ}_{k}$가 동일한 부분 공간을 확장하도록 강제한다. 따라서 다음과 같은 단순화된 스태클버그 게임을 설정할 수 있다:
+이를 위해 먼저 $\vX$가 저차원 가우시안의 혼합에 따라 분포하고, $\vX$에 대한 레이블(즉, 부분 공간 할당)이 $\vy$에 의해 주어진다고 가정하자. 그런 다음, 예를 들어 $\vX$를 \textit{직교} 부분 공간의 혼합에 지원되는 표현 $\vZ$로 인코딩하고, $\vZ$를 다시 $\vX$로 디코딩하는 것을 학습함으로써 데이터 분포를 학습하기 위한 최소-최대 최적화 문제를 설정한다. 그러면 우리가 달성하고자 하는 표현은 이전에 논의된 정보 이득 버전, 즉 $ \Delta R_{\epsilon}(\vZ) = R_{\epsilon}(\vZ) - \sum_{k=1}^K R_{\epsilon}(\bm Z_k)$에 의해 최대화되며, 이는 각 클래스 $k$의 표현 $\vZ_{k}$가 다른 클래스의 지원 부분 공간과 직교하는 부분 공간을 확장하도록 강제한다. 디코딩의 일관성을 측정하는 방법은 이전과 같이 $\sum_{k = 1}^{K}\Delta R_\epsilon(\vZ_{k}, \hat{\vZ}_{k})$에 의해 주어지며, 이는 각 클래스 $k$에 대한 표현 $\vZ_{k}$와 그 자동 인코딩 $\hat{\vZ}_{k}$가 동일한 부분 공간을 확장하도록 강제한다. 따라서 다음과 같은 단순화된 스태클버그 게임을 설정할 수 있다:
 \begin{equation}\label{eq:ctrl_msp_game}
-    \max_{\bm \theta}\min_{\bm {\eta}}c{\Delta R_\epsilon(\vZ(\bm \theta)) + \sum_{k = 1}^{K}\Delta R_{\epsilon}(\vZ_{k}(\bm \theta), \hat{\vZ}_{k}(\bm \theta, \bm {\eta}))}
+    \max_{\bm \theta}\min_{\bm \eta}\bc{\Delta R_\epsilon(\vZ(\bm \theta)) + \sum_{k = 1}^{K}\Delta R_\epsilon(\vZ_{k}(\bm \theta), \hat{\vZ}_{k}(\bm \theta, \bm \eta))}
 \end{equation}
-이것은 실제 사용되는 것보다 더 간단한 설정이라는 점에 유의하라---예를 들어 \Cref{sec:sample-wise-incremental}의 항이 없고, 클래스 레이블이 있는 지도 설정에서 작업한다(다음 결과를 증명하는 데 사용된 기술은 비지도 공식으로 쉽게 확장할 수 있지만). 또한 표현의 일관성은 $\Delta R_{\epsilon}$를 통해 분포별 의미에서만 측정된다(원하는 경우 $\ell_{2}$ 노름과 같은 샘플별 거리 메트릭으로 대체할 수 있으며, \textit{mutatis mutandis}로 동등한 결론을 도출할 수 있지만).
+이것은 실제 사용되는 것보다 더 간단한 설정이라는 점에 유의하라---예를 들어 \(\Delta R_\epsilon(\hat{\vZ})\)의 항이 없고, 클래스 레이블이 있는 지도 설정에서 작업한다(다음 결과를 증명하는 데 사용된 기술은 비지도 공식으로 쉽게 확장할 수 있지만). 또한 표현의 일관성은 \(\Delta R_\epsilon\)를 통해 분포별 의미에서만 측정된다(원하는 경우 $\ell_{2}$ 노름과 같은 샘플별 거리 메트릭으로 대체할 수 있으며, \textit{mutatis mutandis}로 동등한 결론을 도출할 수 있지만).
 
-온화한 조건 하에서, 상관된 저차원 가우시안의 혼합에 따라 이미 분포된 데이터 소스 $\vX$로부터 $\vZ$를 실현하는 원하는 인코더와 디코더를 실현하기 위해, 우리는 가우시안을 풀고 희게 만들기 위해 선형 인코더와 디코더만 필요하다. 그런 다음 {\bm 	heta}와 {\bm {\eta}}가 연산자 노름이 제한된 행렬을 매개변수화하는 경우 이 설정을 연구한다.
+온화한 조건 하에서, 상관된 저차원 가우시안의 혼합에 따라 이미 분포된 데이터 소스 \(\vX\) 로부터 \(\vZ\) 를 실현하는 원하는 인코더와 디코더를 실현하기 위해, 우리는 가우시안을 풀고 희게 만들기 위해 선형 인코더와 디코더만 필요하다. 그런 다음 \(\bm \theta\)와 \(\bm \eta\)가 연산자 노름이 제한된 행렬을 매개변수화하는 경우 이 설정을 연구한다.
 
 우리는 이 설정에서 어떤 종류의 최적해가 학습되는지 이해하고 싶다. 디코더의 최적 솔루션이 인코더에 대해서만 정의되고(특히 디코더의 다른 내재적 속성에 대해서는 정의되지 않음) 이러한 종류의 게임에 적합한 솔루션 개념 중 하나는 디코더가 인코더를 따르는 \textit{스태클버그 평형}이다. % 즉, 이러한 평형에서 디코더는 목적을 최적화해야 한다; 한편 인코더는 무엇을 선택하든 디코더가 최적의 응답을 선택할 것이라는 점을 감안할 때 목적을 최적화해야 한다(이는 인코더 목적에 영향을 줄 수 있음). 게임 이론 용어로, 디코더가 \textit{두 번째}로 가는 것과 같다: 인코더 이후에 가중치를 선택하고, 인코더와 디코더 모두 이러한 관점에서 목적을 최적화하려고 시도한다. \textit{교대 최적화}를 통해 경사 방법을 통해 순차적 평형을 학습하는 것은 계산적으로 다루기 쉽다. 여기서 각 측은 다른 학습률을 사용한다. 순차적 평형에 대한 자세한 설명은 이 책의 범위를 벗어나며 \Cref{sec:minimax}에서 더 많은 기술적 세부 사항을 제공한다. 이 설정에서 우리는 다음 결과를 가진다:
 \begin{theorem}[\cite{pai2022pursuit}, 요약됨]\label{thm:ctrl_theory}
@@ -486,33 +487,33 @@ KL-발산과 비교하여, JS-발산은 두 분포의 지지 집합이 겹치지
 \paragraph{오래된 메모리 제약이 있는 점진적 학습 LDR.}
 \eqref{eqn:autoencoding-ch6} 학습된 오토인코딩을 사용하면, 새로운 클래스를 배우는 동안 망각을 피하기 위해 메모리 특징과 관련된 이미지, 예를 들어 $\hat\X_{old} = g(\Z_{old}, \bm \eta)$를 재생하고 사용할 수 있다는 점에 주목하라. 이것이 일반적으로 이전의 점진적 학습 방법에서 생성 모델이 사용된 방식이다. 그러나 폐쇄 루프 프레임워크를 사용하면 특징에서 이미지를 명시적으로 재생할 필요가 없다. 과거 기억은 특징 자체에 대한 최적화를 통해 효과적으로 보존될 수 있다.
 
-새로운 클래스의 객체를 점진적으로 학습하는 작업을 고려해보자.\footnote{물론, 심각한 수정 없이 작업에 새로운 클래스의 작은 배치가 포함된 더 일반적인 설정을 고려할 수도 있다.} 해당 새로운 샘플 집합을 $\X_{new}$로 나타낸다. $\X_{new}$의 특징은 $\Z_{new}(\bm 	heta) = f(\X_{new}, \bm 	heta)$로 표시된다. 우리는 그것들을 오래된 클래스 $\Z_{old}$의 프로토타입 특징과 함께 연결하고 $\Z = [\Z_{new}(\bm 	heta), \Z_{old}]$를 형성한다. 모든 특징으로부터 재생된 이미지를 $\hat{\X} = [{\hat{\X}_{new}(\bm 	heta,\bm {\eta})}, {\hat{\X}_{old}(\bm {\eta})}]$로 나타내지만, 실제로는 명시적으로 계산하거나 사용할 필요가 없다. 우리는 재생된 이미지의 특징, 즉 $\hat{\Z} = f(\hat{\X}, \bm 	heta) =  [{\hat{\Z}_{new}(\bm 	heta,\bm {\eta})}, {\hat{\Z}_{old}(\bm 	heta,\bm {\eta})}]$만 필요하다.
+새로운 클래스의 객체를 점진적으로 학습하는 작업을 고려해보자.\footnote{물론, 심각한 수정 없이 작업에 새로운 클래스의 작은 배치가 포함된 더 일반적인 설정을 고려할 수도 있다.} 해당 새로운 샘플 집합을 $\X_{new}$로 나타낸다. $\X_{new}$의 특징은 $\Z_{new}(\bm 	heta) = f(\X_{new}, \bm 	heta)$로 표시된다. 우리는 그것들을 오래된 클래스 $\Z_{old}$의 프로토타입 특징과 함께 연결하고 $\Z = [\Z_{new}(\bm 	heta), \Z_{old}]$를 형성한다. 모든 특징으로부터 재생된 이미지를 $\hat{\X} = [{\hat{\X}_{new}(\bm \theta,\bm \eta)}, {\hat{\X}_{old}(\bm \eta)}]$로 나타내지만, 실제로는 명시적으로 계산하거나 사용할 필요가 없다. 우리는 재생된 이미지의 특징, 즉 $\hat{\Z} = f(\hat{\X}, \bm \theta) =  [{\hat{\Z}_{new}(\bm \theta,\bm \eta)}, {\hat{\Z}_{old}(\bm \theta,\bm \eta)}]$만 필요하다.
 
 다중 클래스 CTRL 목표 \eqref{eq:MCR2-GAN-objective}에 대한 동기를 반영하여, 우리는 새로운 클래스 $\Z_{new}$의 특징이 모든 오래된 클래스 $\Z_{old}$와 비간섭적이기를 원한다. $\Z_{new}$가 학습해야 할 유일한 새로운 클래스의 특징이므로, 목표 \eqref{eq:MCR2-GAN-objective}는 $k=1$인 경우로 축소된다:
 \begin{equation}
-\min_{\bm {\eta}} \max_{\bm 	heta} \Delta{R_{\epsilon}(\Z)} + \Delta{R_{\epsilon}(\hat{\Z})}+\Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})}.
+\min_{\bm \eta} \max_{\bm \theta} \Delta{R_\epsilon(\Z)} + \Delta{R_\epsilon(\hat{\Z})}+\Delta{R_\epsilon(\Z_{new},\hat{\Z}_{new})}.
 \label{eqn:unconstrained-minimax}
 \end{equation}
-그러나, 새로운 클래스에 대한 특징을 최적화하기 위해 네트워크 매개변수 $(\bm 	heta,\bm {\eta})$를 업데이트하면, 업데이트된 매핑 $f$와 $g$가 오래된 클래스의 특징도 변경할 것이다. 따라서, 오래된 클래스 표현의 왜곡을 최소화하기 위해, 우리는 $\mbox{Cov}(\Z_{j,old}) = \mbox{Cov}(\hat{\Z}_{j,old})$를 강제하려고 시도할 수 있다. 다시 말해, 새로운 클래스를 학습하는 동안, 우리는 오래된 클래스의 기억이 전사 루프를 통해 "자기 일관성"을 유지하도록 강제한다:
+그러나, 새로운 클래스에 대한 특징을 최적화하기 위해 네트워크 매개변수 $(\bm \theta,\bm \eta)$를 업데이트하면, 업데이트된 매핑 $f$와 $g$가 오래된 클래스의 특징도 변경할 것이다. 따라서, 오래된 클래스 표현의 왜곡을 최소화하기 위해, 우리는 $\mbox{Cov}(\Z_{j,old}) = \mbox{Cov}(\hat{\Z}_{j,old})$를 강제하려고 시도할 수 있다. 다시 말해, 새로운 클래스를 학습하는 동안, 우리는 오래된 클래스의 기억이 전사 루프를 통해 "자기 일관성"을 유지하도록 강제한다:
 \begin{equation}
-\Z_{old} \xrightarrow{\hspace{2mm} g(\z,\bm {\eta}) \hspace{2mm}} \hat \X_{old} \xrightarrow{\hspace{2mm} f(\x, \bm 	heta)\hspace{2mm}} {\hat \Z}_{old}.
+\Z_{old} \xrightarrow{\hspace{2mm} g(\z,\bm \eta) \hspace{2mm}} \hat \X_{old} \xrightarrow{\hspace{2mm} f(\x, \bm \theta)\hspace{2mm}} \ \hat \Z_{old}.
 \end{equation}
 수학적으로, 이것은 다음과 같이 설정하는 것과 같다
-$$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{\epsilon}(\Z_{j,old},\hat{\Z}_{j,old}) = 0.$$
+$$\Delta R_\epsilon(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_\epsilon(\Z_{j,old},\hat{\Z}_{j,old}) = 0.$$  
 따라서, 위의 최소-최대 프로그램 \eqref{eqn:unconstrained-minimax}은 {\em 제한된} 최소-최대 게임으로 수정되며, 이를 {\em 점진적 폐쇄 루프 전사}(i-CTRL)라고 한다.
 이 게임의 목표는 표준 다중 클래스 CTRL 목표 \eqref{eq:MCR2-GAN-objective}와 동일하지만, 단 하나의 추가 제약 조건만 포함한다:
 \begin{eqnarray}
-      \min_{\bm {\eta}} \max_{\bm 	heta}  &&\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} \nonumber\\
+      \min_{\bm \eta} \max_{\bm \theta}  &&\Delta{R_\epsilon(\Z)}+\Delta{R_\epsilon(\hat{\Z})}+\Delta{R_\epsilon(\Z_{new},\hat{\Z}_{new})} \nonumber\\
       && \mbox{subject to} \quad  \Delta R(\Z_{old},\hat{\Z}_{old}) = 0.
 \label{eqn:constrained-minimax}
 \end{eqnarray}
 
-실제로, 위의 제약된 최소-최대 프로그램은 다음과 같이 인코더 $f(\cdot, \bm 	heta)$와 디코더 $g(\cdot, \bm {\eta})$ 사이에서 {\em 교대로} 최소화 및 최대화를 통해 해결될 수 있다:
+실제로, 위의 제약된 최소-최대 프로그램은 다음과 같이 인코더 $f(\cdot, \bm \theta)$와 디코더 $g(\cdot, \bm \eta)$ 사이에서 {\em 교대로} 최소화 및 최대화를 통해 해결될 수 있다:
 \begin{eqnarray}
-      &\max_{\bm 	heta}  &\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\lambda\cdot  \Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} - \gamma\cdot \Delta{R_{\epsilon}(\Z_{old},\hat{\Z}_{old})}, \label{eqn:relaxed-max} \\
-      &\min_{\bm {\eta}} &\Delta{R_{\epsilon}(\Z)}+\Delta{R_{\epsilon}(\hat{\Z})}+\lambda\cdot \Delta{R_{\epsilon}(\Z_{new},\hat{\Z}_{new})} + \gamma\cdot \Delta{R_{\epsilon}(\Z_{old},\hat{\Z}_{old})}; \label{eqn:relaxed-min}
+      &\max_{\bm \theta}  &\Delta{R_\epsilon(\Z)}+\Delta{R_\epsilon(\hat{\Z})}+\lambda\cdot  \Delta{R_\epsilon(\Z_{new},\hat{\Z}_{new})} - \gamma\cdot \Delta{R_\epsilon(\Z_{old},\hat{\Z}_{old})}, \label{eqn:relaxed-max} \\
+      &\min_{\bm \eta} &\Delta{R_\epsilon(\Z)}+\Delta{R_\epsilon(\hat{\Z})}+\lambda\cdot \Delta{R_\epsilon(\Z_{new},\hat{\Z}_{new})} + \gamma\cdot \Delta{R_\epsilon(\Z_{old},\hat{\Z}_{old})}; \label{eqn:relaxed-min}
 \end{eqnarray}
-여기서 \eqref{eqn:constrained-minimax}의 제약 조건 $\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) = 0$는 해당 계수 $\gamma$와 부호를 가진 라그랑주 항으로 변환(및 완화)되었다. 우리는 또한 새로운 데이터와 관련된 레이트 감소 항에 가중치를 부여하기 위해 다른 계수 $\lambda$를 도입한다.
+여기서 \eqref{eqn:constrained-minimax}의 제약 조건 $\Delta R_\epsilon(\Z_{old},\hat{\Z}_{old}) = 0$는 해당 계수 $\gamma$와 부호를 가진 라그랑주 항으로 변환(및 완화)되었다. 우리는 또한 새로운 데이터와 관련된 레이트 감소 항에 가중치를 부여하기 위해 다른 계수 $\lambda$를 도입한다.
 
 \paragraph{점진적 복습을 통한 공동 최적 메모리.}
 기억 형성의 이 단계를 모방하기 위해, 전체 데이터셋을 점진적으로 학습한 후, 모든 클래스를 한 번에 한 클래스씩 다시 복습할 수 있다. 모든 클래스를 한 번 거치는 것을 하나의 복습 "주기"라고 부른다.\footnote{기존의 공동 학습 설정에서 사용되는 "에포크"라는 용어와 구별하기 위함이다.} 필요한 경우 여러 복습 주기를 수행할 수 있다. 복습이 학습된 (LDR) 기억을 향상시킬 수 있다는 것은 상당히 예상된다. 그러나 다소 놀랍게도, 폐쇄 루프 프레임워크는 심지어 ``{클래스 비지도}'' 방식으로 복습할 수 있게 해준다: 오래된 클래스의 데이터를 복습할 때, 예를 들어 $\X_j$, 시스템은 클래스 레이블이 필요 없으며 $\X_j$를 새로운 클래스 $\X_{new}$로 간단히 처리할 수 있다. 즉, 시스템은 수정 없이 동일한 제한된 최소-최대 프로그램 \eqref{eqn:constrained-minimax}을 최적화한다; 시스템이 최적화된 후, $\Z_{new}$에 의해 생성된 새로 학습된 부분공간을 식별하고, 이를 오래된 부분공간 $\mathcal{S}_j$를 대체하거나 병합하는 데 사용할 수 있다. 우리 실험에서 보여주듯이, 이러한 클래스 비지도 점진적 복습 과정은 LDR 기억의 판별 및 생성 성능을 점진적으로 향상시켜 결국 공동 학습된 기억의 성능으로 수렴할 수 있다.
@@ -550,13 +551,14 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
         \label{fig:justify_xhat_equals_x_incremental}
 \end{figure}
 
-\paragraph{학습된 특징의 주 부분 공간.} 대부분의 생성적 메모리 기반 방법은 재생 목적으로 오토인코더, VAE 또는 GAN을 활용한다. 각 클래스에 대해 학습된 특징 $\Z_j$의 구조 또는 분포는 특징 공간에서 불분명하다. 반면에 LDR 메모리의 특징 $\Z_j$는 명확한 선형 구조를 가진다. \Cref{fig:cifar_10_pca_sampling_main}는 모든 학습된 특징 $|{\Z}^	op {\Z}|$ 간의 상관관계를 시각화하며, 두 데이터셋 모두에서 명확한 블록 대각선 패턴을 관찰한다.\footnote{이러한 패턴은 \cite{Bao2020AMO}의 확장 데이터 그림 3에 표시된 바와 같이, 하측두엽 피질의 다른 영역에서 나온 객체 범주의 반응 프로필의 유사성 행렬과 매우 유사하다는 점에 주목하라.} 이것은 다른 클래스 $\Z_j$에 대한 특징이 실제로 서로 비일관적인 부분 공간에 놓여 있음을 나타낸다. 따라서 각 클래스의 특징은 특징 공간에서 주 부분 공간으로 잘 모델링될 수 있다. %
+\paragraph{학습된 특징의 주 부분 공간.} 
+대부분의 생성적 메모리 기반 방법은 재생 목적으로 오토인코더, VAE 또는 GAN을 활용한다. 각 클래스에 대해 학습된 특징 $\Z_j$의 구조 또는 분포는 특징 공간에서 불분명하다. 반면에 LDR 메모리의 특징 $\Z_j$는 명확한 선형 구조를 가진다. \Cref{fig:cifar_10_pca_sampling_main}는 모든 학습된 특징 $|\Z^\top\Z|$ 간의 상관관계를 시각화하며, 두 데이터셋 모두에서 명확한 블록 대각선 패턴을 관찰한다.\footnote{이러한 패턴은 \cite{Bao2020AMO}의 확장 데이터 그림 3에 표시된 바와 같이, 하측두엽 피질의 다른 영역에서 나온 객체 범주의 반응 프로필의 유사성 행렬과 매우 유사하다는 점에 주목하라.} 이것은 다른 클래스 $\Z_j$에 대한 특징이 실제로 서로 비일관적인 부분 공간에 놓여 있음을 나타낸다. 따라서 각 클래스의 특징은 특징 공간에서 주 부분 공간으로 잘 모델링될 수 있다. %
 
 \begin{figure}[tb]
 \centering
 \includegraphics[height=4.1cm]{\toplevelprefix/chapters/chapter5/figs/Heatmap_MNIST.jpg}
 \includegraphics[height=4cm]{\toplevelprefix/chapters/chapter5/figs/Heatmap_CIFAR10.png}
-\caption{\small MNIST(왼쪽)와 CIFAR-10(오른쪽)의 특징 공간에서 $|{\Z}^\top {\Z}|$의 블록 대각선 구조.}
+\caption{\small MNIST(왼쪽)와 CIFAR-10(오른쪽)의 특징 공간에서 $|\Z^\top \Z|$의 블록 대각선 구조.}
 \label{fig:cifar_10_pca_sampling_main}
 \end{figure}
 
@@ -586,7 +588,7 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
         \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter5/figs/ship_z.jpg}
         \caption{`배'의 샘플링된 $\hat{\x}_{old}$}
     \end{subfigure}
-    \caption{\small {MNIST}(클래스 '4'와 클래스 '7') 및 {CIFAR-10}(클래스 '말'과 '배')에 대해 학습된 특징의 (상위 4개) 주성분에 가장 가까운 거리를 가진 $\z$로부터 재구성된 5개의 $\hat {\x}=g(\z)$ 시각화.}
+    \caption{\small {MNIST}(클래스 '4'와 클래스 '7') 및 {CIFAR-10}(클래스 '말'과 '배')에 대해 학습된 특징의 (상위 4개) 주성분에 가장 가까운 거리를 가진 $\z$로부터 재구성된 5개의 $\hat \x=g(\z)$ 시각화.}
     \label{fig:pca_sampling_main}
 \end{figure}
 
@@ -605,7 +607,7 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
 
 우리가 알다시피, 폐쇄 루프 CTRL 공식은 CTRL-바이너리 프로그램을 통해 클래스 정보 없이도 이미 괜찮은 오토인코딩을 학습할 수 있다:
 \begin{align}
-      \max_{\bm 	heta}\min_{\bm {\eta}}  \quad \Delta R_{\epsilon}(\Z, \hat{\Z}) 
+      \max_{\bm \theta} \min_{\bm \eta} \quad \Delta R_\epsilon(\Z, \hat{\Z}) 
  \label{eqn:CTRL-Binary}
 \end{align}
 그러나 \eqref{eqn:CTRL-Binary}는 데이터셋 $\X$와 재생성된 $\hat \X$를 분포 수준에서만 정렬하기 때문에 실질적으로 제한적이라는 점에 유의하라.
@@ -615,45 +617,44 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
 \label{sec:constraints}
 비지도 설정에서 학습된 표현의 판별적 및 생성적 속성을 향상시키기 위해, 위의 CTRL-바이너리 최소최대 게임 \eqref{eqn:CTRL-Binary}에 대해 두 가지 추가 메커니즘을 제안한다. 단순성과 균일성을 위해, 여기서는 이들을 레이트 감소 측정에 대한 등식 제약 조건으로 공식화하지만, 실제로는 최적화 중에 부드럽게 강제될 수 있다.
 
-\paragraph{폐쇄 루프 전사를 통한 샘플별 자기 일관성.} 첫째, CTRL-바이너리가 샘플별 일관된 오토인코딩을 학습하지 않는 문제를 해결하기 위해, 각 샘플에 대해 $\hat {\x}$가 $\x$에 가깝도록 촉진해야 한다. CTRL 프레임워크에서, 이것은 해당 특징 $\z=f(\x)$와 $\hat \z = f(\hat \x)$를 가깝게 강제함으로써 달성될 수 있다.
+\paragraph{폐쇄 루프 전사를 통한 샘플별 자기 일관성.} 
+첫째, CTRL-바이너리가 샘플별 일관된 오토인코딩을 학습하지 않는 문제를 해결하기 위해, 각 샘플에 대해 $\hat \x$가 $\x$에 가깝도록 촉진해야 한다. CTRL 프레임워크에서, 이것은 해당 특징 $\z=f(\x)$와 $\hat \z = f(\hat \x)$를 가깝게 강제함으로써 달성될 수 있다.
 샘플별 자기 일관성을 촉진하기 위해, 여기서 $\hat{\x} = g(f(\x))$는 $\x$에 가깝다, 우리는 모든 $N$개의 샘플에 대해 $\z$와 $\hat{\z}$ 사이의 거리가 0 또는 작기를 원한다.
 이 거리는 레이트 감소로 측정될 수 있다:
 \begin{align}
-\sum_{i\in N} \Delta R_{\epsilon}(\z^i,\hat{\z}^i) = 0.
+\sum_{i\in N} \Delta R_\epsilon(\z^i,\hat{\z}^i) = 0.
 \label{eqn:sample-self-consistency}\vspace{-2mm}
 \end{align}
 이것은 다시 이미지 공간에서 차이를 측정하는 것을 피한다는 점에 주목하라.
 
-\paragraph{증강된 샘플 압축을 통한 자기 지도 학습.} 비지도 설정에서는 샘플 간의 클래스 레이블 정보를 알 수 없으므로, 우리가 할 수 있는 최선은 모든 샘플과 그 증강(예: 평행 이동, 회전, 폐색 등을 통해)을 하나의 "클래스"로 보는 것이다—이것이 거의 모든 자기 지도 학습 방법의 기본 아이디어이다. 레이트 감소 프레임워크에서, 각 샘플과 그 증강의 특징을 압축하는 것이 자연스럽다. 이 연구에서는 SimCLR \cite{chen2020simple}의 표준 변환을 채택하고 이러한 변환을 $\tau$로 나타낸다. 각 증강된 샘플을 $\x_a = \tau(\x)$로, 해당 특징을 $\z_a = f(\x_a, \bm 	heta)$로 나타낸다. 판별 목적으로, 우리는 분류기가 그러한 변환에 대해 \textit{불변}이기를 희망한다. 따라서 모든 증강의 특징 $\z_a$가 원래 샘플 $\x$의 특징 $\z$와 동일하도록 강제하는 것이 자연스럽다. 이것은 다시 레이트 감소 측면에서 측정된 $\z$와 $\z_a$ 사이의 거리가 모든 $N$개 샘플에 대해 0(또는 작음)이 되도록 요구하는 것과 같다:
+\paragraph{증강된 샘플 압축을 통한 자기 지도 학습.} 비지도 설정에서는 샘플 간의 클래스 레이블 정보를 알 수 없으므로, 우리가 할 수 있는 최선은 모든 샘플과 그 증강(예: 평행 이동, 회전, 폐색 등을 통해)을 하나의 "클래스"로 보는 것이다—이것이 거의 모든 자기 지도 학습 방법의 기본 아이디어이다. 레이트 감소 프레임워크에서, 각 샘플과 그 증강의 특징을 압축하는 것이 자연스럽다. 이 연구에서는 SimCLR \cite{chen2020simple}의 표준 변환을 채택하고 이러한 변환을 $\tau$로 나타낸다. 각 증강된 샘플을 $\x_a = \tau(\x)$로, 해당 특징을 $\z_a = f(\x_a, \bm \theta)$로 나타낸다. 판별 목적으로, 우리는 분류기가 그러한 변환에 대해 \textit{불변}이기를 희망한다. 따라서 모든 증강의 특징 $\z_a$가 원래 샘플 $\x$의 특징 $\z$와 동일하도록 강제하는 것이 자연스럽다. 이것은 다시 레이트 감소 측면에서 측정된 $\z$와 $\z_a$ 사이의 거리가 모든 $N$개 샘플에 대해 0(또는 작음)이 되도록 요구하는 것과 같다:
 \begin{align}
-\sum_{i\in N} \Delta R_{\epsilon}(\z^i,\z_{a}^i) = 0.
+\sum_{i\in N} \Delta R_\epsilon(\z^i,\z_{a}^i) = 0.
 \label{eqn:sample-compression}\vspace{-3mm}
 \end{align}
 
-\paragraph{폐쇄 루프 전사를 통한 비지도 표현 학습.} 지금까지, 우리는 CTRL-바이너리 목표 $\Delta R_{\epsilon}(\Z, \hat{\Z})$(\eqref{eqn:CTRL-Binary})가 분포를 정렬하는 데 도움이 되는 반면, 샘플별 자기 일관성 \eqref{eqn:sample-self-consistency}과 샘플별 증강 \eqref{eqn:sample-compression}은 각 샘플과 관련된 특징을 정렬하고 압축하는 데 도움이 된다는 것을 알고 있다. 일관성 외에도, 우리는 또한 학습된 표현이 다른 샘플(여기서는 다른 "클래스"로 간주됨)에 대해 최대한 판별적이기를 원한다. 레이트 왜곡 항 $R_{\epsilon}(\Z)$는 모든 특징의 코딩 레이트(따라서 부피)를 측정한다는 점에 주목하라. %
+\paragraph{폐쇄 루프 전사를 통한 비지도 표현 학습.} 지금까지, 우리는 CTRL-바이너리 목표 $\Delta R_\epsilon(\Z, \hat{\Z})$(\eqref{eqn:CTRL-Binary})가 분포를 정렬하는 데 도움이 되는 반면, 샘플별 자기 일관성 \eqref{eqn:sample-self-consistency}과 샘플별 증강 \eqref{eqn:sample-compression}은 각 샘플과 관련된 특징을 정렬하고 압축하는 데 도움이 된다는 것을 알고 있다. 일관성 외에도, 우리는 또한 학습된 표현이 다른 샘플(여기서는 다른 "클래스"로 간주됨)에 대해 최대한 판별적이기를 원한다. 레이트 왜곡 항 $R_\epsilon(\Z)$는 모든 특징의 코딩 레이트(따라서 부피)를 측정한다는 점에 주목하라. %
 
 \paragraph{비지도 CTRL.} 이러한 요소들을 종합하여, 우리는 다음의 제한된 최대최소 프로그램을 통해 표현을 학습할 것을 제안하며, 이를 {\em 비지도 CTRL}(u-CTRL)이라고 한다:
 \begin{align}
-      \max_	heta {\min_{\eta}}  \quad & R_{\epsilon}(\Z) + \Delta R_{\epsilon}(\Z, \hat{\Z}) \label{eqn:constrained_maxmin}
- \mbox{subject to} \quad & \sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) = 0, \;\; \mbox{and} \;\; \sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i) = 0. \nonumber
+      \max_{\bm \theta} \min_{\bm \eta}  \quad & R_\epsilon(\Z) + \Delta R_\epsilon(\Z, \hat{\Z}) \label{eqn:constrained_maxmin} \\
+ \mbox{subject to} \quad & \sum_{i\in N} \Delta R_\epsilon(\z^i, \hat{\z}^i) = 0, \;\; \mbox{and} \;\; \sum_{i\in N} \Delta R_\epsilon(\z^i, \z_{a}^i) = 0. \nonumber
 \end{align}
 \Cref{fig:framework-uCTRL}는 이 프로그램과 관련된 폐쇄 루프 시스템의 전체 아키텍처를 보여준다.
-
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.98\textwidth]{\toplevelprefix/chapters/chapter5/figs/uCTRLv3.png}
-\caption{\textbf{전체 프레임워크} 비지도 학습을 위한 폐쇄 루프 전사. 바이너리-CTRL 방법에 두 가지 추가 제약 조건이 부과된다: 1) 샘플별 특징 $\z^i$와 $\hat{\z}^i$에 대한 자기 일관성, 예를 들어 $\z^i \approx \hat{\z}^i$; 및 2) 증강된 샘플 $\z^i$와 $\z_{a}^i$의 특징 간의 불변성/유사성, 예를 들어 $\z^i \approx \z_{a}^i=f(\tau(\x^i), \bm 	heta)$, 여기서 $\x^i_a=\tau(\x^i)$는 일부 변환 $\tau(\cdot)$을 통한 샘플 $\x^i$의 증강이다.}
+\caption{\textbf{전체 프레임워크} 비지도 학습을 위한 폐쇄 루프 전사. 바이너리-CTRL 방법에 두 가지 추가 제약 조건이 부과된다: 1) 샘플별 특징 $\z^i$와 $\hat{\z}^i$에 대한 자기 일관성, 예를 들어 $\z^i \approx \hat{\z}^i$; 및 2) 증강된 샘플 $\z^i$와 $\z_{a}^i$의 특징 간의 불변성/유사성, 예를 들어 $\z^i \approx \z_{a}^i=f(\tau(\x^i), \bm \theta)$, 여기서 $\x^i_a=\tau(\x^i)$는 일부 변환 $\tau(\cdot)$을 통한 샘플 $\x^i$의 증강이다.}
 \label{fig:framework-uCTRL}
 \end{figure}
 
-실제로, 위의 프로그램은 인코더 $f(\cdot,\bm 	heta)$와 디코더 $g(\cdot,\bm {\eta})$ 사이에서 교대로 최대화 및 최소화를 통해 최적화될 수 있다. 우리는 실제 이미지 데이터셋에 대한 모든 후속 실험에 사용되는, 실제로 잘 작동하는 다음 최적화 전략을 채택한다:
+실제로, 위의 프로그램은 인코더 $f(\cdot,\bm \theta)$와 디코더 $g(\cdot,\bm \eta)$ 사이에서 교대로 최대화 및 최소화를 통해 최적화될 수 있다. 우리는 실제 이미지 데이터셋에 대한 모든 후속 실험에 사용되는, 실제로 잘 작동하는 다음 최적화 전략을 채택한다:
 \vspace{-1mm}
 \begin{align}
-  &  \max_{\theta}\; R_{\epsilon}(\Z) + \Delta{R_{\epsilon}(\Z, \hat{\Z})-\lambda_{1}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i)} -\lambda_{2}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) \label{eqn:constrained_max} \\
-   & \min_{\bm {\eta}}\; R_{\epsilon}(\Z) + \Delta{R_{\epsilon}(\Z, \hat{\Z})+\lambda_{1}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i)+ \lambda_{2}\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) \label{eqn:constrained_min},
+ &  \max_{\theta}\; R_\epsilon(\Z) + \Delta{R_\epsilon(\Z, \hat{\Z})-\lambda_{1}\sum_{i\in N} \Delta R_\epsilon(\z^i, \z_{a}^i)} -\lambda_{2}\sum_{i\in N} \Delta R_\epsilon(\z^i, \hat{\z}^i) \label{eqn:constrained_max}; \\
+   & \min_{\eta}\; R_\epsilon(\Z) + \Delta{R_\epsilon(\Z, \hat{\Z})+\lambda_{1}\sum_{i\in N} \Delta R_\epsilon(\z^i, \z_{a}^i)+ \lambda_{2}\sum_{i\in N} \Delta R_\epsilon(\z^i, \hat{\z}^i)} \label{eqn:constrained_min}, 
 \end{align}
-여기서 \eqref{eqn:constrained_maxmin}의 제약 조건 $\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \hat{\z}^i) = 0$와 $\sum_{i\in N} \Delta R_{\epsilon}(\z^i, \z_{a}^i) = 0$은 해당 계수 $\lambda_{1}$과 $\lambda_{2}$를 가진 라그랑주 항으로 변환(및 완화)되었다.\footnote{모든 샘플 또는 샘플 배치에 대한 레이트 감소 항 $\Delta R$을 계산하려면 큰 행렬의 비싼 $\log\det$를 계산해야 한다는 점에 유의하라. 실제로, 두 벡터에 대한 $\Delta R$의 기하학적 의미로부터, $\Delta R$은 $\ell^2$ 노름 또는 두 벡터 사이의 코사인 거리로 근사될 수 있다.} 
-
+여기서 \eqref{eqn:constrained_maxmin}에 있는 제약 조건 $\sum_{i\in N} \Delta R_\epsilon(\z^i, \hat{\z}^i) = 0$ 와 $\sum_{i\in N} \Delta R_\epsilon(\z^i, \z_{a}^i) = 0$ 들은 각각 해당하는 계수 $\lambda_1$ 와 $\lambda_2$ 를 가지는 라그랑주 항으로 변환(및 완화)되었다.\footnote{모든 샘플 또는 샘플 배치에 대해 속도 감소 항 $\Delta R$을 계산하는 것은 큰 행렬의 비싼 $\log\det$를 계산해야 한다는 점에 유의하라. 실제로는 두 벡터에 대한 $\Delta R$의 기하학적 의미에서, $\Delta R$은 $\ell^2$ 노름 또는 두 벡터 사이의 코사인 거리로 근사될 수 있다.}
 위의 표현은 클래스 정보 없이 학습된다. 판별적 또는 생성적 작업을 용이하게 하려면, 고도로 구조화되어야 한다. u-CTRL을 사용하여 학습된 표현에는 실제로 특정하고 독특한 구조가 자연스럽게 나타나는 것이 실험적으로 확인되었으며, u-CTRL은 다른 점진적 또는 비지도 학습 방법에 비해 상당한 이점을 보여준다 \cite{pmlr-v234-tong24a}. 여기서는 자기 지도 학습을 위한 표준 증강을 사용한 CIFAR-10 데이터셋 \cite{chen2020simple}에 대한 실험으로 일부 정성적 결과만 설명한다. 더 많고 더 큰 데이터셋에 대한 실험과 정량적 평가는 \cite{pmlr-v234-tong24a}를 참조할 수 있다.
 
 실험에서 볼 수 있듯이, u-CTRL을 사용하여 학습된 표현에는 특정하고 독특한 구조가 실제로 자연스럽게 나타난다: 전역적으로, 동일한 클래스의 이미지 특징은 \Cref{fig:heatmap_z}에서 보여주듯이 잘 함께 클러스터링되고 다른 클래스와 분리되는 경향이 있다; 국소적으로, 개별 샘플 주변의 특징은 \Cref{fig:tsne}에서 보여주듯이 근사적으로 조각별 선형 저차원 구조를 나타낸다.
@@ -662,7 +663,7 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
      \footnotesize
      \centering
     \includegraphics[width=0.5\textwidth]{\toplevelprefix/chapters/chapter5/figs/CIFAR10_cifar10_heatmap_zz.png}
-    \caption{\small CIFAR-10의 특징 공간에서 $|{\Z}^\top {\Z}|$의 블록 대각선 구조의 출현.}
+    \caption{\small CIFAR-10의 특징 공간에서 $|\Z^\top \Z|$의 블록 대각선 구조의 출현.}
     \label{fig:heatmap_z}
 \end{figure}
 
@@ -684,11 +685,11 @@ $$\Delta R_{\epsilon}(\Z_{old},\hat{\Z}_{old}) \doteq  \sum_{j=1}^t \Delta R_{
 
 \paragraph{레이트 감소를 통한 비지도 조건부 이미지 생성.} 고도로 구조화된 특징 분포는 또한 학습된 표현이 생성 목적에 매우 유용할 수 있음을 시사한다. 예를 들어, 샘플 특징을 의미 있는 클러스터로 구성하고, 이를 저차원 (가우시안) 분포 또는 부분 공간으로 모델링할 수 있다. 이러한 간결한 모델에서 샘플링함으로써, 계산된 클러스터로부터 의미 있는 샘플을 조건부로 재생성할 수 있다. 이것은 {\em 비지도 조건부 이미지 생성}으로 알려져 있다 \cite{hwang2021stein}.
 
-특징을 클러스터링하기 위해, 우리는 레이트 감소 프레임워크 \eqref{eqn:maximal-rate-reduction}이 압축을 통한 비지도 클러스터링 \cite{ma2007segmentation}에서 영감을 받았다는 사실을 활용하여 멤버십 $\bm {\Pi}$를 찾는 원칙적인 방법을 제공한다.
-구체적으로, 우리는 $\bm {\Pi}$에 대해 동일한 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}을 최대화하지만, 대신 학습된 표현 $\Z$를 고정한다. 우리는 단순히 멤버십 $\bm {\Pi}$를 특징 $\Z$의 비선형 함수, 예를 들어 매개변수 $\xi$를 가진 $h_{\bm {\pi}}(\cdot,\xi):\Z \mapsto \bm {\Pi}$로 본다. 실제로, 우리는 이 함수를 출력 특징 $\z$ 직후의 MLP 헤드와 같은 간단한 신경망으로 모델링한다.
-샘플의 ``의사'' 멤버십 $\hat{\bm {\Pi}}$를 추정하기 위해, 우리는 $\bm {\Pi}$에 대한 다음 최적화 문제를 푼다:
+특징을 클러스터링하기 위해, 우리는 레이트 감소 프레임워크 \eqref{eqn:maximal-rate-reduction}이 압축을 통한 비지도 클러스터링 \cite{ma2007segmentation}에서 영감을 받았다는 사실을 활용하여 멤버십 $\bm \Pi$를 찾는 원칙적인 방법을 제공한다.
+구체적으로, 우리는 $\bm \Pi$에 대해 동일한 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}을 최대화하지만, 대신 학습된 표현 $\Z$를 고정한다. 우리는 단순히 멤버십 $\bm \Pi$를 특징 $\Z$의 비선형 함수, 예를 들어 매개변수 $\xi$를 가진 $h_{\bm \pi}(\cdot,\xi):\Z \mapsto \bm \Pi$로 본다. 실제로, 우리는 이 함수를 출력 특징 $\z$ 직후의 MLP 헤드와 같은 간단한 신경망으로 모델링한다.
+샘플의 ``의사'' 멤버십 $\hat{\bm \Pi}$를 추정하기 위해, 우리는 $\bm \Pi$에 대한 다음 최적화 문제를 푼다:
 \begin{align}
-    \hat{\bm {\Pi}} = \arg\max_{\xi} \Delta R_{\epsilon}(\Z| \bm {\Pi}(\xi)).
+    \hat{\bm \Pi} = \arg\max_{\xi} \Delta R_\epsilon(\Z| \bm \Pi(\xi)).
 \label{eqn:cluster_mcr}
 \end{align}
 \Cref{fig:vis_clustering}에서는 \eqref{eqn:cluster_mcr}의 10개 비지도 클러스터에서 생성된 이미지를 시각화한다. 각 블록은 하나의 클러스터를 나타내고 각 행은 각 클러스터에 대한 하나의 주성분을 나타낸다. 레이블 없이 학습하고 훈련했음에도 불구하고, 모델은 샘플을 올바른 클러스터로 구성할 뿐만 아니라 각 클러스터/클래스 내의 통계적 다양성을 보존할 수 있다. 우리는 다른 주성분을 계산한 다음 그에 따라 샘플링하고 생성함으로써 각 클러스터 내의 다양성을 쉽게 복구할 수 있다. 여기에 제시된 실험은 다소 규모가 제한적이지만, 다음 장에서는 조건부 생성 및 추정을 위해 학습된 데이터 분포와 표현을 활용하는 더 직접적이고 강력한 방법을 탐구할 것이다.

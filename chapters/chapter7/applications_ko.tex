@@ -232,15 +232,17 @@ DINO는 입력 이미지 \(\vX\)의 모든 뷰 \(\vX_{v} \doteq v(\vX)\)의 집�
 \begin{itemize}
     \item \(\MHSA_{\theta}^{\ell}\) 연산자는 다중 헤드 자기 어텐션으로, 다중 헤드 부분 공간 자기 어텐션의 전신이다(참조 \Cref{ch:representation}). 공식은 다음과 같다:
     \begin{align}
-        \MHSA_{\theta}^{\ell}(\vZ)
-        &= \vU_{\out}^{\ell}\mat{\SA([\vU_{\query}^{1, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{1, \ell}]^{\top}\vZ, [\vU_{\val}^{1, \ell}]^{\top}\vZ) \ \vdots \ \SA([\vU_{\query}^{K, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{K, \ell}]^{\top}\vZ, [\vU_{\val}^{K, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{n}^{\top} \label{eq:mhsa} \        \label{eq:self_attention}
-        \text{여기서} \quad \SA(\vQ, \vK, \vV)
+        \MHSA_{\theta}^{\ell}(\vZ) \label{eq:mhsa}
+        &= \vU_{\out}^{\ell}\mat{\SA([\vU_{\query}^{1, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{1, \ell}]^{\top}\vZ, [\vU_{\val}^{1, \ell}]^{\top}\vZ) \ \vdots \ \SA([\vU_{\query}^{K, \ell}]^{\top}\vZ, [\vU_{\attnkey}^{K, \ell}]^{\top}\vZ, [\vU_{\val}^{K, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{n}^{\top}, \\
+        \label{eq:self_attention}
+        \text{여기서} \qquad \SA(\vQ, \vK, \vV)
         &= \vV \underbrace{\softmax\rp{\frac{\vK^{\top}\vQ}{\sqrt{p}}}}_{\doteq \vA(\vQ, \vK)}
- \end{align}
-여기서 \(p\)는 양의 정수이고, \(\vU_{\query}^{k, \ell}, \vU_{\attnkey}^{k, \ell}, \vU_{\val}^{k, \ell} \in \R^{d \times p}\), \(\vU_{\out}^{\ell} \in \R^{d \times Kp}\) 및 \(\vb_{\out}^{\ell} \in \R^{d}\)는 매개변수 집합 \(\theta\)에 포함된 훈련 가능한 매개변수이며, \(\softmax\)는 다음과 같이 열별로 정의된다.
+    \end{align}
+    여기서 \(p\)는 양의 정수이고, \(\vU_{\query}^{k, \ell}, \vU_{\attnkey}^{k, \ell}, \vU_{\val}^{k, \ell} \in \R^{d \times p}\), \(\vU_{\out}^{\ell} \in \R^{d \times Kp}\) 및 \(\vb_{\out}^{\ell} \in \R^{d}\)는 매개변수 집합 \(\theta\)에 포함된 훈련 가능한 매개변수이며, \(\softmax\)는 다음과 같이 열별로 정의된다.
     \begin{align}
         \softmax(\vM)
-        &= \mat{\softmax(\vm_{1}) & \cdots & \softmax(\vm_{p})} \        \forall \vM
+        &\doteq \mat{\softmax(\vm_{1}) & \cdots & \softmax(\vm_{p})}, \\ 
+        \forall \vM 
         &= \mat{\vm_{1}, \dots, \vm_{p}} \in \R^{n \times p}.
     \end{align}
     실제로 차원은 보통 \(Kp = d\)가 되도록 선택된다. 항
@@ -253,7 +255,8 @@ DINO는 입력 이미지 \(\vX\)의 모든 뷰 \(\vX_{v} \doteq v(\vX)\)의 집�
     \begin{equation}
         \MLP_{\theta}^{\ell}(\vZ) \doteq \vW_{\down}^{\ell}\ReLU(\vW_{\up}^{\ell}\vZ + \vb_{\up}^{\ell}\vone_{n}^{\top}) + \vb_{\down}^{\ell}\vone_{n}^{\top}
     \end{equation}
-    여기서 \(\vW_{\up}^{\ell} \in \R^{q \times d}, \vW_{\down}^{\ell} \in \R^{d \times q}, \vb_{\up}^{\ell} \in \R^{q}, \vb_{\down}^{\ell} \in \R^{d}\)는 매개변수 집합 \(\theta\)에 포함된 훈련 가능한 매개변수이고, \(\ReLU\)는 원소별 ReLU 비선형성이다, 즉, \(\ReLU(\vM)_{ij} = \max\{M_{ij}, 0\}. \textit{각 계층 정규화 \(\LN_{\theta}^{i, \ell}\) (i \in \{1, 2\})는 표준 정규화이며, 각 토큰 특징에 독립적으로 열별로 적용된다:}
+    여기서 \(\vW_{\up}^{\ell} \in \R^{q \times d}, \vW_{\down}^{\ell} \in \R^{d \times q}, \vb_{\up}^{\ell} \in \R^{q}, \vb_{\down}^{\ell} \in \R^{d}\)는 매개변수 집합 \(\theta\)에 포함된 훈련 가능한 매개변수이고, \(\ReLU\)는 원소별 ReLU 비선형성이다, 즉,  \(\ReLU(\vM)_{ij} = \max\{M_{ij}, 0\}\). 
+    \item 각 계층 정규화 \(\LN_{\theta}^{i, \ell}\) \(i \in \{1, 2\}\)는 표준 정규화이며, 각 토큰 특징에 독립적으로 열별로 적용된다:
     \begin{equation}
         \LN_{\theta}^{i, \ell}(\vZ) = \LN_{\theta}^{i, \ell}(\mat{\vz_{1}, \dots, \vz_{n}}) = \mat{\LN_{\theta}^{i, \ell}(\vz_{1}), \dots, \LN_{\theta}^{i, \ell}(\vz_{n})}
     \end{equation}
@@ -261,7 +264,7 @@ DINO는 입력 이미지 \(\vX\)의 모든 뷰 \(\vX_{v} \doteq v(\vX)\)의 집�
     \begin{equation}
         \LN_{\theta}^{i, \ell}(\vz) = \frac{\vz
         - \operatorname{mean}(\vz)\vone_{d}}{\norm{\vz
-        - \operatorname{mean}(\vz)\vone_{d}}_{2}} \hada \valpha^{i, \ell} + \vbeta^{i, \ell} \quad \text{여기서} \quad \operatorname{mean}(\vz) = \frac{1}{d}\vone_{d}^{\top}\vz
+        - \operatorname{mean}(\vz)\vone_{d}}_{2}} \hada \valpha^{i, \ell} + \vbeta^{i, \ell} \qquad \text{where} \qquad \operatorname{mean}(\vz) = \frac{1}{d}\vone_{d}^{\top}\vz
     \end{equation}
     여기서 \(\hada\)는 원소별 곱셈을 나타내고, \(\valpha^{i, \ell}, \vbeta^{i, \ell} \in \R^{d}\)는 매개변수 집합 \(\theta\)에 포함된 훈련 가능한 매개변수이다. 계층 정규화 연산자는 각 토큰에 대한 일종의 정규화 역할을 하며, 이후 각 토큰의 스케일은 학습 가능하고 모든 토큰 간에 공유된다.
 \end{itemize}
@@ -306,7 +309,8 @@ DINO는 입력 이미지 \(\vX\)의 모든 뷰 \(\vX_{v} \doteq v(\vX)\)의 집�
     \item 다음과 같이 정의된 \textit{대리, 근사 손실} \(\hat{\cL}_{\dino-\student\teacher}^{(k)}\)를 계산한다:
     \begin{align}\label{eq:dino_loss_teacherstudent_empirical}
         &\hat{\cL}_{\dino{}-\student\teacher}^{(k)}(\theta_{\student}, \theta_{\teacher}, \vW_{\student}, \vW_{\teacher}, \vmu) \doteq
-        \frac{1}{BM_{\glo}(M_{\glo} + M_{\loc} - 1)}\sum_{b = 1}^{B}\sum_{i = 1}^{M_{\glo}}\\[\sum_{j = 1}^{M_{\loc}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, \ell}^{(k), j})) + \sum_{\substack{j = 1 \ j \neq i}}^{M_{\glo}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, g}^{(k), j}))\Bigg]
+        \frac{1}{BM_{\glo}(M_{\glo} + M_{\loc} - 1)}\sum_{b = 1}^{B}\sum_{i = 1}^{M_{\glo}}\\
+        &\Bigg[\sum_{j = 1}^{M_{\loc}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, \ell}^{(k), j})) + \sum_{\substack{j = 1 \\ j \neq i}}^{M_{\glo}}d_{\CE}(\vp_{\theta_{\teacher}, \vW_{\teacher}, \vmu}(\vX_{b, g}^{(k), i}), \vp_{\theta_{\student}, \vW_{\student}}(\vX_{b, g}^{(k), j}))\Bigg]\nonumber
     \end{align}
     뿐만 아니라 \(\theta_{\student}\) 및 \(\vW_{\student}\)에 대한 그래디언트도 계산해야 하며, 이는 \(\theta_{\teacher}\), \(\vW_{\teacher}\) 및 \(\vmu\)가 상수라는 가정 하에 계산되어야 한다 --- 즉, 이들은 \textit{계산 그래프에서 분리되어} \(\theta_{\student}\) 및 \(\vW_{\student}\)에 의존하지 않는다.
     \item 반복적인 그래디언트 기반 최적화 알고리즘을 통해 학생 매개변수 \(\theta_{\student}\) 및 \(\vW_{\student}\)를 업데이트하고, 감쇠 매개변수 \(\nu^{(k)}\), \(\nu^{(k)}\) 및 \(\rho^{(k)}\)를 사용하여 각각 지수 이동 평균을 통해 \(\theta_{\teacher}\), \(\vW_{\teacher}\) 및 \(\vmu\)를 업데이트한다. 즉,
@@ -379,7 +383,7 @@ DINO는 입력 이미지 \(\vX\)의 모든 뷰 \(\vX_{v} \doteq v(\vX)\)의 집�
 \begin{equation}\label{eq:linear_probing}
     \min_{\vW \in \R^{N_{\cls} \times d}}\Ex[\CE(\vy, \vW \vz_{\theta}(\vX_{\cc}))].
 \end{equation}
-더 실용적으로, 레이블이 지정된 데이터 \(\{(\vX_{b}, \vy_{b})\}_{b = 1}^{B}\)가 있다면, 다음과 같이 주어진 \textit{경험적} 로지스틱 회귀 문제}(\eqref{eq:dino_loss_teacherstudent} 대 \eqref{eq:dino_loss_teacherstudent_empirical}와 유사)를 해결할 수 있다:
+더 실용적으로, 레이블이 지정된 데이터 \(\{(\vX_{b}, \vy_{b})\}_{b = 1}^{B}\)가 있다면, 다음과 같이 주어진 \textit{경험적} 로지스틱 회귀 문제 (\eqref{eq:dino_loss_teacherstudent} 대 \eqref{eq:dino_loss_teacherstudent_empirical}와 유사)를 해결할 수 있다:
 \begin{equation}\label{eq:linear_probing_empirical}
     \min_{\vW \in \R^{N_{\cls} \times d}}\frac{1}{B}\sum_{b = 1}^{B}\CE(\vy_{b}, \vW \vz_{\theta}(\vX_{b, \cc})).
 \end{equation}
@@ -432,14 +436,15 @@ SimDINO는 DINO를 직접 기반으로 하므로, 공정한 비교를 위해 원
     \begin{tabular}{@{}lcccc@{}} %
         \toprule
         방법 & 모델 & 에포크 & 20-NN & 선형 프로빙
-        \ \midrule
-        DINO & ViT-B & 100 & 72.9 & 76.3 \ 
-        SimDINO & ViT-B & 100 & \bf 74.9 & \bf 77.3 \ 
-        DINO & ViT-L & 100 & -- & -- \ 
-        SimDINO & ViT-L & 100 & \bf 75.6 & \bf 77.4 \ 
+        \\
+        \midrule 
+        DINO & ViT-B & 100 & 72.9 & 76.3 \\
+        SimDINO & ViT-B & 100 & \bf 74.9 & \bf 77.3 \\
+        DINO & ViT-L & 100 & -- & -- \\
+        SimDINO & ViT-L & 100 & \bf 75.6 & \bf 77.4 \\
         \midrule
-        \color{gray} SwAV & \color{gray} ViT-S & \color{gray} 800 & \color{gray} 66.3 & \color{gray} 73.5 \ 
-        \color{gray} MoCov3 & \color{gray} ViT-B & \color{gray} 300  & \color{gray} -- & \color{gray} 76.7 \ 
+        \color{gray} SwAV & \color{gray} ViT-S & \color{gray} 800 & \color{gray} 66.3 & \color{gray} 73.5 \\
+        \color{gray} MoCov3 & \color{gray} ViT-B & \color{gray} 300  & \color{gray} -- & \color{gray} 76.7 \\
         \bottomrule
     \end{tabular}
     \caption{\small\textbf{분류 성능} \(k\)-최근접 이웃 정확도(\(k = 20\)) 및 선형 프로빙을 모두 사용하여 DINO 및 SimDINO에 대한 홀드아웃 테스트 데이터. 동일한 반복 횟수(\(100\))에서 SimDINO는 성능 면에서 분명히 더 우수하며 더 안정적이다(제공된 설정으로 ViT-L 백본에서 실행되는 DINO 훈련은 매우 불안정한 최적화를 가지며 단기간에 NaN 손실을 얻는다). 우리는 또한 DINO가 기반으로 한 다른 뛰어난 방법, 즉 SwAV 및 MoCov3와 비교한다.}
@@ -522,7 +527,7 @@ SimDINO는 DINO를 직접 기반으로 하므로, 공정한 비교를 위해 원
 
 우리는 간단한 종단 간 확률적 최적화 절차를 사용하여 분류기를 훈련한다. 여기서 데이터와 뷰를 하위 샘플링하고, 이러한 샘플에 대한 평균 손실과 그 그래디언트를 계산하고, 매개변수를 변경하기 위해 최적화 알고리즘을 사용한다. 각 시간 단계 \(k\)에서, 우리는:
 \begin{itemize}
-    \item 데이터셋 \(\cI \times \{0, 1\}^{N_{\cls}}\)에서 \(B\)개의 다른 레이블이 지정된 샘플 \(\((\vX_{b}^{(k)}, \vy_{b}^{(k)}))\)_{b = 1}^{B}\)을 하위 샘플링한다.
+    \item 레이블이 부여된 샘플 중 \(B\)개의 서로 다른 샘플 \(\{(\vX_{b}^{(k)}, \vy_{b}^{(k)})\}_{b = 1}^{B} \subseteq \cI \times \{0, 1\}^{N_{\cls}}\)를 부분추출한다.    
     \item 각 레이블이 지정된 샘플 \((\vX_{b}^{(k)}, \vy_{b}^{(k)})\)에 대해, 중앙 자르기 뷰 \(v_{b, \cc}^{(k)}\)를 계산하고 이를 \(\vX_{b}^{(k)}\)에 적용하여 \(\vX_{b, \cc}^{(k)} \doteq v_{b, \cc}^{(k)}(\vX_{b}^{(k)})\)를 얻는다.
     \item 예측 \(\vp_{\theta}(\vX_{b, \cc}^{(k)}) \doteq (h_{\theta} \circ f_{\theta}^{\ext} \circ f_{\theta})(\vX_{b, \cc}^{(k)})\)를 계산한다.
     \item 대리 확률적 손실을 형성한다.
@@ -615,7 +620,7 @@ CRATE는 트랜스포머를 직접 기반으로 하므로, 공정한 비교를 �
     \item \textit{첫째}, 문서를 \textit{토큰}이라고 불리는 기본("구성 요소") 문자열의 시퀀스로 최적으로 인코딩하는 방법을 \textit{학습}하고자 한다. 이것을 \textit{토큰화}라고 하며, 우리는 \textit{토크나이저}를 구축한다.
     \item \textit{둘째}, \textit{이전 모든 토큰이 주어졌을 때 토큰의 분포를 예측}하는 방법을 \textit{학습}하고자 한다. 이것을 \textit{다음 토큰 예측}이라고 하며, 우리는 \textit{언어 모델}을 구축한다.
 \end{itemize}
-이 절차는 실제로 마르코프에게까지 거슬러 올라가는데, 그는 적절한 토큰화가 주어지면 자연어가 동명의 마르코프 연쇄 구조 \citep{markov2006example}로 모델링될 수 있음을 처음으로 발견했다. 그런 다음 섀넌은 문자 수준 토크나이저(즉, 각 문자가 토큰임)와 언어 모델 대신 소위 "\\\\( n\)-그램"(즉, \(n\)개의 이전 토큰이 주어졌을 때 토큰의 분포에 대한 훈련 데이터로부터 계산된 명시적 조회 테이블)을 사용하여 이 정확한 언어 모델링 설정을 수행할 것을 제안했다 \citep{Shannon-1948}.\footnote{최근 연구 \citep{liu2024infini}는 \(n\)-그램 모델을 확장하여 큰 \(n\)에 대해 텍스트를 합리적으로 잘 모델링할 수 있음을 보여주었지만, 물론 그러한 조회 테이블을 저장하는 데 필요한 메모리는 \(V^{n}\) 순서이며 따라서 완전히 다루기 어렵다.}
+이 절차는 실제로 마르코프에게까지 거슬러 올라가는데, 그는 적절한 토큰화가 주어지면 자연어가 동명의 마르코프 연쇄 구조 \citep{markov2006example}로 모델링될 수 있음을 처음으로 발견했다. 그런 다음 섀넌은 문자 수준 토크나이저(즉, 각 문자가 토큰임)와 언어 모델 대신 소위 ```\(n\)-그램``` (즉, \(n\)개의 이전 토큰이 주어졌을 때 토큰의 분포에 대한 훈련 데이터로부터 계산된 명시적 조회 테이블)을 사용하여 이 정확한 언어 모델링 설정을 수행할 것을 제안했다 \citep{Shannon-1948}.\footnote{최근 연구 \citep{liu2024infini}는 \(n\)-그램 모델을 확장하여 큰 \(n\)에 대해 텍스트를 합리적으로 잘 모델링할 수 있음을 보여주었지만, 물론 그러한 조회 테이블을 저장하는 데 필요한 메모리는 \(V^{n}\) 순서이며 따라서 완전히 다루기 어렵다.}
 
 \subsubsection{토크나이저 훈련}
 
@@ -667,7 +672,7 @@ BPE의 전체 과정은 \Cref{fig:BPE}에 있다. 이 절차는 텍스트와 같
 
 아키텍처의 경우, 표준 GPT-2 스타일 트랜스포머를 사용하며, 트랜스포머 계층을 CRATE 계층으로 대체한다.\footnote{이 책의 관례와 다른 많은 커뮤니티의 관례와는 정반대로, NLP 커뮤니티는 이러한 GPT-2 스타일 트랜스포머(현재 거의 모든 LLM을 포함)를 "디코더 전용" 트랜스포머라고 부른다. "인코더 전용" 트랜스포머는 다른 아키텍처를 가지며, "인코더-디코더" 트랜스포머는 "인코더 전용" 트랜스포머와 "디코더 전용" 트랜스포머를 연결한다. "디코더 전용" 트랜스포머가 데이터의 인코딩도 계산한다는 사실에도 불구하고 그렇다!} 완전성을 위해, 여기에 아키텍처를 명시한다.
 
-\paragraph{임베딩.} 먼저 토큰 시퀀스 \(\vX \in [V]^{N}\)를 유클리드 공간에 임베딩한다. 이것은 종종 \([V]\)의 각 인덱스를 \textit{거대한}\footnote{"거대하다"는 것은 그러한 구조가 종종 언어 모델의 전체 크기의 상당 부분을 차지한다는 것을 의미한다.} 배열 \(\vE \in \R^{V \times d}\)을 사용하여 \(\R^{d}\)의 벡터와 연관시키고, 시퀀스 \([vE_{\vx_{1}}, \dots, \bvE_{\vx_{N}}] \in \R^{d \times N}\)를 직접 형성함으로써 수행된다. 전체 임베딩 맵 \(f_{\theta}^{\emb}\)는 또한 위치 인코딩 \(\vE^{\pos} \in \R^{d \times N_{\max}}\). 여기서 \(N_{\max}\)는 처리할 수 있는 최대 토큰 수이다.\footnote{현대의 위치 인코딩 방법은 이 문제를 해결하고 (이론적으로) 무한한 외삽을 허용하지만, 그러한 방법은 개발하기 더 복잡하며, 단순성을 위해 여기서는 절대 가산 위치 인코딩만 소개한다.} 이는 임베딩 맵을 산출한다
+\paragraph{임베딩.} 먼저 토큰 시퀀스 \(\vX \in [V]^{N}\)를 유클리드 공간에 임베딩한다. 이것은 종종 \([V]\)의 각 인덱스를 \textit{거대한}\footnote{"거대하다"는 것은 그러한 구조가 종종 언어 모델의 전체 크기의 상당 부분을 차지한다는 것을 의미한다.} 배열 \(\vE \in \R^{V \times d}\)을 사용하여 \(\R^{d}\)의 벡터와 연관시키고, 시퀀스 \([\vE_{\vx_{1}}, \dots, \vE_{\vx_{N}}] \in \R^{d \times N}\)를 직접 형성함으로써 수행된다. 전체 임베딩 맵 \(f_{\theta}^{\emb}\)는 또한 위치 인코딩 \(\vE^{\pos} \in \R^{d \times N_{\max}}\). 여기서 \(N_{\max}\)는 처리할 수 있는 최대 토큰 수이다.\footnote{현대의 위치 인코딩 방법은 이 문제를 해결하고 (이론적으로) 무한한 외삽을 허용하지만, 그러한 방법은 개발하기 더 복잡하며, 단순성을 위해 여기서는 절대 가산 위치 인코딩만 소개한다.} 이는 임베딩 맵을 산출한다
 \begin{equation}
     f_{\theta}^{\emb}(\vX) \doteq [\vE_{\vx_{1}}, \dots, \vE_{\vx_{N}}] + \vE_{:N}^{\pos}
 \end{equation}
@@ -681,9 +686,9 @@ BPE의 전체 과정은 \Cref{fig:BPE}에 있다. 이 절차는 텍스트와 같
 
 이제 백본에 대한 인과적 아키텍처를 원하는데, 어떻게 얻을 수 있을까? 각 트랜스포머 계층 내부의 MLP 및 계층 정규화는 각 토큰에 개별적으로 영향을 미치므로, 인과성에 대해 중요한 유일한 것은 어텐션 블록(또는 CRATE의 경우 \(\MSSA\))이다. \(\MSSA\)를 인과적으로 만들기 위해, \(\mathrm{CausalMSSA}\) 블록을 다음과 같이 정의한다
 \begin{align}
-    &\operatorname{CausalMSSA}_{\theta}^{\ell}(\vZ) \doteq \vU_{\out}^{\ell}\mat{\SA([\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ) \ \vdots \ \SA([\vU^{K, \ell}]^{\top}\vZ, [\vU^{K, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{N}^{\top} \ 
-    \text{여기서} \quad & \operatorname{CausalSA}(\vQ, \vK, \vV) \doteq \vV\softmax\rp{\frac{\operatorname{CausalMask}(\vK^{\top}\vQ)}{\sqrt{p}}} \ 
-    \text{여기서} \quad & \operatorname{CausalMask}(\vM)_{ij} = \casework{M_{ij}, & \text{if}\ i \geq j, \ \-\infty, & \text{if}\ i < j}.
+    &\operatorname{CausalMSSA}_{\theta}^{\ell}(\vZ) \doteq \vU_{\out}^{\ell}\mat{\operatorname{CausalSA}([\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ) \\ \vdots \\ \operatorname{CausalSA}([\vU^{K, \ell}]^{\top}\vZ, [\vU^{K, \ell}]^{\top}\vZ, [\vU^{1, \ell}]^{\top}\vZ)} + \vb_{\out}^{\ell}\vone_{N}^{\top} \\ 
+    \text{여기서} \quad & \operatorname{CausalSA}(\vQ, \vK, \vV) \doteq \vV\softmax\rp{\frac{\operatorname{CausalMask}(\vK^{\top}\vQ)}{\sqrt{p}}} \\ 
+    \text{여기서} \quad & \operatorname{CausalMask}(\vM)_{ij} = \casework{M_{ij}, & \text{if}\ i \geq j, \\ -\infty, & \text{if}\ i < j}.
 \end{align}
 여기서, 실무자들은 인과 마스크가 \textit{미래 토큰 \(i\)가 과거 토큰 \(j\)에 어텐션할 수 있지만 그 반대는 허용하지 않는다}고 말한다. 이유를 알기 위해, \(\operatorname{CausalSA}(\vQ, \vK, \vV)\)의 \(t\)번째 열에 대한 표현식을 적어보자:
 \begin{equation}
@@ -742,7 +747,7 @@ BPE의 전체 과정은 \Cref{fig:BPE}에 있다. 이 절차는 텍스트와 같
 
 우리의 인과적 CRATE 아키텍처는 GPT-2를 직접 기반으로 하므로, 공정한 비교를 위해 NanoGPT 저장소 \citep{nanogpt}에서 제공하는 GPT-2의 최적 설정을 CRATE에 적용한 동일한 설정과 비교한다.
 
-\paragraph{모델 아키텍처.} GPT-2 토크나이저를 사용하며, 어휘 크기는 \texttt{<|pad|>}에 대한 특수 토큰을 포함하여 \(V = 50257\)이다.\footnote{\texttt{<|bos|>}$ 토큰은 이 설정에 포함되어 있지 않지만, 현대 언어 모델에서는 매우 일반적이다.} 컨텍스트 길이는 \(N_{\max} = 1024\)이다. 백본 모델은 GPT2-Base 아키텍처 \citep{radford2019language}를 따르며, 인과적 CRATE 계층을 갖도록 적절한 변경이 가해졌으며, GPT2-Small 및 GPT2-Base와 비교한다.
+\paragraph{모델 아키텍처.} GPT-2 토크나이저를 사용하며, 어휘 크기는 \texttt{<|pad|>}에 대한 특수 토큰을 포함하여 \(V = 50257\)이다.\footnote{\texttt{<|bos|>} 토큰은 이 설정에 포함되어 있지 않지만, 현대 언어 모델에서는 매우 일반적이다.} 컨텍스트 길이는 \(N_{\max} = 1024\)이다. 백본 모델은 GPT2-Base 아키텍처 \citep{radford2019language}를 따르며, 인과적 CRATE 계층을 갖도록 적절한 변경이 가해졌으며, GPT2-Small 및 GPT2-Base와 비교한다.
 
 \paragraph{데이터셋 및 최적화.} 인과적 CRATE 훈련을 위해, NanoGPT 저장소 \citep{nanogpt}의 구현을 따른다. 구체적으로, 배치 크기 384를 사용하고 Adam 옵티마이저\citep{kingma2014adam}로 600,000 단계 동안 훈련한다. Adam 옵티마이저의 경우, $(\beta_1, \beta_2)=(0.9, 0.95)$와 가중치 감쇠 0.1을 사용한다. 학습률 스케줄의 경우, 선형 워밍업과 코사인 감쇠를 적용하며, 2,000번째 반복에서 최고값 $\eta=6\times 10^{-4}$, 최소값 $6\times 10^{-5}$를 사용한다. 반복 횟수에 따른 훈련 및 검증 손실은 \Cref{fig:crate-text-evals}에 나와 있다. 훈련/검증 손실은 배치 크기 384와 600,000번의 반복으로 훈련한 후 약 3.37로 수렴한다. 이에 비해, 공개 GPT-2 구현은 배치 크기 512와 600,000 단계로 OpenWebText에서 사전 훈련되었으며 검증 손실 2.85로 수렴한다 \citep{nanogpt}.
 
@@ -932,15 +937,15 @@ CRATE-\( \alpha \) 계층은 \Cref{fig:crate_alpha_backbone}에 나와 있다. �
     
     \begin{tabular}{@{}lccccccc@{}}
             \toprule
-            모델        & ListOps  & 텍스트     & 검색 & 이미지    & Pathfinder & 평균      \ 
+            모델        & ListOps  & 텍스트     & 검색 & 이미지    & Pathfinder & 평균      \\
             \midrule
             \midrule
-            Reformer              & \textbf{37.27} & 56.10             & 53.40              & 38.07             & 68.50               & 50.56             \ 
-            BigBird               & 36.05             & 64.02             & 59.29              & 40.83             & 74.87                & 54.17             \ 
-            LinFormer         & 16.13             & \underline{65.90} & 53.09              & 42.34             & \underline{75.30}               & 50.46             \ 
-            Performer             & 18.01             & 65.40             & 53.82              & 42.77             & \textbf{77.05}                & 51.18             \ 
-            Transformer           & 37.11             & 65.21             & \underline{79.14}              & \underline{42.94}             & 71.83              & \underline{59.24}            \ 
-            ToST & \underline{37.25}    & \textbf{66.75}    & \textbf{79.46}     & \textbf{46.62}    &    69.41      &     \textbf{59.90}\ 
+            Reformer              & \textbf{37.27} & 56.10             & 53.40              & 38.07             & 68.50               & 50.56             \\
+            BigBird               & 36.05             & 64.02             & 59.29              & 40.83             & 74.87                & 54.17             \\
+            LinFormer         & 16.13             & \underline{65.90} & 53.09              & 42.34             & \underline{75.30}               & 50.46             \\
+            Performer             & 18.01             & 65.40             & 53.82              & 42.77             & \textbf{77.05}                & 51.18             \\
+            Transformer           & 37.11             & 65.21             & \underline{79.14}              & \underline{42.94}             & 71.83              & \underline{59.24}            \\
+            ToST & \underline{37.25}    & \textbf{66.75}    & \textbf{79.46}     & \textbf{46.62}    &    69.41      &     \textbf{59.90}\\
             
             \bottomrule
         \end{tabular}%
@@ -948,7 +953,7 @@ CRATE-\( \alpha \) 계층은 \Cref{fig:crate_alpha_backbone}에 나와 있다. �
     \label{tab:tost_lra_results}
 \end{table}
 
-더욱이, 제안된 아키텍처, 즉 ToST(``토큰 통계 트랜스포머''의 약자)는 비전 작업(\(Cref{tab:tost_linear_probing}\))과 언어 작업(\(Cref{tab:tost_lm}\))에서 잘 수행된다. 이는 특히 긴 시퀀스 길이 작업(\(Cref{tab:tost_lra_results}\))에서 그러하며, 기존 트랜스포머 및 다른 모든 트랜스포머 유사 아키텍처보다 성능이 우수하고 훨씬 효율적이다.
+더욱이, 제안된 아키텍처, 즉 ToST(``토큰 통계 트랜스포머''의 약자)는 비전 작업(\Cref{tab:tost_linear_probing})과 언어 작업(\Cref{tab:tost_lm})에서 잘 수행된다. 이는 특히 긴 시퀀스 길이 작업(\Cref{tab:tost_lra_results})에서 그러하며, 기존 트랜스포머 및 다른 모든 트랜스포머 유사 아키텍처보다 성능이 우수하고 훨씬 효율적이다.
 
 \subsection{어텐션 전용 트랜스포머} \label{sub:aot_experiments}
 
@@ -976,10 +981,10 @@ CRATE-\( \alpha \) 계층은 \Cref{fig:crate_alpha_backbone}에 나와 있다. �
  모델  & {\bf LAMBADA} & {\bf PTB} & {\bf WikiText} & {\bf LAMBADA} & {\bf CBT CN} & {\bf CBT NE} \\
  \# 매개변수  & (검증 손실) $\downarrow$ &  (검증 손실) $\downarrow$ &(검증 손실) $\downarrow$ & (정확도) $\uparrow$ &(정확도) $\uparrow$ &(정확도) $\uparrow$ \\
  \midrule
- AoT-MSSA Base (102M) & 4.70 & 6.03 & 4.65 & 0.25 & 0.80 & 0.74\ 
- AoT-MSSA Medium (182M) & 4.47 & 5.08 & 4.22 & 0.29 & 0.84 & 0.77 \ 
- AoT-MHSA Base (122M) & 4.42 & 5.52 & 4.19 & 0.38 & 0.86 & 0.82\ 
- GPT-2 Base (124M) & 4.32 & 5.75 & 4.13 &  0.40 &  0.87 &  0.84 \ 
+ AoT-MSSA Base (102M) & 4.70 & 6.03 & 4.65 & 0.25 & 0.80 & 0.74\\
+ AoT-MSSA Medium (182M) & 4.47 & 5.08 & 4.22 & 0.29 & 0.84 & 0.77 \\
+ AoT-MHSA Base (122M) & 4.42 & 5.52 & 4.19 & 0.38 & 0.86 & 0.82\\
+ GPT-2 Base (124M) & 4.32 & 5.75 & 4.13 &  0.40 &  0.87 &  0.84 \\
 \bottomrule
 \end{tabular}
 \label{tab:zeroshot}
@@ -1052,7 +1057,7 @@ CRATE-\( \alpha \) 계층은 \Cref{fig:crate_alpha_backbone}에 나와 있다. �
 
 \Cref{sub:image_classification_optimization}에서와 같이, 간단한 최적화 설정을 사용한다: 이미지와 마스크를 샘플링하고, 해당 샘플에 대한 손실과 그 그래디언트를 계산하고, 일반적인 최적화 알고리즘과 앞서 언급한 그래디언트를 사용하여 매개변수를 업데이트한다. 각 시간 단계 \(k\)에서, 우리는:
 \begin{itemize}
-    \item 데이터셋 \(\cI\)에서 \(B\)개의 다른 샘플 \(\((\vX_{b}^{(k)}))\)을 하위 샘플링한다.
+    \item \(B\)개의 서로 다른 샘플 \(\{\vX_{b}^{(k)}\}_{b = 1}^{B} \subseteq \cI\)를 부분추출한다.
     \item 각 샘플 \(\vX_{b}^{(k)}\)에 대해, 다른 무작위 리사이즈된 자르기 및 마스크 \(v_{b, m}^{(k)}\)를 계산하고 이를 \(\vX_{b}^{(k)}\)에 적용하여 \(\vX_{b, m}^{(k)} \doteq v_{b, m}^{t}(\X_{b}^{(k)})\)를 얻는다.
     \item 추정된 오토인코딩 \(\hat{\vX}_{\theta, \eta}(\vX_{b, r}^{(k)}) \doteq (g_{\eta} \circ f_{\theta})(\vX_{b, r}^{(k)})\)를 계산한다.
     \item 대리 확률적 손실을 형성한다
