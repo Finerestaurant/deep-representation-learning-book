@@ -1,0 +1,20 @@
+- [x] Chapter: Optimization Methods
+- [x] Section: Steepest Descent
+- [x] Subsection: Vanilla Gradient Descent for Smooth Problems
+- [x] Subsubsection: Step-Size Selection
+- [x] Subsection: Preconditioned Gradient Descent for Badly-Conditioned Problems
+- [x] Subsubsection: Newton's Method
+- [x] Subsubsection: PGD
+- [x] Subsection: Proximal Gradient Descent for Non-Smooth Problems
+- [x] Subsection: Stochastic Gradient Descent for Large-Scale Problems
+- [x] Subsection: Putting Everything Together: Adam
+- [x] Section: Computing Gradients via Automatic Differentiation
+- [x] Subsection: Differentials
+- [x] Subsection: Automatic Differentiation
+- [x] Subsection: Back Propagation
+- [x] Section: Game Theory and Minimax Optimization
+- [x] Subsection: Learning Stackelberg Equilibria
+- [x] Subsubsection: Convergence of One-Timescale GDA to Stackelberg Equilibrium
+- [x] Subsubsection: Local Convergence of Two-Timescale GDA to Stackelberg Equilibrium
+- [x] Subsection: Practical Considerations when Learning Stackelberg Equilibria
+- [x] Section: Exercises

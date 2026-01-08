@@ -87,7 +87,7 @@
 \end{enumerate}
 이제 질문은: 어느 것이 더 나으며, 어떤 의미에서 그런가? 이 데이터 $\X$가 특정 분포 $q(\x)$(위에서 고려한 분포 중 하나일 수 있음)에서 추출되었다고 믿는다고 가정하자. 그러면 분포 $q(\x)$에 대한 최적 코드북으로 데이터 포인트를 인코딩할 수 있다. 필요한 평균 코딩 길이(또는 코딩 레이트)는 다음과 같이 주어진다:
 \begin{equation}
-	\frac{1}{N}\sum_{i=1}^N -\log q(\x_i) \quad \approx \quad - \int_{\R^{D}} p(\vxi) \log q(\vxi)\odif{\vxi}
+	\frac{1}{N}\sum_{i=1}^N -\log q(\x_i)      \approx      - \int_{\R^{D}} p(\vxi) \log q(\vxi)\odif{\vxi}
 \end{equation}
 샘플 수 $N$이 커질수록. 올바른 분포 $p(\x)$를 식별했다면, 코딩 레이트는 엔트로피 $- \int p(\vxi) \log p(\vxi) \odif{\vxi}$로 주어진다. 위의 코딩 길이 $- \int p(\vxi) \log q(\vxi) \odif{\vxi}$는 $q(\x) = p(\x)$가 아닌 한 항상 엔트로피보다 크거나 같다는 것이 밝혀졌다. 그들의 차이는 다음과 같이 표기되며
 \begin{eqnarray}
@@ -795,7 +795,7 @@
 
 이제 임의의 분포로부터의 데이터 샘플 집합 $\X = [\x_1, \ldots, \x_N]$이 주어졌다고 가정하자.\footnote{또는 이러한 데이터 포인트 자체를 (경험적) 분포로 볼 수 있다.} 우리는 특정 정밀도까지 데이터를 인코딩할 수 있는 구성적 체계를 고안하고자 한다, 예를 들어
 \begin{equation}
-	\x_i \mapsto \hat \x_i, \quad \mbox{subject to} \quad \|\x_i - \hat \x_i\|_2 \le \epsilon.
+	\x_i \mapsto \hat \x_i,      \mbox{subject to}      \|\x_i - \hat \x_i\|_2 \le \epsilon.
 \end{equation}
 이것은 데이터가 \(\frac{1}{N}\sum_{i = 1}^{N} \norm{\x_i- \hat \x_i}_2^{2} \le \epsilon^{2}\)와 같이 인코딩되도록 보장하는 충분하고 명시적이며 해석 가능한 조건임에 주목하라. 이 후자의 부등식은 제공된 경험적 분포와 그 인코딩에 대한 레이트 왜곡 제약 조건과 정확히 일치한다. 예를 들어, \Cref{example:sphere-covering-rate-distortion}에서 우리는 이 단순화된 기준을 사용하여 주어진 코딩 레이트에 대한 최소 왜곡과 명시적 코딩 체계를 명시적으로 찾았다.
 
@@ -940,7 +940,7 @@ $\hat \x_i$에 의해 span되는 영역에 속하는 벡터를 인코딩하기 �
 \end{equation}
 여기서 $\boldsymbol{\Pi}$를 사용하여 분할의 멤버십을 나타낸다. 분할이 분포의 저차원 구조를 존중하는 경우, 이 경우 $\X_1$과 $\X_2$가 각각 두 부분공간에 속하는 경우, 결과 코딩 레이트는 위의 두 기본 체계보다 상당히 작아야 한다:
 \begin{equation}
-	R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_{\epsilon}(\X), \quad     R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_0(\X).
+	R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_{\epsilon}(\X),          R_{\epsilon}^c(\X \mid \boldsymbol{\Pi}) \ll R_0(\X).
 \end{equation}
 일반적으로, 클러스터링 문제를 코딩 레이트를 최소화하는 최적화 문제로 캐스팅할 수 있다:
 \begin{equation}
@@ -1079,7 +1079,7 @@ $\bm{x} \in \mathbb{R}^D$가 $K$개의 (구성 요소) 분포 $\mathcal{D} = \{\
 \end{equation}
 여기서 $H(\x \vert \z)$는 $\z$가 주어졌을 때 $\x$의 조건부 엔트로피이다. 상호 정보량은 {\em 정보 이득}으로도 알려져 있다: 이는 $\z$가 주어졌을 때 확률 변수 $\x$의 엔트로피가 얼마나 감소할 수 있는지 측정한다. 또는 동등하게, $\z$가 $\x$에 대해 얼마나 많은 정보를 포함하는지 측정한다. {\em 정보 병목(information bottleneck)} (IB) 공식 \cite{Tishby-ITW2015}은 네트워크의 역할이 $\y$를 예측하기 위한 최소 충분 통계량으로 $\z$를 학습하는 것이라고 추가로 가정한다. 공식적으로, $\z$와 $\y$ 사이의 상호 정보량 $I(\z, \y)$를 최대화하면서 $\x$와 $\z$ 사이의 상호 정보량 $I(\x, \z)$를 최소화하려고 한다:
 \begin{equation}
-	\max_{\theta\in \Theta}\; \mbox{IB}(\x, \y, \z) \doteq I(\z; \y) - \beta I(\x; \z) \quad\ \mathrm{s.t.}\ \z = f(\x, \theta),
+	\max_{\theta\in \Theta}\; \mbox{IB}(\x, \y, \z) \doteq I(\z; \y) - \beta I(\x; \z)     \ \mathrm{s.t.}\ \z = f(\x, \theta),
 	\label{chap4-eqn:information-bottleneck}
 \end{equation}
 여기서 $\beta >0$이다.
@@ -1225,18 +1225,18 @@ $\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점�
 
 이 하위 섹션에서는 MCR$^2$ 함수의 최적화 속성을 최적 해와 최적화 지형의 구조를 분석하여 연구한다. 신경망에 의해 도입된 기술적 어려움을 피하기 위해, 다음과 같이 문제 \eqref{eqn:maximal-rate-reduction}의 단순화된 버전을 고려한다: 
 \begin{align}\label{eqn1:maximal-rate-reduction}
-    \max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z)\qquad \mathrm{s.t.}\quad \|\bm Z_k\|_F^2 = N_k,\ k =1,\dots,K. 
+    \max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z)\qquad \mathrm{s.t.}     \|\bm Z_k\|_F^2 = N_k,\ k =1,\dots,K. 
 \end{align}
 이론적으로, MCR$^2$ 원리 \eqref{eqn1:maximal-rate-reduction}는 분포에 대한 레이트 $R_\epsilon$과 $R^c_\epsilon$을 정확하고 효율적으로 평가할 수 있는 한, {\em 모든} 분포의 표현 $\Z$에 적용될 수 있는 뛰어난 일반화 가능성을 가진다. 최적 표현 $\Z^{\ast}$는 몇 가지 흥미로운 기하학적 및 통계적 속성을 가져야 한다. 여기서는 기계 학습에서 많은 중요한 사용 사례가 있는 부분 공간의 특별한 경우를 통해 최적 표현의 좋은 속성을 밝힌다. $\Z$에 대해 원하는 표현이 다중 부분 공간일 때, \eqref{eqn1:maximal-rate-reduction}의 레이트 $R_\epsilon$과 $R^c_\epsilon$는 각각 \eqref{chap4-eqn:coding-length-eval}과 \eqref{chap4-eqn:compress-loss-eval}에 의해 주어진다. 최대 코딩 레이트 감소에서, MCR$^2$는 $\rank{(\Z_{k}^*)}\le d_k$인 최적 표현 $\Z^{\ast} = [\Z_1^*,\dots,\Z_K^*]$을 달성한다. $\Z^{\ast}$가 다음과 같은 원하는 속성을 가지고 있음을 보일 수 있다(\cite{yu2020learning}에서 공식적인 설명과 자세한 증명 참조).
 
 \begin{theorem}[\bf 전역 최적 해의 특성화]
-\quad$\Z^{\ast} = [\Z_1^*,\dots,\Z_K^*]$가 문제~\eqref{eqn1:maximal-rate-reduction}의 전역 최적 해라고 가정하자. 다음 진술이 성립한다:
-\quad\begin{itemize}
-\quad\quad\item {\em 클래스 간 판별성}: 주변 공간이 충분히 크면($d \ge \sum_{k=1}^{K} d_k$), 부분 공간들은 모두 서로 직교한다. 즉, $k \not= l$에 대해 $(\Z_{k}^*)^{\top} \Z_{l}^* = \bm{0}$이다.
-\quad\quad\item {\em 최대한 다양한 표현}:
-\quad\quad\quad\quad코딩 정밀도가 충분히 높으면, 즉 $\epsilon ^4 < c\cdot \min_{k}\left\{ \frac{N_k}{N}\frac{d^2}{d_k^2}\right\}$(여기서 $c>0$는 상수)이면, 각 부분 공간은 최대 차원을 달성한다. 즉, $\mathrm{rank}{(\Z_{k}^*)}= d_k$이다. 또한, $\Z_{k}^*$의 가장 큰 $d_k-1$개의 특이값은 동일하다.
-\quad\quad\quad\label{thm:MCR2-properties}
-\quad\end{itemize}
+    $\Z^{\ast} = [\Z_1^*,\dots,\Z_K^*]$가 문제~\eqref{eqn1:maximal-rate-reduction}의 전역 최적 해라고 가정하자. 다음 진술이 성립한다:
+    \begin{itemize}
+        \item {\em 클래스 간 판별성}: 주변 공간이 충분히 크면($d \ge \sum_{k=1}^{K} d_k$), 부분 공간들은 모두 서로 직교한다. 즉, $k \not= l$에 대해 $(\Z_{k}^*)^{\top} \Z_{l}^* = \bm{0}$이다.
+        \item {\em 최대한 다양한 표현}:
+                코딩 정밀도가 충분히 높으면, 즉 $\epsilon ^4 < c\cdot \min_{k}\left\{ \frac{N_k}{N}\frac{d^2}{d_k^2}\right\}$(여기서 $c>0$는 상수)이면, 각 부분 공간은 최대 차원을 달성한다. 즉, $\mathrm{rank}{(\Z_{k}^*)}= d_k$이다. 또한, $\Z_{k}^*$의 가장 큰 $d_k-1$개의 특이값은 동일하다.
+            \label{thm:MCR2-properties}
+    \end{itemize}
 \end{theorem}
 
 
@@ -1245,42 +1245,42 @@ $\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점�
 
 
 \begin{example}[CIFAR-10 이미지 분류]
-\quad\quad여기서는 MCR$^2$ 목표가 이미지 분류를 위해 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}보다 더 나은 표현을 학습하는 데 어떻게 도움이 되는지 제시한다. 여기서는 특징 매핑 $\z = f(\x,\theta)$를 모델링하기 위해 인기 있는 신경망 아키텍처인 ResNet-18~\cite{he2016deep}을 채택한다. 우리는 코딩 레이트 감소를 최대화하기 위해 신경망 매개변수 $\theta$를 최적화한다. CIFAR10 이미지 분류 데이터셋~\cite{krizhevsky2009learning}으로 성능을 평가한다.
+        여기서는 MCR$^2$ 목표가 이미지 분류를 위해 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}보다 더 나은 표현을 학습하는 데 어떻게 도움이 되는지 제시한다. 여기서는 특징 매핑 $\z = f(\x,\theta)$를 모델링하기 위해 인기 있는 신경망 아키텍처인 ResNet-18~\cite{he2016deep}을 채택한다. 우리는 코딩 레이트 감소를 최대화하기 위해 신경망 매개변수 $\theta$를 최적화한다. CIFAR10 이미지 분류 데이터셋~\cite{krizhevsky2009learning}으로 성능을 평가한다.
 
-\quad\quad\begin{figure}[t]
-\quad\quad\quad\begin{subfigure}[t]{0.42\textwidth}
-\quad\quad\quad\quad\centering
-\quad\quad\quad\quad\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/loss_log.pdf}
-\quad\quad\quad\quad\caption{훈련 과정 동안의 $R_\epsilon$, $R^c_\epsilon$, $\Delta R_\epsilon$의 변화.}
-\quad\quad\quad\quad\label{fig:train-test-loss-pca-1}
-\quad\quad\quad\end{subfigure}
-\quad\quad\quad\hfill
-\quad\quad\quad\begin{subfigure}[t]{0.42\textwidth}
-\quad\quad\quad\quad\centering
-\quad\quad\quad\quad\includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/pca_mainline.pdf}
-\quad\quad\quad\quad\caption{PCA: {\small (\textbf{빨강}) 전체 데이터; (\textbf{파랑}) 개별 클래스}.}
-\quad\quad\quad\quad\label{fig:train-test-loss-pca-3}
-\quad\quad\quad\end{subfigure}
-\quad\quad\quad\caption{{\small 훈련 과정에서 MCR$^2$의 레이트 변화, 학습된 특징의 주성분.}}
-\quad\quad\quad\label{fig:train-test-loss-pca}
-\quad\quad\end{figure}
+        \begin{figure}[t]
+            \begin{subfigure}[t]{0.42\textwidth}
+                \centering
+                \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/loss_log.pdf}
+                \caption{훈련 과정 동안의 $R_\epsilon$, $R^c_\epsilon$, $\Delta R_\epsilon$의 변화.}
+                \label{fig:train-test-loss-pca-1}
+            \end{subfigure}
+            \hfill
+            \begin{subfigure}[t]{0.42\textwidth}
+                \centering
+                \includegraphics[width=\textwidth]{\toplevelprefix/chapters/chapter3/figs/pca_mainline.pdf}
+                \caption{PCA: {\small (\textbf{빨강}) 전체 데이터; (\textbf{파랑}) 개별 클래스}.}
+                \label{fig:train-test-loss-pca-3}
+            \end{subfigure}
+            \caption{{\small 훈련 과정에서 MCR$^2$의 레이트 변화, 학습된 특징의 주성분.}}
+            \label{fig:train-test-loss-pca}
+        \end{figure}
 
 
-\quad\quad\begin{figure*}[b]
-\quad\quad\quad\begin{center}
+        \begin{figure*}[b]
+            \begin{center}
 
-\quad\quad\quad\quad\includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_mcr2.pdf}
-\quad\quad\quad\quad\hspace{0.25cm}
-\quad\quad\quad\quad\includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_ce.png}
-\quad\quad\quad\quad\caption{{\small MCR$^2$ 목표(\textbf{왼쪽})와 CE 손실(\textbf{오른쪽})을 사용하여 학습된 특징 간의 코사인 유사도.}}
-\quad\quad\quad\quad\label{fig:heatmap-plot}
-\quad\quad\quad\end{center}
-\quad\quad\quad\vskip -0.1in
-\quad\quad\end{figure*}
+                \includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_mcr2.pdf}
+                \hspace{0.25cm}
+                \includegraphics[width=0.42\textwidth]{\toplevelprefix/chapters/chapter3/figs/heatmap_ce.png}
+                \caption{{\small MCR$^2$ 목표(\textbf{왼쪽})와 CE 손실(\textbf{오른쪽})을 사용하여 학습된 특징 간의 코사인 유사도.}}
+                \label{fig:heatmap-plot}
+            \end{center}
+            \vskip -0.1in
+        \end{figure*}
 
-\quad\quad\Cref{fig:train-test-loss-pca-1}은 훈련의 에포크에 걸쳐 두 레이트와 그 차이(훈련 및 테스트 데이터 모두)가 어떻게 변하는지 보여준다: 초기 단계를 거친 후, $R_\epsilon$은 점차 증가하는 반면 $R^c_\epsilon$은 감소하여, 전체 특징 $\bm Z$이 확장되는 동시에 각 클래스 $\bm Z_k$가 압축되고 있음을 나타낸다.
-\quad\quad\Cref{fig:train-test-loss-pca-3}은 $\Z_k$당 특이값 분포를 보여준다. \Cref{fig:heatmap-plot}은 클래스별로 정렬된 학습된 특징 간의 코사인 유사도를 보여준다. 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}와 MCR$^2$ 목표 \eqref{eqn:maximal-rate-reduction}를 사용하여 학습된 특징의 유사도를 비교한다. 플롯에서 MCR$^2$ 손실을 사용하여 학습된 표현이 교차 엔트로피 손실을 사용하여 학습된 표현보다 훨씬 더 다양하다는 것을 분명히 알 수 있다. 이 실험에 대한 자세한 내용은 \cite{chan2021redunet}에서 찾을 수 있다.
-\quad\quad\label{eg:Rate-Reduction-CIFAR10}
+        \Cref{fig:train-test-loss-pca-1}은 훈련의 에포크에 걸쳐 두 레이트와 그 차이(훈련 및 테스트 데이터 모두)가 어떻게 변하는지 보여준다: 초기 단계를 거친 후, $R_\epsilon$은 점차 증가하는 반면 $R^c_\epsilon$은 감소하여, 전체 특징 $\bm Z$이 확장되는 동시에 각 클래스 $\bm Z_k$가 압축되고 있음을 나타낸다.
+        \Cref{fig:train-test-loss-pca-3}은 $\Z_k$당 특이값 분포를 보여준다. \Cref{fig:heatmap-plot}은 클래스별로 정렬된 학습된 특징 간의 코사인 유사도를 보여준다. 교차 엔트로피 \eqref{chap4-eqn:cross-entropy}와 MCR$^2$ 목표 \eqref{eqn:maximal-rate-reduction}를 사용하여 학습된 특징의 유사도를 비교한다. 플롯에서 MCR$^2$ 손실을 사용하여 학습된 표현이 교차 엔트로피 손실을 사용하여 학습된 표현보다 훨씬 더 다양하다는 것을 분명히 알 수 있다. 이 실험에 대한 자세한 내용은 \cite{chan2021redunet}에서 찾을 수 있다.
+        \label{eg:Rate-Reduction-CIFAR10}
 \end{example}
 
 
@@ -1292,38 +1292,38 @@ $\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점�
 위 정리는 레이트 감소 목표의 전역 최적해의 속성을 특징짓는다. 다른 최적해, 예를 들어 지역 최적해는 어떨까? 프로베니우스 노름의 제약 조건 때문에, 최적화 이론적 관점에서 문제 \eqref{eqn1:maximal-rate-reduction}을 분석하는 것은 어려운 작업이다. 따라서, 우리는 \eqref{eqn1:maximal-rate-reduction}의 라그랑주 공식을 고려한다. 이는 정규화 매개변수의 특정 설정 하에서 최적 해가 일치하는 \eqref{eqn1:maximal-rate-reduction}의 엄격한 완화 또는 동등한 문제로 볼 수 있다; \cite[Proposition 1]{wang2024global} 참조.
 구체적으로, 우리가 연구하는 공식은 이하에서 \textit{정규화된 MCR$^2$ 문제}라고 하며, 다음과 같다:
 \begin{align}\label{eq:MCR-reg}
-\quad\quad\max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z) - \frac{\lambda}{2}\|\bm Z\|_F^2,
+        \max_{\bm Z}\ R_{\epsilon}(\Z) - R_{\epsilon}^c(\Z) - \frac{\lambda}{2}\|\bm Z\|_F^2,
 \end{align}
 여기서 $\lambda > 0$는 정규화 매개변수이다. 프로그램 \eqref{eq:MCR-reg}은 매우 비볼록이고 그래디언트 계산에 행렬 역행렬을 포함하지만, 우리는 여전히 지역 및 전역 최적해를 다음과 같이 명시적으로 특징지을 수 있다.
 
 \begin{theorem}[\bf 지역 및 전역 최적해]\label{thm:mcr-global-opt}
-\quad\quad각 $k \in \{1,\dots,K\}$에 대해 $N_k$를 $k$-번째 클래스의 훈련 샘플 수, $N_{\max} \doteq \max\{N_1,\dots,N_K\}$, $\alpha=d/(N\epsilon^2)$, $\alpha_{k} = d/(N_k\epsilon^2)$라고 하자. 코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 다음을 만족하면
-\quad\quad\begin{align}\label{eq:lambda}
-\quad\quad\quad\quad\lambda \in \left(0, \frac{d(\sqrt{N/N_{\max}}-1)}{N(\sqrt{N/N_{\max}}+1)\epsilon^2} \right],
-\quad\quad\end{align}
-\quad\quad다음 진술이 성립한다: \\
-\quad\quad(i) (\textbf{지역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 지역 최대화자인 경우, $k$-번째 블록이 다음 분해를 허용하는 경우에만 그러하다.
-\quad\quad\begin{align}\label{eq:Zk opti}
-\quad\quad\quad\quad\bm Z_k^* = \left(\frac{ \eta_k + \sqrt{\eta_k^2 - 4\lambda^2N/N_k}}{2\lambda \alpha_{k}}\right)^{1/2} \bm U_k \bm V_k^\top,
-\quad\quad\end{align}
-\quad\quad여기서 (a) $r_k = \mathrm{rank}(\bm Z_k^*)$는 $r_k \in [0,\min\{N_k,d\})$를 만족하고 $\sum_{k=1}^K r_k \le \min\{N,d\}$이며, (b) $\bm U_k \in \mathcal{O}^{d \times r_k}$는 모든 $k \neq l$에 대해 $\bm U_k^{\top}\bm U_l = \bm 0$을 만족하고, $\bm V_k \in \mathcal{O}^{N_k \times r_k}$이며, (c) 각 $k\in \{1,\dots,K\}$에 대해 $\eta_k=(\alpha_k-\alpha) - \lambda(N/N_k+1)$이다.
-\quad\quad\\
-\quad\quad(ii) (\textbf{전역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\bm Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 전역 최대화자인 경우, (a) 위의 모든 조건을 만족하고 $\sum_{k=1}^K r_k = \min\{m,d\}$이며, (b) $N_k < N_l$이고 $r_l > 0$을 만족하는 모든 $k \neq l \in [K]$에 대해 $r_k = \min\{N_k,d\}$인 경우에만 그러하다.
+        각 $k \in \{1,\dots,K\}$에 대해 $N_k$를 $k$-번째 클래스의 훈련 샘플 수, $N_{\max} \doteq \max\{N_1,\dots,N_K\}$, $\alpha=d/(N\epsilon^2)$, $\alpha_{k} = d/(N_k\epsilon^2)$라고 하자. 코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 다음을 만족하면
+        \begin{align}\label{eq:lambda}
+                \lambda \in \left(0, \frac{d(\sqrt{N/N_{\max}}-1)}{N(\sqrt{N/N_{\max}}+1)\epsilon^2} \right],
+        \end{align}
+        다음 진술이 성립한다: \\
+        (i) (\textbf{지역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 지역 최대화자인 경우, $k$-번째 블록이 다음 분해를 허용하는 경우에만 그러하다.
+        \begin{align}\label{eq:Zk opti}
+                \bm Z_k^* = \left(\frac{ \eta_k + \sqrt{\eta_k^2 - 4\lambda^2N/N_k}}{2\lambda \alpha_{k}}\right)^{1/2} \bm U_k \bm V_k^\top,
+        \end{align}
+        여기서 (a) $r_k = \mathrm{rank}(\bm Z_k^*)$는 $r_k \in [0,\min\{N_k,d\})$를 만족하고 $\sum_{k=1}^K r_k \le \min\{N,d\}$이며, (b) $\bm U_k \in \mathcal{O}^{d \times r_k}$는 모든 $k \neq l$에 대해 $\bm U_k^{\top}\bm U_l = \bm 0$을 만족하고, $\bm V_k \in \mathcal{O}^{N_k \times r_k}$이며, (c) 각 $k\in \{1,\dots,K\}$에 대해 $\eta_k=(\alpha_k-\alpha) - \lambda(N/N_k+1)$이다.
+        \\
+        (ii) (\textbf{전역 최대화자}) $\bm Z^* = \left[\bm Z_1^*,\dots,\bm Z_K^* \right]$가 문제 \eqref{eq:MCR-reg}의 전역 최대화자인 경우, (a) 위의 모든 조건을 만족하고 $\sum_{k=1}^K r_k = \min\{m,d\}$이며, (b) $N_k < N_l$이고 $r_l > 0$을 만족하는 모든 $k \neq l \in [K]$에 대해 $r_k = \min\{N_k,d\}$인 경우에만 그러하다.
 \end{theorem}
 
 \begin{figure}[t]
-\quad\quad\centering
-\quad\quad\includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/mcr2-global-local.png}
-\quad\quad\caption{{\bf 전역 최적화 지형:} \cite{sun2015nonconvex,lee2016gradient}, \Cref{thm:mcr-global-opt,thm:mcr-benign-opt-landscape}에 따르면, (정규화된) 레이트 감소 목표의 전역 및 지역 최대값은 모두 상호 비간섭 부분공간을 가진 솔루션에 해당한다. 다른 모든 임계점은 엄격한 안장점이다.}
-\quad\quad\label{fig:mcr-global-local}
+        \centering
+        \includegraphics[width=0.8\linewidth]{\toplevelprefix/chapters/chapter3/figs/mcr2-global-local.png}
+        \caption{{\bf 전역 최적화 지형:} \cite{sun2015nonconvex,lee2016gradient}, \Cref{thm:mcr-global-opt,thm:mcr-benign-opt-landscape}에 따르면, (정규화된) 레이트 감소 목표의 전역 및 지역 최대값은 모두 상호 비간섭 부분공간을 가진 솔루션에 해당한다. 다른 모든 임계점은 엄격한 안장점이다.}
+        \label{fig:mcr-global-local}
 \end{figure}
 
 이 정리는 문제 \eqref{eq:MCR-reg}의 지역 및 전역 최적해를 명시적으로 특징짓는다. 직관적으로, 이는 문제 \eqref{eq:MCR-reg}의 각 지역 최대화자에 의해 표현된 특징이 저차원이고 판별적임을 보여준다. 정리~\ref{thm:mcr-global-opt}에서 지역 및 전역 최적 해를 특징지었지만, GD가 안장점과 같은 다른 임계점에 갇힐 수 있기 때문에 문제 \eqref{eq:MCR-reg}를 해결하기 위해 GD를 사용하여 이러한 해를 효율적으로 계산할 수 있는지 여부는 아직 알려지지 않았다.
 다행히도, \cite{sun2015nonconvex,lee2016gradient}는 함수가 두 번 연속적으로 미분 가능하고 {\em 엄격한 안장 속성}을 만족하면, 즉 각 임계점이 지역 최소화자이거나 엄격한 안장점\footnote{문제 \eqref{eq:MCR-reg}의 임계점이 엄격하게 양의 곡률을 가진 방향을 가지면 엄격한 안장점이라고 말한다~\cite{sun2015nonconvex}. 이는 엄격하게 양의 곡률을 가진 고전적인 안장점과 지역 최소화자를 포함한다.}이면, GD가 무작위 초기화로 거의 확실하게 지역 최소화자에 수렴함을 보였다. 우리는 다음과 같이 모든 임계점을 특징지음으로써 문제 \eqref{eq:MCR-reg}의 전역 최적화 지형을 조사한다.
 
  \begin{theorem}[\bf 양성 전역 최적화 지형]\label{thm:mcr-benign-opt-landscape}
-\quad\quad코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 \eqref{eq:lambda}를 만족하면,
-\quad\quad문제 \eqref{eq:MCR-reg}의 임의의 임계점 $\bm Z$는 지역 최대화자이거나 엄격한 안장점이다.
+        코딩 정밀도 $\epsilon > 0$가 주어졌을 때, 정규화 매개변수가 \eqref{eq:lambda}를 만족하면,
+        문제 \eqref{eq:MCR-reg}의 임의의 임계점 $\bm Z$는 지역 최대화자이거나 엄격한 안장점이다.
 \end{theorem}
 함께, 위의 두 정리는 레이트
 감소 목표의 각 지역 최대화자와 관련된 학습된 특징이—전역 최대화자뿐만 아니라—비간섭적인 저차원 부분 공간으로 구조화됨을 보여준다. 더욱이, (정규화된) 레이트 감소 목표 \eqref{eqn:maximal-rate-reduction}은 \Cref{fig:mcr-global-local}에서 설명한 바와 같이 지역 최대값과 엄격한 안장점만을 임계점으로 갖는 매우 양성적인 지형을 가진다.
@@ -1383,7 +1383,7 @@ $\Delta R_{\epsilon}$는 특징 $\Z$의 스케일에서 {\em 단조}라는 점�
   \end{equation*}
   여기서 평균 및 공분산 매개변수는 다음과 같이 주어진다.
   \begin{equation*}
-    \vmu_{\vx} = \bE[\vx],\quad \vmu_{\vy} = \bE[\vy],\quad
+    \vmu_{\vx} = \bE[\vx],     \vmu_{\vy} = \bE[\vy],    
     \begin{bmatrix}
       \vSigma_{\vx} & \vSigma_{\vx\vy} \\
       \vSigma_{\vx\vy}^\top & \vSigma_{\vy}
