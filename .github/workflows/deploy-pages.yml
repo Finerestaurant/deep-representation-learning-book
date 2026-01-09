@@ -139,19 +139,14 @@ jobs:
             fi
 
             if [ $KO_PDF_EXIT -eq 0 ]; then
-              echo "Korean PDF build successful, starting HTML conversion..."
-              (cd website/latex_to_html && uv run --no-project --with beautifulsoup4 latex_to_html_converter.py ../../book-main_ko.tex ../html/ko)
-              KO_HTML_EXIT=$?
-
-              echo "Korean HTML conversion successful, moving PDF to assets..."
+              echo "Korean PDF build successful, moving PDF to assets..."
               mv book-main_ko.pdf website/html/assets/book-main_ko.pdf
             else
-              echo "Korean PDF build failed, skipping HTML conversion"
-              KO_HTML_EXIT=1
+              echo "Korean PDF build failed"
             fi
 
-            echo "Korean build complete: PDF=$KO_PDF_EXIT, HTML=$KO_HTML_EXIT"
-            return $((KO_PDF_EXIT + KO_HTML_EXIT))
+            echo "Korean build complete: PDF=$KO_PDF_EXIT"
+            return $((KO_PDF_EXIT))
           }
 
 
